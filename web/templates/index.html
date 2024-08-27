@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AliceTraINT</title>
+    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        h2 {
+            color: #555;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .login {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+
+        .login a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .login a:hover {
+            text-decoration: underline;
+        }
+
+        #user-list {
+            margin-top: 20px;
+        }
+
+        #user-list div {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #user-list div:last-child {
+            border-bottom: none;
+        }
+
+        .no-users {
+            color: #999;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+      <h1>{{ if .LoggedUser }} {{ .LoggedUser.Username }} good to see you again! {{ else }} Welcome to AliceTraINT {{ end }}</h1>
+
+        <div class="login">
+            <a href="/login">Login with CERN SSO</a>
+        </div>
+
+        <h2>Add a New User</h2>
+        <form hx-post="/users" hx-target="#user-list" hx-swap="afterbegin">
+            <div class="form-group">
+                <label for="first-name">First Name:</label>
+                <input type="text" id="first-name" name="first-name" required>
+            </div>
+            <div class="form-group">
+                <label for="family-name">Family Name:</label>
+                <input type="text" id="family-name" name="family-name" required>
+            </div>
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="cern-person-id">Cern Person Id:</label>
+                <input type="text" id="cern-person-id" name="cern-person-id" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <button type="submit">Add User</button>
+        </form>
+
+        <h2>User List</h2>
+        <div id="user-list">
+            {{ range .Users }}
+            <div>{{ .FirstName }} ({{ .Email }})</div>
+            {{ else }}
+            <div class="no-users">No users found.</div>
+            {{ end }}
+        </div>
+    </div>
+</body>
+
+</html>
+
