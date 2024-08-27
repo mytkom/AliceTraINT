@@ -1,6 +1,10 @@
 name: Test
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ "master", "alibuild-python" ]
+  pull_request:
+    branches: [ "master", "alibuild-python" ]
 
 jobs:
   test:
