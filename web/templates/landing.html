@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AliceTraINT</title>
+    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        h2 {
+            color: #555;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .login {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+
+        .login a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .login a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+      <h1>You need to Log In through CERN SSO to continue!</h1>
+
+        <div class="login">
+            <a href="/login">Login with CERN SSO</a>
+        </div>
+    </div>
+</body>
+
+</html>
