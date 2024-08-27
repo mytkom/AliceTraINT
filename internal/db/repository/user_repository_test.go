@@ -113,7 +113,7 @@ func TestUserRepository_GetUserByCernPersonId(t *testing.T) {
 		AddRow(2, "2", "bohrn", "Niels", "Bohr", "bohrn@example.com")
 
 	mock.ExpectQuery("SELECT \\* FROM \"users\" WHERE \"cern_person_id\" = (.+) ORDER BY \"users\".\"id\" LIMIT (.+)").
-    WithArgs("2", 1).
+		WithArgs("2", 1).
 		WillReturnRows(rows)
 
 	user, err := userRepo.GetUserByCernPersonId("2")
@@ -129,8 +129,8 @@ func TestUserRepository_DeleteUser(t *testing.T) {
 	userRepo := NewUserRepository(db)
 
 	mock.ExpectBegin()
-	mock.ExpectExec("DELETE FROM \"users\" WHERE \"users\".\"id\" = (.+)").WithArgs(1).WillReturnResult(sqlmock.NewResult(1,1))
-  mock.ExpectCommit()
+	mock.ExpectExec("DELETE FROM \"users\" WHERE \"users\".\"id\" = (.+)").WithArgs(1).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
 
 	err := userRepo.DeleteUser(1)
 	assert.NoError(t, err)
