@@ -82,3 +82,81 @@ func TestUserRepository_GetAllUsers(t *testing.T) {
 	assert.Equal(t, "Niels", users[1].FirstName)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestUserRepository_GetUserById(t *testing.T) {
+	db, mock, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	userRepo := NewUserRepository(db)
+
+	rows := sqlmock.NewRows([]string{"id", "cern_person_id", "username", "first_name", "family_name", "email"}).
+		AddRow(1, "1", "aeinstein", "Albert", "Einstein", "aeinstein@example.com").
+		AddRow(2, "2", "bohrn", "Niels", "Bohr", "bohrn@example.com")
+
+	mock.ExpectQuery("SELECT \\* FROM \"users\" WHERE \"users\".\"id\" = (.+) ORDER BY \"users\".\"id\" LIMIT (.+)").
+		WillReturnRows(rows)
+
+	user, err := userRepo.GetUserByID(2)
+	assert.NoError(t, err)
+	assert.Equal(t, "Albert", user.FirstName)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUserRepository_GetUserByCernPersonId(t *testing.T) {
+	db, mock, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	userRepo := NewUserRepository(db)
+
+	rows := sqlmock.NewRows([]string{"id", "cern_person_id", "username", "first_name", "family_name", "email"}).
+		AddRow(1, "1", "aeinstein", "Albert", "Einstein", "aeinstein@example.com").
+		AddRow(2, "2", "bohrn", "Niels", "Bohr", "bohrn@example.com")
+
+	mock.ExpectQuery("SELECT \\* FROM \"users\" WHERE \"cern_person_id\" = (.+) ORDER BY \"users\".\"id\" LIMIT (.+)").
+    WithArgs("2", 1).
+		WillReturnRows(rows)
+
+	user, err := userRepo.GetUserByCernPersonId("2")
+	assert.NoError(t, err)
+	assert.Equal(t, "Albert", user.FirstName)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUserRepository_DeleteUser(t *testing.T) {
+	db, mock, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	userRepo := NewUserRepository(db)
+
+	mock.ExpectBegin()
+	mock.ExpectExec("DELETE FROM \"users\" WHERE \"users\".\"id\" = (.+)").WithArgs(1).WillReturnResult(sqlmock.NewResult(1,1))
+  mock.ExpectCommit()
+
+	err := userRepo.DeleteUser(1)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUserRepository_UpdateUser(t *testing.T) {
+	db, mock, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	userRepo := NewUserRepository(db)
+	user := &models.User{
+		CernPersonId: "1",
+		Username:     "aeinstein",
+		FirstName:    "Albert",
+		FamilyName:   "Einstein",
+		Email:        "aeinstein@example.com",
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`INSERT INTO "users" (.+) RETURNING "id"`).
+		WithArgs(user.CernPersonId, user.Username, user.FirstName, user.FamilyName, user.Email).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectCommit()
+
+	err := userRepo.UpdateUser(user)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
