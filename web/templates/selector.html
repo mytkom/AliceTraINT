@@ -1,0 +1,154 @@
+{{define "content"}}
+
+<div class="flex gap-3 py-5 min-h-96 max-h-full w-full flex-col lg:flex-row">
+    <div
+        class="relative lg:w-1/2 w-full border-dotted rounded-md shadow-md dark:shadow-none overflow-hidden bg-sky-50 dark:bg-sky-800">
+        <div class="flex flex-col max-h-96 min-h-96">
+            <div class="max-h-full overflow-y-auto" id="file-tree">
+                <div hx-trigger="load" hx-get="explore-directory" hx-target="#file-tree"
+                    hx-vals='{"path":"/alice/sim/"}'>
+                </div>
+            </div>
+        </div>
+        <div id="file-tree-overlay" class="hidden absolute inset-0 bg-sky-200 opacity-50 z-10">
+            <div class="h-full flex justify-center items-center">
+                <img class="size-14 lg:size-20" src="/static/img/spinner.svg" />
+            </div>
+        </div>
+    </div>
+    <div
+        class="relative lg:w-1/2 w-full border-dotted rounded-md shadow-md dark:shadow-none overflow-hidden bg-sky-50 dark:bg-sky-800">
+        <div class="flex flex-col max-h-96 min-h-96">
+            <form id="find-aods-form"
+                class="flex flex-wrap content-stretch bg-white dark:bg-sky-700 justify-end gap-4 items-center border-b-2 border-dotted p-3"
+                hx-get="find-aods" hx-target="#file-list" hx-swap="innerHTML">
+                <label for="path">Path in Grid:</label>
+                <input class="bg-white border-sky-900 rounded-lg flex-grow text-sm py-1 px-2 max-w-1/2"
+                    placeholder="ex. /alice/sim/2024/LHC24f3/0/523397" type="text" id="path" name="path" required>
+                <button class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2"
+                    type="submit">Find AO2Ds</button>
+            </form>
+
+            <div id="file-list" class="overflow-y-auto max-h-full"></div>
+        </div>
+
+        <div id="file-list-overlay" class="hidden absolute inset-0 bg-sky-200 opacity-50 z-10">
+            <div class="h-full flex justify-center items-center">
+                <img class="size-14 lg:size-20" src="/static/img/spinner.svg" />
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="">
+    <h2>Selected Files:</h2>
+    <ul class="grid grid-cols-1 lg:grid-cols-2 gap-2" id="selected-files"></ul>
+    <button class="" id="submit-selection">Submit</button>
+</div>
+
+<script>
+    const toggleOverlay = (targetId, action) => {
+        const overlayId = `${targetId}-overlay`;
+        if (overlayId) {
+            const overlayElement = document.getElementById(overlayId);
+            if (overlayElement) {
+                overlayElement.classList[action]('hidden');
+            }
+        }
+    };
+
+    const handleBeforeRequest = (event) => {
+        toggleOverlay(event.detail.target.id, 'remove');
+    };
+
+    const handleFileTreeBeforeSwap = () => {
+        toggleOverlay('file-tree', 'add');
+
+        const parser = new DOMParser();
+        const serializer = new XMLSerializer();
+        const fileTree = parser.parseFromString(event.detail.serverResponse, 'text/xml');
+        const selectedFiles = Array.from(document.querySelectorAll('#selected-files li')).map(item => item.getAttribute('data-path'));
+
+        fileTree.querySelectorAll('ul li.file').forEach(fileListItem => {
+            if (selectedFiles.includes(fileListItem.getAttribute('data-path'))) {
+                fileListItem.remove();
+            }
+        });
+
+        event.detail.serverResponse = serializer.serializeToString(fileTree);
+    };
+
+    const handleFileListBeforeSwap = (event) => {
+        toggleOverlay('file-list', 'add');
+
+        const parser = new DOMParser();
+        const serializer = new XMLSerializer();
+        const fileList = parser.parseFromString(event.detail.serverResponse, 'text/xml');
+        const selectedFiles = Array.from(document.querySelectorAll('#selected-files li')).map(item => item.getAttribute('data-path'));
+
+        fileList.querySelectorAll('ul li').forEach(fileListItem => {
+            if (selectedFiles.includes(fileListItem.getAttribute('data-path'))) {
+                fileListItem.remove();
+            }
+        });
+
+        event.detail.serverResponse = serializer.serializeToString(fileList);
+    };
+
+    const insertSortedDataPath = (listNode, node) => {
+        const children = Array.from(listNode.children);
+        const before = children.find(it => it.getAttribute('data-path') > node.getAttribute('data-path'))
+        listNode.insertBefore(node, before)
+    }
+
+    const handleFileClick = (event) => {
+        const target = event.target.closest('.file');
+        if (!target) return;
+
+        const selectedFilesList = document.getElementById('selected-files')
+        const clone = target.cloneNode(true)
+        insertSortedDataPath(selectedFilesList, clone);
+        target.remove();
+    };
+
+    const handleSelectedFileClick = (event) => {
+        const target = event.target.closest('.file');
+        if (!target) return;
+
+        const fileList = document.querySelector('#file-list ul')
+        const clone = target.cloneNode(true)
+        insertSortedDataPath(fileList, clone)
+        target.remove();
+    };
+
+    document.body.addEventListener('htmx:beforeRequest', handleBeforeRequest);
+    document.getElementById('file-tree').addEventListener('htmx:beforeSwap', handleFileTreeBeforeSwap);
+    document.getElementById('file-list').addEventListener('htmx:beforeSwap', handleFileListBeforeSwap);
+    document.getElementById('file-list').addEventListener('click', handleFileClick);
+    document.getElementById('file-tree').addEventListener('click', handleFileClick);
+    document.getElementById('selected-files').addEventListener('click', handleSelectedFileClick);
+
+    document.getElementById('submit-selection').addEventListener('click', function () {
+        const selectedFiles = [];
+        document.querySelectorAll('#selected-files li').forEach(function (item) {
+            selectedFiles.push(item.textContent);
+        });
+
+        fetch('/submit-selection', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ files: selectedFiles }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                alert('Files submitted successfully!');
+            })
+            .catch(error => {
+                console.error('Error submitting files:', error);
+            });
+    });
+</script>
+{{end}}

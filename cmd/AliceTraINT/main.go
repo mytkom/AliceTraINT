@@ -7,6 +7,7 @@ import (
 
 	"github.com/mytkom/AliceTraINT/internal/config"
 	"github.com/mytkom/AliceTraINT/internal/db/migrate"
+	"github.com/mytkom/AliceTraINT/internal/middleware"
 	"github.com/mytkom/AliceTraINT/internal/router"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -31,6 +32,12 @@ func main() {
 
 	// Setup and start the HTTP server
 	r := router.NewRouter(gormDB)
-	fmt.Println("Starting server on :8088")
-	log.Fatal(http.ListenAndServe(":8088", r))
+
+	// Add logging middleware
+	logMw := middleware.NewLogMw()
+	loggedR := logMw(r)
+
+	portString := fmt.Sprintf(":%s", cfg.Port)
+	fmt.Printf("Starting server on %s\n", portString)
+	log.Fatal(http.ListenAndServe(portString, loggedR))
 }

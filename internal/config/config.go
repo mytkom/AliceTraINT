@@ -2,14 +2,16 @@ package config
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
 	Database DatabaseConfig
+	Port     string
 }
 
 type DatabaseConfig struct {
@@ -36,6 +38,7 @@ func LoadConfig() *Config {
 			DBName:   getEnv("DB_NAME", "AliceTraINT_db"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
+		Port: getEnv("ALICETRAINT_PORT", "8088"),
 	}
 }
 

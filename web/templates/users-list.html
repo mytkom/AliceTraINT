@@ -1,0 +1,37 @@
+{{ define "content" }}
+      <h1>{{ if .LoggedUser }} {{ .LoggedUser.Username }} good to see you again! {{ else }} Welcome to AliceTraINT {{ end }}</h1>
+        <h2>Add a New User</h2>
+        <form hx-post="/users" hx-target="#user-list" hx-swap="afterbegin">
+            <div class="form-group">
+                <label for="first-name">First Name:</label>
+                <input type="text" id="first-name" name="first-name" required>
+            </div>
+            <div class="form-group">
+                <label for="family-name">Family Name:</label>
+                <input type="text" id="family-name" name="family-name" required>
+            </div>
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="cern-person-id">Cern Person Id:</label>
+                <input type="text" id="cern-person-id" name="cern-person-id" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <button type="submit">Add User</button>
+        </form>
+
+        <h2>User List</h2>
+        <div id="user-list">
+            {{ range .Users }}
+            <div>{{ .FirstName }} ({{ .Email }})</div>
+            {{ else }}
+            <div class="no-users">No users found.</div>
+            {{ end }}
+        </div>
+    </div>
+{{ end }}
