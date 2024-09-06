@@ -4,18 +4,26 @@ import (
 	"html/template"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/mytkom/AliceTraINT/internal/auth"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/handler"
 	"github.com/stretchr/testify/assert"
-	"github.com/thomasdarimont/go-kc-example/session"
 	_ "github.com/thomasdarimont/go-kc-example/session_memory"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
+
+// make paths relative to root dir when running tests
+func init() {
+	if err := os.Chdir("../.."); err != nil {
+		panic(err)
+	}
+}
 
 func setupIntegrationTest(t *testing.T) (*handler.UserHandler, func()) {
 	// Initialize a new in-memory SQLite database
@@ -34,15 +42,12 @@ func setupIntegrationTest(t *testing.T) (*handler.UserHandler, func()) {
 	userRepo := repository.NewUserRepository(db)
 
 	// Parse templates
-	tmpl := template.Must(template.ParseGlob("../../web/templates/*.html"))
+	tmpl := template.Must(template.ParseFiles("web/templates/base.html"))
 
-	globalSessions, err := session.NewManager("memory", "gosessionid", 3600)
-	assert.NoError(t, err)
-	go globalSessions.GC()
+	auth := auth.MockAuth()
 
 	// Create the handler
-	handler := handler.NewUserHandler(userRepo, tmpl, globalSessions)
-
+	handler := handler.NewUserHandler(tmpl, userRepo, auth)
 	// Return a cleanup function to close the database connection
 	cleanup := func() {
 		dbSQL, err := db.DB()
@@ -76,7 +81,7 @@ func TestUserHandler_Integration_Index(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	// Mock the session to simulate a logged-in user
-	sess := handler.GlobalSessions.SessionStart(rr, req)
+	sess := handler.Auth.GlobalSessions.SessionStart(rr, req)
 	err = sess.Set("loggedUserId", 1)
 	assert.NoError(t, err)
 

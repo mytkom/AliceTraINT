@@ -32,6 +32,18 @@ type UserInfo struct {
 	Email             string `json:"email"`
 }
 
+func MockAuth() *Auth {
+	globalSessions, err := session.NewManager("memory", "gosessionid", 3600)
+	if err != nil {
+		log.Fatal(err)
+	}
+	go globalSessions.GC()
+
+	return &Auth{
+		GlobalSessions: globalSessions,
+	}
+}
+
 func NewAuth(userRepo repository.UserRepository) *Auth {
 	globalSessions, err := session.NewManager("memory", "gosessionid", 3600)
 	if err != nil {

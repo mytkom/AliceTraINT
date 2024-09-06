@@ -18,6 +18,17 @@ type UserHandler struct {
 	Auth                *auth.Auth
 }
 
+func NewUserHandler(baseTemplate *template.Template, userRepo repository.UserRepository, auth *auth.Auth) *UserHandler {
+	base := template.Must(baseTemplate.Clone())
+
+	return &UserHandler{
+		UserRepo:            userRepo,
+		UserListingTemplate: template.Must(base.ParseFiles("web/templates/users-list.html")),
+		UserEntryTemplate:   template.Must(base.ParseFiles("web/templates/users.html")),
+		Auth:                auth,
+	}
+}
+
 func (h *UserHandler) Index(w http.ResponseWriter, r *http.Request) {
 	users, err := h.UserRepo.GetAllUsers()
 	if err != nil {
@@ -70,14 +81,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func InitUserRoutes(mux *http.ServeMux, baseTemplate *template.Template, userRepo repository.UserRepository, auth *auth.Auth) {
-	base := template.Must(baseTemplate.Clone())
-
-	uh := &UserHandler{
-		UserRepo:            userRepo,
-		UserListingTemplate: template.Must(base.ParseFiles("web/templates/users-list.html")),
-		UserEntryTemplate:   template.Must(base.ParseFiles("web/templates/users.html")),
-		Auth:                auth,
-	}
+	uh := NewUserHandler(baseTemplate, userRepo, auth)
 
 	authMw := middleware.NewAuthMw(auth)
 
