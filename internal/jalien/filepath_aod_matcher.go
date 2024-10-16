@@ -15,7 +15,7 @@ type filepathAODMatcherResult struct {
 	AODNumber uint64
 }
 
-func NewAODMatcher() *filepathAODMatcher {
+func newAODMatcher() *filepathAODMatcher {
 	regexpPattern := `/(?P<LHCPeriod>LHC[a-zA-Z0-9]+)/\d+/(?P<RunNumber>\d+)/AOD/(?P<AODNumber>\d+)/AO2D\.root`
 
 	return &filepathAODMatcher{

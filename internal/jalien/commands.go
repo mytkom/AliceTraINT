@@ -95,7 +95,7 @@ func FindAODFiles(path string) ([]AODFile, error) {
 	}
 
 	lines := strings.Split(string(out), "\n")
-	matcher := NewAODMatcher()
+	matcher := newAODMatcher()
 	aods := make([]AODFile, 0, len(lines))
 
 	for _, line := range lines {
@@ -156,7 +156,7 @@ func ListAndParseDirectory(path string) (*DirectoryContents, error) {
 	}
 
 	lines := strings.Split(string(out), "\n")
-	matcher := NewAODMatcher()
+	matcher := newAODMatcher()
 	dirContents := &DirectoryContents{}
 
 	for _, line := range lines {
