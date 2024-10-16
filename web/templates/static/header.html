@@ -1,0 +1,36 @@
+{{define "header"}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/static/css/output.css" rel="stylesheet" />
+    <title>{{.Title}}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+</head>
+
+<body class="bg-sky-100 text-gray-900">
+    <div class="font-sans font-bold flex flex-col min-h-screen">
+        <header class="bg-sky-900 p-10">
+            <div class="flex justify-between items-center">
+                <div class="flex text-sky-50 gap-0 justify-start text-3xl font-extrabold">
+                    <a href="/">
+                        <div class="flex">
+                            <p class="font-bold">Alice</p>
+                            <p class="">Tra</p>
+                            <p class="font-sans font-medium">INT</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="flex text-sky-50 gap-0 justify-start text-lg">
+                    <a href="/train-datasets">
+                        Train Datasets
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow bg-sky-100 text-sm lg:text-md dark:bg-sky-950 dark:text-gray-50">
+            <div class="container mx-auto" id="main-content-container">
+                {{end}}

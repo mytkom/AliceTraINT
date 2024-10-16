@@ -1,12 +1,12 @@
 package router
 
 import (
-	"html/template"
 	"net/http"
 
 	"github.com/mytkom/AliceTraINT/internal/auth"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/handler"
+	"github.com/mytkom/AliceTraINT/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -15,10 +15,11 @@ func NewRouter(db *gorm.DB) *http.ServeMux {
 	fs := http.FileServer(http.Dir("static"))
 
 	// templates
-	baseTemplate := template.Must(template.ParseFiles("web/templates/base.html"))
+	baseTemplate := utils.BaseTemplate()
 
 	// repositories
 	userRepo := repository.NewUserRepository(db)
+	trainDatasetRepo := repository.NewTrainDatasetRepository(db)
 
 	auth := auth.NewAuth(userRepo)
 
@@ -30,7 +31,7 @@ func NewRouter(db *gorm.DB) *http.ServeMux {
 	// handlers' routes
 	handler.InitLandingRoutes(mux, baseTemplate, auth)
 	handler.InitUserRoutes(mux, baseTemplate, userRepo, auth)
-	handler.InitTrainJobRoutes(mux, baseTemplate, auth)
+	handler.InitTrainDatasetRoutes(mux, baseTemplate, trainDatasetRepo, userRepo, auth)
 
 	return mux
 }

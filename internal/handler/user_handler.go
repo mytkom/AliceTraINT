@@ -12,25 +12,21 @@ import (
 )
 
 type UserHandler struct {
-	UserRepo            repository.UserRepository
-	UserListingTemplate *template.Template
-	UserEntryTemplate   *template.Template
-	Auth                *auth.Auth
+	UserRepo repository.UserRepository
+	Template *template.Template
+	Auth     *auth.Auth
 }
 
 func NewUserHandler(baseTemplate *template.Template, userRepo repository.UserRepository, auth *auth.Auth) *UserHandler {
-	base := template.Must(baseTemplate.Clone())
-
 	return &UserHandler{
-		UserRepo:            userRepo,
-		UserListingTemplate: template.Must(base.ParseFiles("web/templates/users-list.html")),
-		UserEntryTemplate:   template.Must(base.ParseFiles("web/templates/users.html")),
-		Auth:                auth,
+		UserRepo: userRepo,
+		Template: baseTemplate,
+		Auth:     auth,
 	}
 }
 
 func (h *UserHandler) Index(w http.ResponseWriter, r *http.Request) {
-	users, err := h.UserRepo.GetAllUsers()
+	users, err := h.UserRepo.GetAll()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -45,11 +41,11 @@ func (h *UserHandler) Index(w http.ResponseWriter, r *http.Request) {
 	sess := h.Auth.GlobalSessions.SessionStart(w, r)
 	loggedUserId := sess.Get("loggedUserId")
 	if loggedUserId != nil {
-		loggedUser, _ := h.UserRepo.GetUserByID(loggedUserId.(int))
+		loggedUser, _ := h.UserRepo.GetByID(loggedUserId.(uint))
 		data.LoggedUser = loggedUser
 	}
 
-	err = h.UserListingTemplate.Execute(w, data)
+	err = h.Template.ExecuteTemplate(w, "users_index", data)
 	if err != nil {
 		http.Error(w, "Cannot render template", http.StatusInternalServerError)
 	}
@@ -69,12 +65,12 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		Email:        r.FormValue("email"),
 	}
 
-	if err := h.UserRepo.CreateUser(user); err != nil {
+	if err := h.UserRepo.Create(user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = h.UserEntryTemplate.Execute(w, user)
+	err = h.Template.ExecuteTemplate(w, "users_user", user)
 	if err != nil {
 		http.Error(w, "Cannot render template", http.StatusInternalServerError)
 	}

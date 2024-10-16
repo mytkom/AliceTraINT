@@ -8,31 +8,29 @@ import (
 )
 
 type LandingHandler struct {
-	LandingTemplate *template.Template
-	Auth            *auth.Auth
+	Template *template.Template
+	Auth     *auth.Auth
 }
 
 func (h *LandingHandler) Index(w http.ResponseWriter, r *http.Request) {
 	sess := h.Auth.GlobalSessions.SessionStart(w, r)
 	loggedUserId := sess.Get("loggedUserId")
 	if loggedUserId != nil {
-		http.Redirect(w, r, "/train-jobs/new", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/train-datasets", http.StatusTemporaryRedirect)
 	}
 
-	err := h.LandingTemplate.Execute(w, map[string]interface{}{
+	err := h.Template.ExecuteTemplate(w, "landing", map[string]interface{}{
 		"Title": "AliceTraINT",
 	})
 	if err != nil {
-		http.Error(w, "Cannot render template", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func InitLandingRoutes(mux *http.ServeMux, baseTemplate *template.Template, auth *auth.Auth) {
-	base := template.Must(baseTemplate.Clone())
-
 	lh := &LandingHandler{
-		LandingTemplate: template.Must(base.ParseFiles("web/templates/landing.html")),
-		Auth:            auth,
+		Auth:     auth,
+		Template: baseTemplate,
 	}
 
 	mux.HandleFunc("GET /", lh.Index)

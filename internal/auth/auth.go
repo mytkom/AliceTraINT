@@ -149,7 +149,7 @@ func (a *Auth) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user *models.User
-	user, err = a.userRepo.GetUserByCernPersonId(tokenClaims.CernPersonId)
+	user, err = a.userRepo.GetByCernPersonId(tokenClaims.CernPersonId)
 	if err != nil {
 		user = &models.User{
 			CernPersonId: tokenClaims.CernPersonId,
@@ -159,7 +159,7 @@ func (a *Auth) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 			Email:        tokenClaims.Email,
 		}
 
-		err = a.userRepo.CreateUser(user)
+		err = a.userRepo.Create(user)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

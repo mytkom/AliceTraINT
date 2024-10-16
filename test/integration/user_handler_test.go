@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,13 +11,14 @@ import (
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/handler"
+	"github.com/mytkom/AliceTraINT/internal/utils"
 	"github.com/stretchr/testify/assert"
 	_ "github.com/thomasdarimont/go-kc-example/session_memory"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-// make paths relative to root dir when running tests
+// Make paths relative to root dir when running tests
 func init() {
 	if err := os.Chdir("../.."); err != nil {
 		panic(err)
@@ -26,29 +26,24 @@ func init() {
 }
 
 func setupIntegrationTest(t *testing.T) (*handler.UserHandler, func()) {
-	// Initialize a new in-memory SQLite database
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("failed to connect to database: %v", err)
 	}
 
-	// Migrate the user model
 	err = db.AutoMigrate(&models.User{})
 	if err != nil {
 		t.Fatalf("failed to migrate database: %v", err)
 	}
 
-	// Create the repository
 	userRepo := repository.NewUserRepository(db)
 
-	// Parse templates
-	tmpl := template.Must(template.ParseFiles("web/templates/base.html"))
+	tmpl := utils.BaseTemplate()
 
 	auth := auth.MockAuth()
 
-	// Create the handler
 	handler := handler.NewUserHandler(tmpl, userRepo, auth)
-	// Return a cleanup function to close the database connection
+
 	cleanup := func() {
 		dbSQL, err := db.DB()
 		if err == nil {
@@ -64,7 +59,7 @@ func TestUserHandler_Integration_Index(t *testing.T) {
 	defer cleanup()
 
 	// Seed the database with a user
-	err := handler.UserRepo.CreateUser(&models.User{
+	err := handler.UserRepo.Create(&models.User{
 		CernPersonId: "12345",
 		Username:     "johndoe",
 		FirstName:    "John",
@@ -82,7 +77,7 @@ func TestUserHandler_Integration_Index(t *testing.T) {
 
 	// Mock the session to simulate a logged-in user
 	sess := handler.Auth.GlobalSessions.SessionStart(rr, req)
-	err = sess.Set("loggedUserId", 1)
+	err = sess.Set("loggedUserId", uint(1))
 	assert.NoError(t, err)
 
 	cookie := &http.Cookie{
@@ -118,7 +113,7 @@ func TestUserHandler_Integration_CreateUser(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 
 	// Verify that the user was created in the database
-	users, err := handler.UserRepo.GetAllUsers()
+	users, err := handler.UserRepo.GetAll()
 	assert.NoError(t, err)
 	assert.Len(t, users, 1)
 	assert.Equal(t, "Jane Doe", users[0].FirstName+" "+users[0].FamilyName)

@@ -1,4 +1,5 @@
-{{ define "content" }}
+{{ define "users_index" }}
+{{ template "header" }}
       <h1>{{ if .LoggedUser }} {{ .LoggedUser.Username }} good to see you again! {{ else }} Welcome to AliceTraINT {{ end }}</h1>
         <h2>Add a New User</h2>
         <form hx-post="/users" hx-target="#user-list" hx-swap="afterbegin">
@@ -34,4 +35,5 @@
             {{ end }}
         </div>
     </div>
+{{ template "footer" }}
 {{ end }}

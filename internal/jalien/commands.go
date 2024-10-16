@@ -77,37 +77,13 @@ func parseLongFormat(line string) (*longFormatParsed, error) {
 	}, nil
 }
 
-func formatSizePretty(bytes uint64) string {
-	const (
-		_         = iota // ignore first value by assigning to blank identifier
-		KB uint64 = 1 << (10 * iota)
-		MB
-		GB
-		TB
-	)
-
-	switch {
-	case bytes >= TB:
-		return fmt.Sprintf("%.2f TB", float64(bytes)/float64(TB))
-	case bytes >= GB:
-		return fmt.Sprintf("%.2f GB", float64(bytes)/float64(GB))
-	case bytes >= MB:
-		return fmt.Sprintf("%.2f MB", float64(bytes)/float64(MB))
-	case bytes >= KB:
-		return fmt.Sprintf("%.2f KB", float64(bytes)/float64(KB))
-	default:
-		return fmt.Sprintf("%d bytes", bytes)
-	}
-}
-
 type AODFile struct {
-	Name       string
-	Path       string
-	Size       uint64
-	PrettySize string
-	LHCPeriod  string
-	RunNumber  uint64
-	AODNumber  uint64
+	Name      string
+	Path      string
+	Size      uint64
+	LHCPeriod string
+	RunNumber uint64
+	AODNumber uint64
 }
 
 var aodFilename = "AO2D.root"
@@ -144,13 +120,12 @@ func FindAODFiles(path string) ([]AODFile, error) {
 		}
 
 		aods = append(aods, AODFile{
-			Name:       aodFilename,
-			Path:       aodPath,
-			Size:       lineParsed.Size,
-			PrettySize: formatSizePretty(lineParsed.Size),
-			LHCPeriod:  pathVariables.LHCPeriod,
-			RunNumber:  pathVariables.RunNumber,
-			AODNumber:  pathVariables.AODNumber,
+			Name:      aodFilename,
+			Path:      aodPath,
+			Size:      lineParsed.Size,
+			LHCPeriod: pathVariables.LHCPeriod,
+			RunNumber: pathVariables.RunNumber,
+			AODNumber: pathVariables.AODNumber,
 		})
 	}
 

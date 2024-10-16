@@ -1,4 +1,5 @@
-{{define "content"}}
+{{define "train-datasets_new"}}
+{{template "header"}}
 
 <div class="flex gap-3 py-5 min-h-96 max-h-full w-full flex-col lg:flex-row">
     <div
@@ -39,6 +40,9 @@
 </div>
 
 <div class="">
+    <h1 class="text-2xl">Create train Dataset</h1>
+    <label for="dataset-name">Dataset Name</label>
+    <input type="text" class="bg-white border-sky-900 text-gray-900 rounded-lg text-lg py-1 px-2" name="dataset-name" id="train-dataset-name" />
     <h2>Selected Files:</h2>
     <ul class="grid grid-cols-1 lg:grid-cols-2 gap-2" id="selected-files"></ul>
     <button class="" id="submit-selection">Submit</button>
@@ -47,11 +51,9 @@
 <script>
     const toggleOverlay = (targetId, action) => {
         const overlayId = `${targetId}-overlay`;
-        if (overlayId) {
-            const overlayElement = document.getElementById(overlayId);
-            if (overlayElement) {
-                overlayElement.classList[action]('hidden');
-            }
+        const overlayElement = document.getElementById(overlayId);
+        if (overlayElement) {
+            overlayElement.classList[action]('hidden');
         }
     };
 
@@ -61,19 +63,6 @@
 
     const handleFileTreeBeforeSwap = () => {
         toggleOverlay('file-tree', 'add');
-
-        const parser = new DOMParser();
-        const serializer = new XMLSerializer();
-        const fileTree = parser.parseFromString(event.detail.serverResponse, 'text/xml');
-        const selectedFiles = Array.from(document.querySelectorAll('#selected-files li')).map(item => item.getAttribute('data-path'));
-
-        fileTree.querySelectorAll('ul li.file').forEach(fileListItem => {
-            if (selectedFiles.includes(fileListItem.getAttribute('data-path'))) {
-                fileListItem.remove();
-            }
-        });
-
-        event.detail.serverResponse = serializer.serializeToString(fileTree);
     };
 
     const handleFileListBeforeSwap = (event) => {
@@ -123,24 +112,33 @@
     document.getElementById('file-tree').addEventListener('htmx:beforeSwap', handleFileTreeBeforeSwap);
     document.getElementById('file-list').addEventListener('htmx:beforeSwap', handleFileListBeforeSwap);
     document.getElementById('file-list').addEventListener('click', handleFileClick);
-    document.getElementById('file-tree').addEventListener('click', handleFileClick);
     document.getElementById('selected-files').addEventListener('click', handleSelectedFileClick);
 
     document.getElementById('submit-selection').addEventListener('click', function () {
         const selectedFiles = [];
         document.querySelectorAll('#selected-files li').forEach(function (item) {
-            selectedFiles.push(item.textContent);
+            selectedFiles.push({
+                Path: item.getAttribute("data-path"),
+                LHCPeriod: item.querySelector('[name="LHCPeriod"]').textContent,
+                RunNumber: parseInt(item.querySelector('[name="runNumber"]').textContent),
+                AODNumber: parseInt(item.querySelector('[name="AODNumber"]').textContent),
+                Size: parseInt(item.querySelector('[name="size"]').getAttribute("int-size")),
+                Name: "AO2D.root"
+            });
         });
 
-        fetch('/submit-selection', {
+
+        fetch('/train-datasets', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ files: selectedFiles }),
+            body: JSON.stringify({ Name: document.getElementById("train-dataset-name").value, AODFiles: selectedFiles }),
         })
-            .then(response => response.json())
             .then(data => {
+                if(data.status === 201) {
+                    
+                }
                 alert('Files submitted successfully!');
             })
             .catch(error => {
@@ -148,4 +146,5 @@
             });
     });
 </script>
+{{template "footer"}}
 {{end}}
