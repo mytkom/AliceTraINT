@@ -4,13 +4,14 @@ import (
 	"net/http"
 
 	"github.com/mytkom/AliceTraINT/internal/auth"
+	"github.com/mytkom/AliceTraINT/internal/config"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/handler"
 	"github.com/mytkom/AliceTraINT/internal/utils"
 	"gorm.io/gorm"
 )
 
-func NewRouter(db *gorm.DB) *http.ServeMux {
+func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir("static"))
 
@@ -31,7 +32,7 @@ func NewRouter(db *gorm.DB) *http.ServeMux {
 	// handlers' routes
 	handler.InitLandingRoutes(mux, baseTemplate, auth)
 	handler.InitUserRoutes(mux, baseTemplate, userRepo, auth)
-	handler.InitTrainDatasetRoutes(mux, baseTemplate, trainDatasetRepo, userRepo, auth)
+	handler.InitTrainDatasetRoutes(mux, baseTemplate, trainDatasetRepo, userRepo, auth, cfg.JalienCacheMinutes)
 
 	return mux
 }

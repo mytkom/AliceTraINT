@@ -174,7 +174,7 @@ func (h *TrainDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func InitTrainDatasetRoutes(mux *http.ServeMux, baseTemplate *template.Template, trainDatasetRepo repository.TrainDatasetRepository, userRepo repository.UserRepository, auth *auth.Auth) {
+func InitTrainDatasetRoutes(mux *http.ServeMux, baseTemplate *template.Template, trainDatasetRepo repository.TrainDatasetRepository, userRepo repository.UserRepository, auth *auth.Auth, jalienCacheMinutes uint) {
 	prefix := "train-datasets"
 
 	tjh := &TrainDatasetHandler{
@@ -184,7 +184,7 @@ func InitTrainDatasetRoutes(mux *http.ServeMux, baseTemplate *template.Template,
 		Template:         baseTemplate,
 	}
 
-	cache := utils.NewCache(60 * time.Minute)
+	cache := utils.NewCache(time.Duration(jalienCacheMinutes) * time.Minute)
 
 	authMw := middleware.NewAuthMw(auth)
 	cacheMw := middleware.NewCacheMw(cache)

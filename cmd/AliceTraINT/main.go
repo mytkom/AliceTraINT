@@ -31,7 +31,7 @@ func main() {
 	migrate.MigrateDB(gormDB)
 
 	// Setup and start the HTTP server
-	r := router.NewRouter(gormDB)
+	r := router.NewRouter(gormDB, cfg)
 
 	// Add logging middleware
 	logMw := middleware.NewLogMw()
