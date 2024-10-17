@@ -4,24 +4,29 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/mytkom/AliceTraINT/internal/auth"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
-	"github.com/thomasdarimont/go-kc-example/session"
+	"github.com/mytkom/AliceTraINT/internal/middleware"
 	_ "github.com/thomasdarimont/go-kc-example/session_memory"
 )
 
 type UserHandler struct {
-	UserRepo       repository.UserRepository
-	Templates      *template.Template
-	GlobalSessions *session.Manager
+	UserRepo repository.UserRepository
+	Template *template.Template
+	Auth     *auth.Auth
 }
 
-func NewUserHandler(userRepo repository.UserRepository, templates *template.Template, globalSessions *session.Manager) *UserHandler {
-	return &UserHandler{UserRepo: userRepo, Templates: templates, GlobalSessions: globalSessions}
+func NewUserHandler(baseTemplate *template.Template, userRepo repository.UserRepository, auth *auth.Auth) *UserHandler {
+	return &UserHandler{
+		UserRepo: userRepo,
+		Template: baseTemplate,
+		Auth:     auth,
+	}
 }
 
 func (h *UserHandler) Index(w http.ResponseWriter, r *http.Request) {
-	users, err := h.UserRepo.GetAllUsers()
+	users, err := h.UserRepo.GetAll()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -30,16 +35,17 @@ func (h *UserHandler) Index(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Users      []models.User
 		LoggedUser *models.User
-	}{Users: users}
+		Title      string
+	}{Users: users, Title: "Users List"}
 
-	sess := h.GlobalSessions.SessionStart(w, r)
+	sess := h.Auth.GlobalSessions.SessionStart(w, r)
 	loggedUserId := sess.Get("loggedUserId")
 	if loggedUserId != nil {
-		loggedUser, _ := h.UserRepo.GetUserByID(loggedUserId.(int))
+		loggedUser, _ := h.UserRepo.GetByID(loggedUserId.(uint))
 		data.LoggedUser = loggedUser
 	}
 
-	err = h.Templates.ExecuteTemplate(w, "index.html", data)
+	err = h.Template.ExecuteTemplate(w, "users_index", data)
 	if err != nil {
 		http.Error(w, "Cannot render template", http.StatusInternalServerError)
 	}
@@ -59,13 +65,29 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		Email:        r.FormValue("email"),
 	}
 
-	if err := h.UserRepo.CreateUser(user); err != nil {
+	if err := h.UserRepo.Create(user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = h.Templates.ExecuteTemplate(w, "users.html", user)
+	err = h.Template.ExecuteTemplate(w, "users_user", user)
 	if err != nil {
 		http.Error(w, "Cannot render template", http.StatusInternalServerError)
 	}
+}
+
+func InitUserRoutes(mux *http.ServeMux, baseTemplate *template.Template, userRepo repository.UserRepository, auth *auth.Auth) {
+	uh := NewUserHandler(baseTemplate, userRepo, auth)
+
+	authMw := middleware.NewAuthMw(auth)
+
+	mux.Handle("GET /users", middleware.Chain(
+		http.HandlerFunc(uh.Index),
+		authMw,
+	))
+
+	mux.Handle("POST /users", middleware.Chain(
+		http.HandlerFunc(uh.CreateUser),
+		authMw,
+	))
 }

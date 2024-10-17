@@ -1,7 +1,11 @@
 package models
 
+import (
+	"gorm.io/gorm"
+)
+
 type User struct {
-	ID           int    `gorm:"primary_key"`
+	gorm.Model
 	CernPersonId string `gorm:"type:varchar(255);not null;unique"`
 	Username     string `gorm:"type:varchar(255);not null"`
 	FirstName    string `gorm:"type:varchar(255);not null"`

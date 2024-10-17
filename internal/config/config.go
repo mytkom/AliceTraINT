@@ -2,19 +2,22 @@ package config
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Database DatabaseConfig
+	Database           DatabaseConfig
+	Port               string
+	JalienCacheMinutes uint
 }
 
 type DatabaseConfig struct {
 	Host     string
-	Port     int
+	Port     uint
 	User     string
 	Password string
 	DBName   string
@@ -30,12 +33,14 @@ func LoadConfig() *Config {
 	return &Config{
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnvAsInt("DB_PORT", 5432),
+			Port:     getEnvAsUint("DB_PORT", 5432),
 			User:     getEnv("DB_USER", "user"),
 			Password: getEnv("DB_PASSWORD", "password"),
 			DBName:   getEnv("DB_NAME", "AliceTraINT_db"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
+		Port:               getEnv("ALICETRAINT_PORT", "8088"),
+		JalienCacheMinutes: getEnvAsUint("ALICETRAINT_JALIEN_CACHE_MINUTES", 60),
 	}
 }
 
@@ -53,10 +58,10 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-func getEnvAsInt(name string, defaultVal int) int {
+func getEnvAsUint(name string, defaultVal uint) uint {
 	if valueStr, exists := os.LookupEnv(name); exists {
-		if value, err := strconv.Atoi(valueStr); err == nil {
-			return value
+		if value, err := strconv.ParseUint(valueStr, 10, 32); err == nil {
+			return uint(value)
 		}
 	}
 	return defaultVal

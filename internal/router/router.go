@@ -1,28 +1,38 @@
 package router
 
 import (
+	"net/http"
+
 	"github.com/mytkom/AliceTraINT/internal/auth"
+	"github.com/mytkom/AliceTraINT/internal/config"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/handler"
+	"github.com/mytkom/AliceTraINT/internal/utils"
 	"gorm.io/gorm"
-	"html/template"
-	"net/http"
 )
 
-func NewRouter(db *gorm.DB) *http.ServeMux {
+func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 	mux := http.NewServeMux()
+	fs := http.FileServer(http.Dir("static"))
 
-	templates := template.Must(template.ParseGlob("web/templates/*.html"))
+	// templates
+	baseTemplate := utils.BaseTemplate()
 
+	// repositories
 	userRepo := repository.NewUserRepository(db)
+	trainDatasetRepo := repository.NewTrainDatasetRepository(db)
+
 	auth := auth.NewAuth(userRepo)
 
-	userHandler := handler.NewUserHandler(userRepo, templates, auth.GlobalSessions)
-
-	mux.HandleFunc("GET /", userHandler.Index)
-	mux.HandleFunc("POST /users", userHandler.CreateUser)
+	// routes
+	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 	mux.HandleFunc("GET /login", auth.LoginHandler)
 	mux.HandleFunc("GET /callback", auth.CallbackHandler)
+
+	// handlers' routes
+	handler.InitLandingRoutes(mux, baseTemplate, auth)
+	handler.InitUserRoutes(mux, baseTemplate, userRepo, auth)
+	handler.InitTrainDatasetRoutes(mux, baseTemplate, trainDatasetRepo, userRepo, auth, cfg.JalienCacheMinutes)
 
 	return mux
 }
