@@ -1,5 +1,5 @@
-{{define "train-datasets_new"}}
-{{template "header"}}
+{{ define "training-datasets_new" }}
+{{ template "header" . }}
 
 <div class="flex gap-3 py-5 min-h-96 max-h-full w-full flex-col lg:flex-row">
     <div
@@ -40,7 +40,7 @@
 </div>
 
 <div class="">
-    <h1 class="text-2xl">Create train Dataset</h1>
+    <h1 class="text-2xl">Create training Dataset</h1>
     <label for="dataset-name">Dataset Name</label>
     <input type="text" class="bg-white border-sky-900 text-gray-900 rounded-lg text-lg py-1 px-2" name="dataset-name" id="train-dataset-name" />
     <h2>Selected Files:</h2>
@@ -128,7 +128,7 @@
         });
 
 
-        fetch('/train-datasets', {
+        fetch('/training-datasets', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -137,14 +137,13 @@
         })
             .then(data => {
                 if(data.status === 201) {
-                    
+                    window.location.replace("/training-datasets")
                 }
-                alert('Files submitted successfully!');
             })
             .catch(error => {
                 console.error('Error submitting files:', error);
             });
     });
 </script>
-{{template "footer"}}
-{{end}}
+{{ template "footer" . }}
+{{ end }}

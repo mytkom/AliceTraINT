@@ -1,18 +1,18 @@
-{{ define "train-datasets_index" }}
-{{ template "header" }}
+{{ define "training-datasets_index" }}
+{{ template "header" . }}
 <div class="flex flex-col gap-4 my-4">
-    {{ if .TrainDatasets }}
+    {{ if .TrainingDatasets }}
     <div class="flex justify-end justify-self-stretch">
         <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-xl font-bold py-2 px-4"
-            href="/train-datasets/new">Create Train Dataset</a>
+            href="/training-datasets/new">Create Training Dataset</a>
     </div>
-    {{ range .TrainDatasets }}
+    {{ range .TrainingDatasets }}
     <div hx-target="this" hx-swap="outerHTML"
         class="flex flex-col w-full gap-4 bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg py-4 px-4">
         <div class="flex justify-between items-center">
             <div class="text-xl font-bold">{{ .Name }}</div>
             <button class="bg-red-600 hover:bg-red-400 rounded-lg text-lg font-bold py-1 px-2"
-                hx-delete="/train-datasets/{{.ID}}"
+                hx-delete="/training-datasets/{{.ID}}"
                 hx-confirm="Are you sure you want to remove {{ .Name }}?">Remove</button>
         </div>
         <div class="flex flex-row flex-wrap gap-3">
@@ -37,11 +37,11 @@
     {{ end }}
     {{ else }}
     <div class="flex items-center justify-around">
-        <div class="text-xl">There is no available train datasets! You can create new one using button.</div>
+        <div class="text-xl">There is no available training datasets! You can create new one using button.</div>
         <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-xl font-bold py-2 px-4"
-            href="/train-datasets/new">Create Train Dataset</a>
+            href="/training-datasets/new">Create Training Dataset</a>
     </div>
     {{ end }}
 </div>
-{{ template "footer" }}
+{{ template "footer" . }}
 {{ end }}

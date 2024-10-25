@@ -16,7 +16,7 @@ func (h *LandingHandler) Index(w http.ResponseWriter, r *http.Request) {
 	sess := h.Auth.GlobalSessions.SessionStart(w, r)
 	loggedUserId := sess.Get("loggedUserId")
 	if loggedUserId != nil {
-		http.Redirect(w, r, "/train-datasets", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/training-datasets", http.StatusTemporaryRedirect)
 	}
 
 	err := h.Template.ExecuteTemplate(w, "landing", map[string]interface{}{

@@ -5,36 +5,36 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type MockTrainDatasetRepository struct {
+type MockTrainingDatasetRepository struct {
 	mock.Mock
 }
 
-func (m *MockTrainDatasetRepository) Create(trainDataset *models.TrainDataset) error {
-	args := m.Called(trainDataset)
+func (m *MockTrainingDatasetRepository) Create(trainingDataset *models.TrainingDataset) error {
+	args := m.Called(trainingDataset)
 	return args.Error(0)
 }
 
-func (m *MockTrainDatasetRepository) GetAll() ([]models.TrainDataset, error) {
+func (m *MockTrainingDatasetRepository) GetAll() ([]models.TrainingDataset, error) {
 	args := m.Called()
-	return args.Get(0).([]models.TrainDataset), args.Error(1)
+	return args.Get(0).([]models.TrainingDataset), args.Error(1)
 }
 
-func (m *MockTrainDatasetRepository) GetAllUser(userId uint) ([]models.TrainDataset, error) {
+func (m *MockTrainingDatasetRepository) GetAllUser(userId uint) ([]models.TrainingDataset, error) {
 	args := m.Called()
-	return args.Get(0).([]models.TrainDataset), args.Error(1)
+	return args.Get(0).([]models.TrainingDataset), args.Error(1)
 }
 
-func (m *MockTrainDatasetRepository) GetByID(id uint) (*models.TrainDataset, error) {
+func (m *MockTrainingDatasetRepository) GetByID(id uint) (*models.TrainingDataset, error) {
 	args := m.Called()
-	return args.Get(0).(*models.TrainDataset), args.Error(1)
+	return args.Get(0).(*models.TrainingDataset), args.Error(1)
 }
 
-func (m *MockTrainDatasetRepository) Update(updatedTrainDataset *models.TrainDataset) error {
+func (m *MockTrainingDatasetRepository) Update(updatedTrainingDataset *models.TrainingDataset) error {
 	args := m.Called()
 	return args.Error(0)
 }
 
-func (m *MockTrainDatasetRepository) Delete(userId uint, id uint) error {
+func (m *MockTrainingDatasetRepository) Delete(userId uint, id uint) error {
 	args := m.Called()
 	return args.Error(0)
 }
