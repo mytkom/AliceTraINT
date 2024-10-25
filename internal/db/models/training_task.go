@@ -19,11 +19,12 @@ type TrainingTaskConfig struct {
 	Patience          uint    `json:"patience"`
 	PatienceThreshold float64 `json:"patience_threshold"`
 	EmbedHidden       uint    `json:"embed_hidden"`
+	DModel            uint    `json:"d_model"`
 	FFHidden          uint    `json:"ff_hidden"`
 	PoolHidden        uint    `json:"pool_hidden"`
 	NumHeads          uint    `json:"num_heads"`
 	NumBlocks         uint    `json:"num_blocks"`
-	StartLearningRate uint    `json:"start_lr"`
+	StartLearningRate float64 `json:"start_lr"`
 }
 
 type TrainingTask struct {
