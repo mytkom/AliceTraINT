@@ -123,9 +123,11 @@ func TestTrainingTaskRepository_GetAll(t *testing.T) {
 	mock.ExpectQuery("SELECT \\* FROM \"training_tasks\"").
 		WillReturnRows(rows)
 
-	trainingDatasets, err := trainingTaskRepo.GetAll()
+	trainingTasks, err := trainingTaskRepo.GetAll()
 	assert.NoError(t, err)
-	assert.Len(t, trainingDatasets, 2)
+	assert.Len(t, trainingTasks, 2)
+	assert.Equal(t, trainingTasks[0].Name, "LHC24b1b undersampling")
+	assert.Equal(t, trainingTasks[1].Name, "LHC24b1b")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -133,32 +135,41 @@ func TestTrainingTaskRepository_GetById(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingDatasetRepo := NewTrainingDatasetRepository(db)
+	trainingTaskRepo := NewTrainingTaskRepository(db)
 
-	mockTrainingDataset := &models.TrainingDataset{
-		Name: "fbw2",
-		AODFiles: []jalien.AODFile{
-			{
-				Name:      "AO2D.root",
-				Path:      "/alice/sim/2024/LHC24f3/0/654324/AOD/013",
-				Size:      3000000000,
-				LHCPeriod: "LHC24f3",
-				RunNumber: 654324,
-				AODNumber: 12,
-			},
-		},
+	config := &models.TrainingTaskConfig{
+		BatchSize:         512,
+		MaxEpochs:         40,
+		DropoutRate:       0.1,
+		Gamma:             0.9,
+		Patience:          5,
+		PatienceThreshold: 0.001,
+		EmbedHidden:       128,
+		DModel:            32,
+		FFHidden:          128,
+		PoolHidden:        64,
+		NumHeads:          2,
+		NumBlocks:         2,
+		StartLearningRate: 2e-4,
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "name", "aod_files"})
-	rows = rows.AddRow(1, mockTrainingDataset.Name, marshalAODFiles(t, mockTrainingDataset))
+	trainingTask := &models.TrainingTask{
+		Name:              "LHC24b1b undersampling",
+		Status:            models.Queued,
+		TrainingDatasetId: 1,
+		UserId:            1,
+		Configuration:     *config,
+	}
+
+	rows := sqlmock.NewRows([]string{"id", "name", "status", "train_dataset_id", "user_id", "configuration"})
+	rows = rows.AddRow(1, trainingTask.Name, trainingTask.Status, 1, 1, marshalTrainingTaskConfig(t, trainingTask))
 
 	mock.ExpectQuery("SELECT \\* FROM \"training_tasks\" WHERE \"training_tasks\".\"id\" = (.+) ORDER BY \"training_tasks\".\"id\" LIMIT (.+)").
 		WillReturnRows(rows)
 
-	trainingDataset, err := trainingDatasetRepo.GetByID(3)
+	trainingTask, err := trainingTaskRepo.GetByID(3)
 	assert.NoError(t, err)
-	assert.Equal(t, "fbw2", trainingDataset.Name)
-	assert.Equal(t, uint64(12), trainingDataset.AODFiles[0].AODNumber)
+	assert.Equal(t, "LHC24b1b undersampling", trainingTask.Name)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -166,13 +177,13 @@ func TestTrainingTaskRepository_Delete(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingDatasetRepo := NewTrainingDatasetRepository(db)
+	trainingTaskRepo := NewTrainingTaskRepository(db)
 
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE \"training_tasks\" SET \"deleted_at\"=(.+) WHERE \"user_id\" = (.+) AND \"training_tasks\".\"id\" = (.+) AND \"training_tasks\".\"deleted_at\" IS NULL").WithArgs(AnyTime(), 1, 1).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 
-	err := trainingDatasetRepo.Delete(1, 1)
+	err := trainingTaskRepo.Delete(1, 1)
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -181,29 +192,39 @@ func TestTrainingTaskRepository_Update(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingDatasetRepo := NewTrainingDatasetRepository(db)
-	mockTrainingDataset := &models.TrainingDataset{
-		Name: "fbw2",
-		AODFiles: []jalien.AODFile{
-			{
-				Name:      "AO2D.root",
-				Path:      "/alice/sim/2024/LHC24f3/0/654324/AOD/013",
-				Size:      3000000000,
-				LHCPeriod: "LHC24f3",
-				RunNumber: 654324,
-				AODNumber: 12,
-			},
-		},
-		UserId: 1,
+	trainingTaskRepo := NewTrainingTaskRepository(db)
+
+	config := &models.TrainingTaskConfig{
+		BatchSize:         512,
+		MaxEpochs:         40,
+		DropoutRate:       0.1,
+		Gamma:             0.9,
+		Patience:          5,
+		PatienceThreshold: 0.001,
+		EmbedHidden:       128,
+		DModel:            32,
+		FFHidden:          128,
+		PoolHidden:        64,
+		NumHeads:          2,
+		NumBlocks:         2,
+		StartLearningRate: 2e-4,
+	}
+
+	trainingTask := &models.TrainingTask{
+		Name:              "LHC24b1b undersampling",
+		Status:            models.Queued,
+		TrainingDatasetId: 1,
+		UserId:            1,
+		Configuration:     *config,
 	}
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "training_tasks" (.+) RETURNING "id"`).
-		WithArgs(AnyTime(), AnyTime(), AnyTime(), mockTrainingDataset.Name, marshalAODFiles(t, mockTrainingDataset), 1).
+		WithArgs(AnyTime(), AnyTime(), AnyTime(), trainingTask.Name, trainingTask.Status, 1, 1, marshalTrainingTaskConfig(t, trainingTask)).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
-	err := trainingDatasetRepo.Update(1, mockTrainingDataset)
+	err := trainingTaskRepo.Update(1, trainingTask)
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

@@ -95,6 +95,10 @@ func TestTrainingDatasetRepository_GetAll(t *testing.T) {
 	trainingDatasets, err := trainingDatasetRepo.GetAll()
 	assert.NoError(t, err)
 	assert.Len(t, trainingDatasets, 2)
+	assert.Equal(t, "fbw2", trainingDatasets[0].Name)
+	assert.Equal(t, uint64(12), trainingDatasets[0].AODFiles[0].AODNumber)
+	assert.Equal(t, "fbw", trainingDatasets[1].Name)
+	assert.Equal(t, uint64(13), trainingDatasets[1].AODFiles[0].AODNumber)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
