@@ -5,7 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type TrainDataset struct {
+type TrainingDataset struct {
 	gorm.Model
 	Name     string           `gorm:"type:varchar(255);not null"`
 	AODFiles []jalien.AODFile `gorm:"serializer:json"`

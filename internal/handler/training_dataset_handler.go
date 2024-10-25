@@ -18,19 +18,19 @@ import (
 	"github.com/mytkom/AliceTraINT/internal/utils"
 )
 
-type TrainDatasetHandler struct {
-	TrainDatasetRepo repository.TrainDatasetRepository
-	UserRepo         repository.UserRepository
-	Auth             *auth.Auth
-	Template         *template.Template
+type TrainingDatasetHandler struct {
+	TrainingDatasetRepo repository.TrainingDatasetRepository
+	UserRepo            repository.UserRepository
+	Auth                *auth.Auth
+	Template            *template.Template
 }
 
 type IndexTemplateData struct {
-	Title         string
-	TrainDatasets []models.TrainDataset
+	Title            string
+	TrainingDatasets []models.TrainingDataset
 }
 
-func (h *TrainDatasetHandler) Index(w http.ResponseWriter, r *http.Request) {
+func (h *TrainingDatasetHandler) Index(w http.ResponseWriter, r *http.Request) {
 	sess := h.Auth.GlobalSessions.SessionStart(w, r)
 	loggedUserId := sess.Get("loggedUserId")
 	if loggedUserId != nil {
@@ -40,32 +40,32 @@ func (h *TrainDatasetHandler) Index(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	trainDatasets, err := h.TrainDatasetRepo.GetAllUser(loggedUserId.(uint))
+	trainingDatasets, err := h.TrainingDatasetRepo.GetAllUser(loggedUserId.(uint))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	err = h.Template.ExecuteTemplate(w, "train-datasets_index", IndexTemplateData{
-		Title:         "Train Datasets",
-		TrainDatasets: trainDatasets,
+	err = h.Template.ExecuteTemplate(w, "training-datasets_index", IndexTemplateData{
+		Title:            "Training Datasets",
+		TrainingDatasets: trainingDatasets,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func (h *TrainDatasetHandler) New(w http.ResponseWriter, r *http.Request) {
-	err := h.Template.ExecuteTemplate(w, "train-datasets_new", map[string]interface{}{
-		"Title": "Create New Train Job!",
+func (h *TrainingDatasetHandler) New(w http.ResponseWriter, r *http.Request) {
+	err := h.Template.ExecuteTemplate(w, "training-datasets_new", map[string]interface{}{
+		"Title": "Create New Training Job!",
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func (h *TrainDatasetHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var trainDataset models.TrainDataset
-	err := json.NewDecoder(r.Body).Decode(&trainDataset)
+func (h *TrainingDatasetHandler) Create(w http.ResponseWriter, r *http.Request) {
+	var trainingDataset models.TrainingDataset
+	err := json.NewDecoder(r.Body).Decode(&trainingDataset)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -78,10 +78,10 @@ func (h *TrainDatasetHandler) Create(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 		}
 
-		trainDataset.UserId = loggedUser.ID
+		trainingDataset.UserId = loggedUser.ID
 	}
 
-	err = h.TrainDatasetRepo.Create(&trainDataset)
+	err = h.TrainingDatasetRepo.Create(&trainingDataset)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -89,8 +89,8 @@ func (h *TrainDatasetHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *TrainDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	trainDatasetId, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
+func (h *TrainingDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	trainingDatasetId, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -105,7 +105,7 @@ func (h *TrainDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = h.TrainDatasetRepo.Delete(loggedUserId.(uint), uint(trainDatasetId))
+	err = h.TrainingDatasetRepo.Delete(loggedUserId.(uint), uint(trainingDatasetId))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -120,7 +120,7 @@ type exploreDirectoryTemplateData struct {
 	ParentDir string
 }
 
-func (h *TrainDatasetHandler) ExploreDirectory(w http.ResponseWriter, r *http.Request) {
+func (h *TrainingDatasetHandler) ExploreDirectory(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
 	if path == "" {
 		path = "/"
@@ -146,7 +146,7 @@ func (h *TrainDatasetHandler) ExploreDirectory(w http.ResponseWriter, r *http.Re
 		ParentDir: parentDir,
 	}
 
-	err = h.Template.ExecuteTemplate(w, "train-datasets_tree-browser", data)
+	err = h.Template.ExecuteTemplate(w, "training-datasets_tree-browser", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -156,7 +156,7 @@ type findAODsTemplateData struct {
 	AODFiles []jalien.AODFile
 }
 
-func (h *TrainDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request) {
+func (h *TrainingDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
 
 	aods, err := jalien.FindAODFiles(path)
@@ -168,20 +168,20 @@ func (h *TrainDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request) {
 		AODFiles: aods,
 	}
 
-	err = h.Template.ExecuteTemplate(w, "train-datasets_file-list", data)
+	err = h.Template.ExecuteTemplate(w, "training-datasets_file-list", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func InitTrainDatasetRoutes(mux *http.ServeMux, baseTemplate *template.Template, trainDatasetRepo repository.TrainDatasetRepository, userRepo repository.UserRepository, auth *auth.Auth, jalienCacheMinutes uint) {
-	prefix := "train-datasets"
+func InitTrainingDatasetRoutes(mux *http.ServeMux, baseTemplate *template.Template, trainingDatasetRepo repository.TrainingDatasetRepository, userRepo repository.UserRepository, auth *auth.Auth, jalienCacheMinutes uint) {
+	prefix := "training-datasets"
 
-	tjh := &TrainDatasetHandler{
-		TrainDatasetRepo: trainDatasetRepo,
-		UserRepo:         userRepo,
-		Auth:             auth,
-		Template:         baseTemplate,
+	tjh := &TrainingDatasetHandler{
+		TrainingDatasetRepo: trainingDatasetRepo,
+		UserRepo:            userRepo,
+		Auth:                auth,
+		Template:            baseTemplate,
 	}
 
 	cache := utils.NewCache(time.Duration(jalienCacheMinutes) * time.Minute)
