@@ -56,7 +56,7 @@ func (h *TrainingDatasetHandler) Index(w http.ResponseWriter, r *http.Request) {
 
 func (h *TrainingDatasetHandler) New(w http.ResponseWriter, r *http.Request) {
 	err := h.Template.ExecuteTemplate(w, "training-datasets_new", map[string]interface{}{
-		"Title": "Create New Training Job!",
+		"Title": "Create New Training Dataset!",
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

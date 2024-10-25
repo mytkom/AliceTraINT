@@ -1,5 +1,5 @@
 {{ define "training-datasets_index" }}
-{{ template "header" }}
+{{ template "header" . }}
 <div class="flex flex-col gap-4 my-4">
     {{ if .TrainingDatasets }}
     <div class="flex justify-end justify-self-stretch">
@@ -43,5 +43,5 @@
     </div>
     {{ end }}
 </div>
-{{ template "footer" }}
+{{ template "footer" . }}
 {{ end }}
