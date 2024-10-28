@@ -13,15 +13,21 @@ type LandingHandler struct {
 }
 
 func (h *LandingHandler) Index(w http.ResponseWriter, r *http.Request) {
+	type TemplateData struct {
+		Title string
+	}
+
+	templateData := TemplateData{
+		Title: "AliceTraINT",
+	}
+
 	sess := h.Auth.GlobalSessions.SessionStart(w, r)
 	loggedUserId := sess.Get("loggedUserId")
 	if loggedUserId != nil {
 		http.Redirect(w, r, "/training-datasets", http.StatusTemporaryRedirect)
 	}
 
-	err := h.Template.ExecuteTemplate(w, "landing", map[string]interface{}{
-		"Title": "AliceTraINT",
-	})
+	err := h.Template.ExecuteTemplate(w, "landing", templateData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

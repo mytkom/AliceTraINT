@@ -1,0 +1,39 @@
+{{ define "training-tasks_new" }}
+{{ template "header" . }}
+
+<form class="flex flex-col gap-3" hx-post="/training-tasks" hx-ext="json-enc">
+    <div>
+        <label for="name">Task Name:</label>
+        <input name="name" type="text" required>
+    </div>
+    <div>
+        <label for="trainingDatasetId">Training Dataset:</label>
+        <select name="trainingDatasetId" required>
+            {{ range .TrainingDatasets }}
+            <option value="{{ .ID }}">{{ .Name }}</option>
+            {{ end }}
+        </select>
+    </div>
+
+    {{range $field, $spec := .NNArchSpec}}
+    <div>
+        <label for="config.{{$field}}">{{$spec.FullName}}:</label>
+        <p>{{$spec.Description}}</p>
+
+        {{if eq $spec.Type "uint" "int"}}
+        <input type="number" id="{{$field}}" name="configuration.{{$field}}" value="{{$spec.DefaultValue}}"
+            min="{{$spec.Min}}" max="{{$spec.Max}}" step="{{$spec.Step}}" required>
+        {{else if eq $spec.Type "float64"}}
+        <input type="number" id="{{$field}}" name="configuration.{{$field}}" value="{{$spec.DefaultValue}}"
+            min="{{$spec.Min}}" max="{{$spec.Max}}" step="{{$spec.Step}}" required>
+        {{else}}
+        <input type="text" id="{{$field}}" name="configuration.{{$field}}" value="{{$spec.DefaultValue}}" required>
+        {{end}}
+    </div>
+    {{end}}
+
+    <button type="submit">Submit</button>
+</form>
+
+{{ template "footer" . }}
+{{ end }}
