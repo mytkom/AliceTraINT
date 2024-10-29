@@ -1,0 +1,27 @@
+{{ define "training-tasks_index" }}
+{{ template "header" . }}
+
+<div class="flex flex-col gap-4 my-4">
+    {{ if .TrainingTasks }}
+    <div class="flex justify-end justify-self-stretch">
+        <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-xl font-bold py-2 px-4"
+            href="/training-tasks/new">Create Training Task</a>
+    </div>
+    {{ range .TrainingTasks }}
+    <div class="flex flex-col w-full gap-4 bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg py-4 px-4">
+        <div class="flex justify-between items-center">
+            <div class="text-xl font-bold">{{ .Name }}</div>
+            <div class="text-xl font-bold">{{ .Status.String }}</div>
+        </div>
+    </div>
+    {{ end }}
+    {{ else }}
+    <div class="flex items-center justify-around">
+        <div class="text-xl">There is no available training tasks! You can create new one using button.</div>
+        <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-xl font-bold py-2 px-4"
+            href="/training-tasks/new">Create Training Task</a>
+    </div>
+    {{ end }}
+</div>
+{{ template "footer" . }}
+{{ end }}

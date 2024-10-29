@@ -37,28 +37,12 @@ func TestTrainingTaskRepository_Create(t *testing.T) {
 		UserId: 1,
 	}
 
-	config := &models.TrainingTaskConfig{
-		BatchSize:         512,
-		MaxEpochs:         40,
-		DropoutRate:       0.1,
-		Gamma:             0.9,
-		Patience:          5,
-		PatienceThreshold: 0.001,
-		EmbedHidden:       128,
-		DModel:            32,
-		FFHidden:          128,
-		PoolHidden:        64,
-		NumHeads:          2,
-		NumBlocks:         2,
-		StartLearningRate: 2e-4,
-	}
-
 	trainingTask := &models.TrainingTask{
 		Name:            "LHC24b1b undersampling",
 		Status:          models.Queued,
 		TrainingDataset: *trainingDataset,
 		UserId:          1,
-		Configuration:   *config,
+		Configuration:   struct{ bs uint }{bs: 216},
 	}
 
 	mock.ExpectBegin()
@@ -81,36 +65,20 @@ func TestTrainingTaskRepository_GetAll(t *testing.T) {
 
 	trainingTaskRepo := NewTrainingTaskRepository(db)
 
-	config := &models.TrainingTaskConfig{
-		BatchSize:         512,
-		MaxEpochs:         40,
-		DropoutRate:       0.1,
-		Gamma:             0.9,
-		Patience:          5,
-		PatienceThreshold: 0.001,
-		EmbedHidden:       128,
-		DModel:            32,
-		FFHidden:          128,
-		PoolHidden:        64,
-		NumHeads:          2,
-		NumBlocks:         2,
-		StartLearningRate: 2e-4,
-	}
-
 	trainingTasks := []models.TrainingTask{
 		{
 			Name:              "LHC24b1b undersampling",
 			Status:            models.Queued,
 			TrainingDatasetId: 1,
 			UserId:            1,
-			Configuration:     *config,
+			Configuration:     struct{ bs uint }{bs: 216},
 		},
 		{
 			Name:              "LHC24b1b",
 			Status:            models.Completed,
 			TrainingDatasetId: 1,
 			UserId:            1,
-			Configuration:     *config,
+			Configuration:     struct{ bs uint }{bs: 155},
 		},
 	}
 
@@ -137,28 +105,12 @@ func TestTrainingTaskRepository_GetById(t *testing.T) {
 
 	trainingTaskRepo := NewTrainingTaskRepository(db)
 
-	config := &models.TrainingTaskConfig{
-		BatchSize:         512,
-		MaxEpochs:         40,
-		DropoutRate:       0.1,
-		Gamma:             0.9,
-		Patience:          5,
-		PatienceThreshold: 0.001,
-		EmbedHidden:       128,
-		DModel:            32,
-		FFHidden:          128,
-		PoolHidden:        64,
-		NumHeads:          2,
-		NumBlocks:         2,
-		StartLearningRate: 2e-4,
-	}
-
 	trainingTask := &models.TrainingTask{
 		Name:              "LHC24b1b undersampling",
 		Status:            models.Queued,
 		TrainingDatasetId: 1,
 		UserId:            1,
-		Configuration:     *config,
+		Configuration:     struct{ bs uint }{bs: 155},
 	}
 
 	rows := sqlmock.NewRows([]string{"id", "name", "status", "train_dataset_id", "user_id", "configuration"})
@@ -194,28 +146,12 @@ func TestTrainingTaskRepository_Update(t *testing.T) {
 
 	trainingTaskRepo := NewTrainingTaskRepository(db)
 
-	config := &models.TrainingTaskConfig{
-		BatchSize:         512,
-		MaxEpochs:         40,
-		DropoutRate:       0.1,
-		Gamma:             0.9,
-		Patience:          5,
-		PatienceThreshold: 0.001,
-		EmbedHidden:       128,
-		DModel:            32,
-		FFHidden:          128,
-		PoolHidden:        64,
-		NumHeads:          2,
-		NumBlocks:         2,
-		StartLearningRate: 2e-4,
-	}
-
 	trainingTask := &models.TrainingTask{
 		Name:              "LHC24b1b undersampling",
 		Status:            models.Queued,
 		TrainingDatasetId: 1,
 		UserId:            1,
-		Configuration:     *config,
+		Configuration:     struct{ bs uint }{bs: 155},
 	}
 
 	mock.ExpectBegin()

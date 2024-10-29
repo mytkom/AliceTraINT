@@ -25,12 +25,12 @@ type TrainingDatasetHandler struct {
 	Template            *template.Template
 }
 
-type IndexTemplateData struct {
-	Title            string
-	TrainingDatasets []models.TrainingDataset
-}
-
 func (h *TrainingDatasetHandler) Index(w http.ResponseWriter, r *http.Request) {
+	type TemplateData struct {
+		Title            string
+		TrainingDatasets []models.TrainingDataset
+	}
+
 	sess := h.Auth.GlobalSessions.SessionStart(w, r)
 	loggedUserId := sess.Get("loggedUserId")
 	if loggedUserId != nil {
@@ -45,7 +45,7 @@ func (h *TrainingDatasetHandler) Index(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	err = h.Template.ExecuteTemplate(w, "training-datasets_index", IndexTemplateData{
+	err = h.Template.ExecuteTemplate(w, "training-datasets_index", TemplateData{
 		Title:            "Training Datasets",
 		TrainingDatasets: trainingDatasets,
 	})
@@ -55,8 +55,12 @@ func (h *TrainingDatasetHandler) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TrainingDatasetHandler) New(w http.ResponseWriter, r *http.Request) {
-	err := h.Template.ExecuteTemplate(w, "training-datasets_new", map[string]interface{}{
-		"Title": "Create New Training Dataset!",
+	type TemplateData struct {
+		Title string
+	}
+
+	err := h.Template.ExecuteTemplate(w, "training-datasets_new", TemplateData{
+		Title: "Create New Training Dataset!",
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -113,14 +117,14 @@ func (h *TrainingDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 }
 
-type exploreDirectoryTemplateData struct {
-	Path      string
-	Subdirs   []jalien.Dir
-	AODFiles  []jalien.AODFile
-	ParentDir string
-}
-
 func (h *TrainingDatasetHandler) ExploreDirectory(w http.ResponseWriter, r *http.Request) {
+	type TemplateData struct {
+		Path      string
+		Subdirs   []jalien.Dir
+		AODFiles  []jalien.AODFile
+		ParentDir string
+	}
+
 	path := r.URL.Query().Get("path")
 	if path == "" {
 		path = "/"
@@ -139,24 +143,22 @@ func (h *TrainingDatasetHandler) ExploreDirectory(w http.ResponseWriter, r *http
 		}
 	}
 
-	data := exploreDirectoryTemplateData{
+	err = h.Template.ExecuteTemplate(w, "training-datasets_tree-browser", TemplateData{
 		Path:      path,
 		AODFiles:  dirContents.AODFiles,
 		Subdirs:   dirContents.Subdirs,
 		ParentDir: parentDir,
-	}
-
-	err = h.Template.ExecuteTemplate(w, "training-datasets_tree-browser", data)
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-type findAODsTemplateData struct {
-	AODFiles []jalien.AODFile
-}
-
 func (h *TrainingDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request) {
+	type TemplateData struct {
+		AODFiles []jalien.AODFile
+	}
+
 	path := r.URL.Query().Get("path")
 
 	aods, err := jalien.FindAODFiles(path)
@@ -164,11 +166,9 @@ func (h *TrainingDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	data := &findAODsTemplateData{
+	err = h.Template.ExecuteTemplate(w, "training-datasets_file-list", TemplateData{
 		AODFiles: aods,
-	}
-
-	err = h.Template.ExecuteTemplate(w, "training-datasets_file-list", data)
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

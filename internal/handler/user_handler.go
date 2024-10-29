@@ -26,17 +26,22 @@ func NewUserHandler(baseTemplate *template.Template, userRepo repository.UserRep
 }
 
 func (h *UserHandler) Index(w http.ResponseWriter, r *http.Request) {
+	type TemplateData struct {
+		Users      []models.User
+		LoggedUser *models.User
+		Title      string
+	}
+
 	users, err := h.UserRepo.GetAll()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	data := struct {
-		Users      []models.User
-		LoggedUser *models.User
-		Title      string
-	}{Users: users, Title: "Users List"}
+	data := TemplateData{
+		Users: users,
+		Title: "Users List",
+	}
 
 	sess := h.Auth.GlobalSessions.SessionStart(w, r)
 	loggedUserId := sess.Get("loggedUserId")

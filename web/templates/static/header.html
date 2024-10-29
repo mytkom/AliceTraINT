@@ -6,8 +6,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="/static/css/output.css" rel="stylesheet" />
+    <link href="/static/img/favicon/favicon.ico" rel="icon" type="image/x-icon">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/static/img/favicon/site.webmanifest">
     <title>{{.Title}}</title>
     <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+    <script src="/static/js/json-enc.js"></script>
 </head>
 
 <body class="bg-sky-100 text-gray-900">
@@ -23,7 +29,10 @@
                         </div>
                     </a>
                 </div>
-                <div class="flex text-sky-50 gap-0 justify-start text-lg">
+                <div class="flex text-sky-50 gap-3 justify-start text-lg">
+                    <a href="/training-tasks">
+                        Training Tasks
+                    </a>
                     <a href="/training-datasets">
                         Training Datasets
                     </a>
