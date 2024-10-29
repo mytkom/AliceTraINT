@@ -27,15 +27,31 @@ type NNArchSpec struct {
 
 func loadNNArchSpec(filename string) (map[string]NNArchSpec, error) {
 	file, err := os.Open(filename)
+
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
 
 	var config map[string]NNArchSpec
-	bytes, _ := io.ReadAll(file)
+	bytes, err := io.ReadAll(file)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = file.Close()
+
+	if err != nil {
+		return nil, err
+	}
+
 	err = json.Unmarshal(bytes, &config)
-	return config, err
+
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }
 
 type TrainingTaskHandler struct {
