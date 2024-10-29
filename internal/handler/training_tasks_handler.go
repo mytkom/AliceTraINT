@@ -130,6 +130,7 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
+	w.Header().Add("Hx-Redirect", "/training-tasks")
 	w.WriteHeader(http.StatusCreated)
 }
 
