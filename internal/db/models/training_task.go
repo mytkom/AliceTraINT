@@ -44,6 +44,22 @@ func (s TrainingTaskStatus) String() string {
 	}
 }
 
+// returns tailwind color suffix and this classes should be included in tailwind's safelist
+func (s TrainingTaskStatus) Color() string {
+	switch s {
+	case Queued:
+		return "emerald-600"
+	case Training:
+		return "yellow-200"
+	case Benchmarking:
+		return "yellow-600"
+	case Completed:
+		return "green-600"
+	default:
+		return "gray-400"
+	}
+}
+
 type TrainingTask struct {
 	gorm.Model
 	Name              string             `gorm:"type:varchar(255);not null"`

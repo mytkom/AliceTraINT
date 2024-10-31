@@ -3,7 +3,7 @@
 <div class="flex flex-col gap-4 my-4">
     {{ if .TrainingDatasets }}
     <div class="flex justify-end justify-self-stretch">
-        <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-xl font-bold py-2 px-4"
+        <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-lg font-bold py-2 px-4"
             href="/training-datasets/new">Create Training Dataset</a>
     </div>
     {{ range .TrainingDatasets }}
@@ -37,7 +37,7 @@
     {{ end }}
     {{ else }}
     <div class="flex items-center justify-around">
-        <div class="text-xl">There is no available training datasets! You can create new one using button.</div>
+        <div class="text-lg">There is no available training datasets! You can create new one using button.</div>
         <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-xl font-bold py-2 px-4"
             href="/training-datasets/new">Create Training Dataset</a>
     </div>

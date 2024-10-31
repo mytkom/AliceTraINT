@@ -44,7 +44,7 @@ func (r *trainingTaskRepository) GetAll() ([]models.TrainingTask, error) {
 
 func (r *trainingTaskRepository) GetAllUser(userId uint) ([]models.TrainingTask, error) {
 	var trainingTasks []models.TrainingTask
-	if err := r.db.Order("\"created_at\" desc").Where("\"user_id\" = ?", userId).Find(&trainingTasks).Error; err != nil {
+	if err := r.db.Joins("TrainingDataset").Joins("User").Order("\"created_at\" desc").Find(&trainingTasks, r.db.Where(&models.TrainingTask{UserId: userId})).Error; err != nil {
 		return nil, err
 	}
 	return trainingTasks, nil
