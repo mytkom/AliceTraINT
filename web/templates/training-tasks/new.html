@@ -2,9 +2,9 @@
 {{ template "header" . }}
 
 <form class="flex flex-col gap-5 items-center flex-shrink" hx-post="/training-tasks" hx-ext="json-enc">
-    <h2 class="self-center text-4xl mt-5">Create Training Task</h2>
-    <div class="grid auto-cols-auto grid-cols-2 gap-3">
-        <h3 class="text-xl justify-self-end">Basic configuration:</h3>
+    <h2 class="self-center text-xl mt-5">Create Training Task</h2>
+    <div class="flex flex-col md:grid md:auto-rows-auto md:grid-cols-2 gap-3">
+        <h3 class="block text-lg justify-self-end">Basic configuration:</h3>
         <div class="grid grid-cols-3 grid-rows-2 gap-4 items-stretch p-5 rounded-lg bg-sky-900 text-lg">
             <div class="self-center justify-self-end">
                 <label class="" for="name">Task name:</label>
@@ -25,7 +25,7 @@
             </div>
         </div>
 
-        <h3 class="text-xl justify-self-end">Additional configuration:</h3>
+        <h3 class="text-lg justify-self-end">Additional configuration:</h3>
         <div class="flex-col flex gap-5 items-stretch p-5 rounded-lg bg-sky-900 text-lg">
             {{range $field, $spec := .NNArchSpec}}
             <div class="flex flex-col gap-1">
@@ -38,6 +38,8 @@
                     {{else if eq $spec.Type "float64"}}
                     <input class="w-40 text-lg rounded-lg text-gray-800" type="number" id="{{$field}}" name="configuration.{{$field}}" value="{{$spec.DefaultValue}}"
                         min="{{$spec.Min}}" max="{{$spec.Max}}" step="{{$spec.Step}}" required>
+                    {{else if eq $spec.Type "bool"}}
+                    <input class="w-8 h-8 rounded-full" type="checkbox" id="{{$field}}" name="configuration.{{$field}}">
                     {{else}}
                     <input class="w-40 text-lg rounded-lg text-gray-800" type="text" id="{{$field}}" name="configuration.{{$field}}" value="{{$spec.DefaultValue}}"
                         required>
@@ -50,7 +52,7 @@
             {{end}}
         </div>
 
-        <button class="col-span-2 justify-self-end bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-xl font-bold py-2 px-4 mb-5" type="submit">Submit</button>
+        <button class="col-span-2 self-end md:justify-self-end bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-xl font-bold py-2 px-4 mb-5" type="submit">Submit</button>
     </div>
 
 </form>
