@@ -88,7 +88,7 @@ func TestTrainingTaskRepository_GetAll(t *testing.T) {
 		rows = rows.AddRow(i+1, task.Name, task.Status, 1, 1, marshalTrainingTaskConfig(t, &task))
 	}
 
-	mock.ExpectQuery("SELECT \\* FROM \"training_tasks\"").
+	mock.ExpectQuery("SELECT (.*) FROM \"training_tasks\" LEFT JOIN \"training_datasets\" (.*) LEFT JOIN \"users\" (.*) ORDER BY \"created_at\" desc").
 		WillReturnRows(rows)
 
 	trainingTasks, err := trainingTaskRepo.GetAll()
