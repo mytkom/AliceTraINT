@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.display-htmx-indicator {
+    display: none;
+}
+
+.htmx-request .display-htmx-indicator {
+    display: inline;
+}
+
+.htmx-request.display-htmx-indicator {
+    display: inline;
+}

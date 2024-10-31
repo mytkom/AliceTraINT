@@ -5,7 +5,7 @@
     {{ if ne .Path "/" }}
     <button
       class="p-2 rounded-md bg-sky-200 dark:bg-sky-600 hover:bg-sky-100 dark:hover:bg-sky-700 hover:cursor-pointer"
-      hx-get="explore-directory" hx-vals='{"path":"{{ .ParentDir }}"}' hx-target="#file-tree"
+      hx-get="explore-directory" hx-vals='{"path":"{{ .ParentDir }}"}' hx-target="#file-tree" hx-indicator="#file-tree-overlay"
       hx-trigger="click consume">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
         class="size-4 lg:size-5">
@@ -16,7 +16,7 @@
     <p>{{ .Path }}</p>
     {{ if ne .Path "/" }}
     <button class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2" hx-get="find-aods"
-      hx-vals='{"path":"{{ .Path }}"}' hx-target="#file-list" hx-trigger="click">Find
+      hx-vals='{"path":"{{ .Path }}"}' hx-target="#file-list" hx-trigger="click" hx-indicator="#file-list-overlay">Find
       AO2Ds</button>
     {{ end }}
   </div>

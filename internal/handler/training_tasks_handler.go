@@ -65,28 +65,56 @@ type TrainingTaskHandler struct {
 
 func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
-		Title         string
-		TrainingTasks []models.TrainingTask
+		Title string
 	}
 
-	sess := h.Auth.GlobalSessions.SessionStart(w, r)
-	loggedUserId := sess.Get("loggedUserId")
-	if loggedUserId != nil {
-		_, err := h.UserRepo.GetByID(loggedUserId.(uint))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-		}
+	if r.Header.Get("HX-Request") == "true" {
+		http.Error(w, "invalid request, does not accept HTMX", http.StatusUnprocessableEntity)
+		return
 	}
 
-	trainingTasks, err := h.TrainingTaskRepo.GetAllUser(loggedUserId.(uint))
+	err := h.Template.ExecuteTemplate(w, "training-tasks_index", TemplateData{
+		Title: "Training Tasks",
+	})
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
 
-	err = h.Template.ExecuteTemplate(w, "training-tasks_index", TemplateData{
-		Title:         "Training Tasks",
-		TrainingTasks: trainingTasks,
-	})
+func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("HX-Request") != "true" {
+		http.Error(w, "invalid request, accepts only HTMX", http.StatusUnprocessableEntity)
+		return
+	}
+
+	isUserScoped := r.URL.Query().Get("userScoped") == "on"
+
+	var trainingTasks []models.TrainingTask
+	var err error
+
+	if isUserScoped {
+		sess := h.Auth.GlobalSessions.SessionStart(w, r)
+		loggedUserId := sess.Get("loggedUserId")
+		if loggedUserId != nil {
+			_, err := h.UserRepo.GetByID(loggedUserId.(uint))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+			}
+		}
+
+		trainingTasks, err = h.TrainingTaskRepo.GetAllUser(loggedUserId.(uint))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	} else {
+		trainingTasks, err = h.TrainingTaskRepo.GetAll()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+
+	err = h.Template.ExecuteTemplate(w, "training-tasks_listing", trainingTasks)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -97,6 +125,11 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 		Title            string
 		TrainingDatasets []models.TrainingDataset
 		NNArchSpec       map[string]NNArchSpec
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		http.Error(w, "invalid request, does not accept HTMX", http.StatusUnprocessableEntity)
+		return
 	}
 
 	sess := h.Auth.GlobalSessions.SessionStart(w, r)
@@ -124,6 +157,11 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("HX-Request") != "true" {
+		http.Error(w, "invalid request, accepts only HTMX", http.StatusUnprocessableEntity)
+		return
+	}
+
 	var trainingTask models.TrainingTask
 	err := json.NewDecoder(r.Body).Decode(&trainingTask)
 	if err != nil {
@@ -171,6 +209,11 @@ func InitTrainingTasksRoutes(mux *http.ServeMux, baseTemplate *template.Template
 
 	mux.Handle(fmt.Sprintf("GET /%s", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.Index),
+		authMw,
+	))
+
+	mux.Handle(fmt.Sprintf("GET /%s/list", prefix), middleware.Chain(
+		http.HandlerFunc(tjh.List),
 		authMw,
 	))
 
