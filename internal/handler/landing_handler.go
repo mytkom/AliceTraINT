@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/mytkom/AliceTraINT/internal/auth"
+	"github.com/mytkom/AliceTraINT/internal/middleware"
 )
 
 type LandingHandler struct {
@@ -39,5 +40,10 @@ func InitLandingRoutes(mux *http.ServeMux, baseTemplate *template.Template, auth
 		Template: baseTemplate,
 	}
 
-	mux.HandleFunc("GET /", lh.Index)
+	blockHtmxMw := middleware.NewBlockHTMXMw()
+
+	mux.Handle("GET /", middleware.Chain(
+		http.HandlerFunc(lh.Index),
+		blockHtmxMw,
+	))
 }

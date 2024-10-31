@@ -89,7 +89,7 @@ func TestTrainingDatasetRepository_GetAll(t *testing.T) {
 		rows = rows.AddRow(i+1, dataset.Name, marshalAODFiles(t, &dataset))
 	}
 
-	mock.ExpectQuery("SELECT \\* FROM \"training_datasets\"").
+	mock.ExpectQuery("SELECT (.*) FROM \"training_datasets\" LEFT JOIN \"users\" (.*) ORDER BY \"created_at\" desc").
 		WillReturnRows(rows)
 
 	trainingDatasets, err := trainingDatasetRepo.GetAll()

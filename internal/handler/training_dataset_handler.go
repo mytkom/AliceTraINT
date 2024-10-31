@@ -27,26 +27,47 @@ type TrainingDatasetHandler struct {
 
 func (h *TrainingDatasetHandler) Index(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
-		Title            string
-		TrainingDatasets []models.TrainingDataset
+		Title string
 	}
 
-	sess := h.Auth.GlobalSessions.SessionStart(w, r)
-	loggedUserId := sess.Get("loggedUserId")
-	if loggedUserId != nil {
-		_, err := h.UserRepo.GetByID(loggedUserId.(uint))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-		}
-	}
-
-	trainingDatasets, err := h.TrainingDatasetRepo.GetAllUser(loggedUserId.(uint))
+	err := h.Template.ExecuteTemplate(w, "training-datasets_index", TemplateData{
+		Title: "Training Datasets",
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
 
-	err = h.Template.ExecuteTemplate(w, "training-datasets_index", TemplateData{
-		Title:            "Training Datasets",
+func (h *TrainingDatasetHandler) List(w http.ResponseWriter, r *http.Request) {
+	type TemplateData struct {
+		TrainingDatasets []models.TrainingDataset
+	}
+
+	var trainingDatasets []models.TrainingDataset
+	var err error
+
+	if r.URL.Query().Get("userScoped") == "on" {
+		sess := h.Auth.GlobalSessions.SessionStart(w, r)
+		loggedUserId := sess.Get("loggedUserId")
+		if loggedUserId != nil {
+			_, err := h.UserRepo.GetByID(loggedUserId.(uint))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+			}
+		}
+
+		trainingDatasets, err = h.TrainingDatasetRepo.GetAllUser(loggedUserId.(uint))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	} else {
+		trainingDatasets, err = h.TrainingDatasetRepo.GetAll()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+
+	err = h.Template.ExecuteTemplate(w, "training-datasets_list", TemplateData{
 		TrainingDatasets: trainingDatasets,
 	})
 	if err != nil {
@@ -188,36 +209,50 @@ func InitTrainingDatasetRoutes(mux *http.ServeMux, baseTemplate *template.Templa
 
 	authMw := middleware.NewAuthMw(auth)
 	cacheMw := middleware.NewCacheMw(cache)
+	validateHtmxMw := middleware.NewValidateHTMXMw()
+	blockHtmxMw := middleware.NewBlockHTMXMw()
 
 	mux.Handle(fmt.Sprintf("GET /%s", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.Index),
+		blockHtmxMw,
+		authMw,
+	))
+
+	mux.Handle(fmt.Sprintf("GET /%s/list", prefix), middleware.Chain(
+		http.HandlerFunc(tjh.List),
+		validateHtmxMw,
 		authMw,
 	))
 
 	mux.Handle(fmt.Sprintf("GET /%s/new", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.New),
+		blockHtmxMw,
 		authMw,
 	))
 
 	mux.Handle(fmt.Sprintf("DELETE /%s/{id}", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.Delete),
+		validateHtmxMw,
 		authMw,
 	))
 
 	mux.Handle(fmt.Sprintf("POST /%s", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.Create),
+		// TODO: make it: validateHtmxMw,
 		authMw,
 	))
 
 	mux.Handle(fmt.Sprintf("GET /%s/explore-directory", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.ExploreDirectory),
 		cacheMw,
+		validateHtmxMw,
 		authMw,
 	))
 
 	mux.Handle(fmt.Sprintf("GET /%s/find-aods", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.FindAods),
 		cacheMw,
+		validateHtmxMw,
 		authMw,
 	))
 }

@@ -1,4 +1,4 @@
-{{ define "training-tasks_listing" }}
+{{ define "training-tasks_list" }}
 <table class="relative w-full text-left border-collapse">
     <thead class="sticky top-0">
         <tr class="bg-sky-900 text-white uppercase leading-normal">
@@ -11,7 +11,7 @@
         </tr>
     </thead>
     <tbody class="text-gray-100 font-normal">
-        {{ range . }}
+        {{ range .TrainingTasks }}
         <tr class="border-b border-sky-700 hover:bg-sky-700">
             <td class="py-3 px-4 font-bold"><a href="/training-tasks/{{ .ID }}">{{ .Name }}</a></td>
             <td class="py-3 px-4"><a href="/training-datasets/{{ .ID }}">{{ .TrainingDataset.Name }}</a></td>

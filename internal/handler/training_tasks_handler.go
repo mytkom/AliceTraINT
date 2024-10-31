@@ -68,11 +68,6 @@ func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
 		Title string
 	}
 
-	if r.Header.Get("HX-Request") == "true" {
-		http.Error(w, "invalid request, does not accept HTMX", http.StatusUnprocessableEntity)
-		return
-	}
-
 	err := h.Template.ExecuteTemplate(w, "training-tasks_index", TemplateData{
 		Title: "Training Tasks",
 	})
@@ -83,17 +78,14 @@ func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("HX-Request") != "true" {
-		http.Error(w, "invalid request, accepts only HTMX", http.StatusUnprocessableEntity)
-		return
+	type TemplateData struct {
+		TrainingTasks []models.TrainingTask
 	}
-
-	isUserScoped := r.URL.Query().Get("userScoped") == "on"
 
 	var trainingTasks []models.TrainingTask
 	var err error
 
-	if isUserScoped {
+	if r.URL.Query().Get("userScoped") == "on" {
 		sess := h.Auth.GlobalSessions.SessionStart(w, r)
 		loggedUserId := sess.Get("loggedUserId")
 		if loggedUserId != nil {
@@ -114,7 +106,9 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = h.Template.ExecuteTemplate(w, "training-tasks_listing", trainingTasks)
+	err = h.Template.ExecuteTemplate(w, "training-tasks_list", TemplateData{
+		TrainingTasks: trainingTasks,
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -125,11 +119,6 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 		Title            string
 		TrainingDatasets []models.TrainingDataset
 		NNArchSpec       map[string]NNArchSpec
-	}
-
-	if r.Header.Get("HX-Request") == "true" {
-		http.Error(w, "invalid request, does not accept HTMX", http.StatusUnprocessableEntity)
-		return
 	}
 
 	sess := h.Auth.GlobalSessions.SessionStart(w, r)
@@ -157,11 +146,6 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("HX-Request") != "true" {
-		http.Error(w, "invalid request, accepts only HTMX", http.StatusUnprocessableEntity)
-		return
-	}
-
 	var trainingTask models.TrainingTask
 	err := json.NewDecoder(r.Body).Decode(&trainingTask)
 	if err != nil {
@@ -206,24 +190,30 @@ func InitTrainingTasksRoutes(mux *http.ServeMux, baseTemplate *template.Template
 	}
 
 	authMw := middleware.NewAuthMw(auth)
+	validateHtmxMw := middleware.NewValidateHTMXMw()
+	blockHtmxMw := middleware.NewBlockHTMXMw()
 
 	mux.Handle(fmt.Sprintf("GET /%s", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.Index),
+		blockHtmxMw,
 		authMw,
 	))
 
 	mux.Handle(fmt.Sprintf("GET /%s/list", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.List),
+		validateHtmxMw,
 		authMw,
 	))
 
 	mux.Handle(fmt.Sprintf("GET /%s/new", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.New),
+		blockHtmxMw,
 		authMw,
 	))
 
 	mux.Handle(fmt.Sprintf("POST /%s", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.Create),
+		validateHtmxMw,
 		authMw,
 	))
 }
