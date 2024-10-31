@@ -65,26 +65,48 @@ type TrainingTaskHandler struct {
 
 func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
-		Title         string
-		TrainingTasks []models.TrainingTask
+		Title string
 	}
 
-	sess := h.Auth.GlobalSessions.SessionStart(w, r)
-	loggedUserId := sess.Get("loggedUserId")
-	if loggedUserId != nil {
-		_, err := h.UserRepo.GetByID(loggedUserId.(uint))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-		}
-	}
+	err := h.Template.ExecuteTemplate(w, "training-tasks_index", TemplateData{
+		Title: "Training Tasks",
+	})
 
-	trainingTasks, err := h.TrainingTaskRepo.GetAllUser(loggedUserId.(uint))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
 
-	err = h.Template.ExecuteTemplate(w, "training-tasks_index", TemplateData{
-		Title:         "Training Tasks",
+func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
+	type TemplateData struct {
+		TrainingTasks []models.TrainingTask
+	}
+
+	var trainingTasks []models.TrainingTask
+	var err error
+
+	if r.URL.Query().Get("userScoped") == "on" {
+		sess := h.Auth.GlobalSessions.SessionStart(w, r)
+		loggedUserId := sess.Get("loggedUserId")
+		if loggedUserId != nil {
+			_, err := h.UserRepo.GetByID(loggedUserId.(uint))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+			}
+		}
+
+		trainingTasks, err = h.TrainingTaskRepo.GetAllUser(loggedUserId.(uint))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	} else {
+		trainingTasks, err = h.TrainingTaskRepo.GetAll()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+
+	err = h.Template.ExecuteTemplate(w, "training-tasks_list", TemplateData{
 		TrainingTasks: trainingTasks,
 	})
 	if err != nil {
@@ -168,19 +190,30 @@ func InitTrainingTasksRoutes(mux *http.ServeMux, baseTemplate *template.Template
 	}
 
 	authMw := middleware.NewAuthMw(auth)
+	validateHtmxMw := middleware.NewValidateHTMXMw()
+	blockHtmxMw := middleware.NewBlockHTMXMw()
 
 	mux.Handle(fmt.Sprintf("GET /%s", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.Index),
+		blockHtmxMw,
+		authMw,
+	))
+
+	mux.Handle(fmt.Sprintf("GET /%s/list", prefix), middleware.Chain(
+		http.HandlerFunc(tjh.List),
+		validateHtmxMw,
 		authMw,
 	))
 
 	mux.Handle(fmt.Sprintf("GET /%s/new", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.New),
+		blockHtmxMw,
 		authMw,
 	))
 
 	mux.Handle(fmt.Sprintf("POST /%s", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.Create),
+		validateHtmxMw,
 		authMw,
 	))
 }

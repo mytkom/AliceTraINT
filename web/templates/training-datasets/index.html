@@ -1,47 +1,24 @@
 {{ define "training-datasets_index" }}
 {{ template "header" . }}
 <div class="flex flex-col gap-4 my-4">
-    {{ if .TrainingDatasets }}
-    <div class="flex justify-end justify-self-stretch">
+    <div class="flex justify-between justify-self-stretch items-center">
+        <h1 class="text-lg md:text-xl">{{ .Title }}</h1>
         <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-lg font-bold py-2 px-4"
             href="/training-datasets/new">Create Training Dataset</a>
     </div>
-    {{ range .TrainingDatasets }}
-    <div hx-target="this" hx-swap="outerHTML"
-        class="flex flex-col w-full gap-4 bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg py-4 px-4">
-        <div class="flex justify-between items-center">
-            <div class="text-xl font-bold">{{ .Name }}</div>
-            <button class="bg-red-600 hover:bg-red-400 rounded-lg text-lg font-bold py-1 px-2"
-                hx-delete="/training-datasets/{{.ID}}"
-                hx-confirm="Are you sure you want to remove {{ .Name }}?">Remove</button>
-        </div>
-        <div class="flex flex-row flex-wrap gap-3">
-            {{ range .AODFiles }}
-            <div class="file flex items-center gap-4 p-2 rounded-md bg-sky-200 dark:bg-sky-600" data-path="{{ .Path }}">
-                <div class="flex justify-start gap-2 items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                        stroke="currentColor" class="size-4 lg:size-6">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M20.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                    </svg>
-                    <p>
-                    <p name="LHCPeriod">{{ .LHCPeriod }}</p>-<p name="runNumber">{{ .RunNumber }}</p>-<p
-                        name="AODNumber">{{ .AODNumber }}</p>
-                    </p>
-                </div>
-                <p name="size" int-size="{{ .Size }}">{{ formatFileSizePretty .Size }}</p>
+    <form method="get" class="flex items-center gap-2">
+        <label for="userScoped" class="text-md">Show only mine</label>
+        <input class="w-5 h-5 rounded-full" type="checkbox" name="userScoped" hx-get="/training-datasets/list" hx-trigger="click"
+            hx-target="#training-datasets-listing" hx-indicator="#spinner">
+    </form>
+    <div class="relative max-h-full min-h-48 w-full shadow-lg rounded-lg">
+        <div class="flex flex-col gap-4" id="training-datasets-listing" hx-get="/training-datasets/list" hx-trigger="load" hx-indicator="#spinner"></div>
+        <div id="spinner" class="display-htmx-indicator absolute inset-0 bg-sky-200 opacity-50 z-10">
+            <div class="h-full flex justify-center items-center">
+                <img class="size-14 lg:size-20" src="/static/img/spinner.svg" />
             </div>
-            {{ end }}
         </div>
     </div>
-    {{ end }}
-    {{ else }}
-    <div class="flex items-center justify-around">
-        <div class="text-lg">There is no available training datasets! You can create new one using button.</div>
-        <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-xl font-bold py-2 px-4"
-            href="/training-datasets/new">Create Training Dataset</a>
-    </div>
-    {{ end }}
 </div>
 {{ template "footer" . }}
 {{ end }}

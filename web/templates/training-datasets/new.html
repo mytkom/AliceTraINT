@@ -1,14 +1,12 @@
 {{ define "training-datasets_new" }}
 {{ template "header" . }}
-
 <div class="flex gap-3 py-5 min-h-96 max-h-full w-full flex-col lg:flex-row">
     <div
         class="relative lg:w-1/2 w-full border-dotted rounded-md shadow-md dark:shadow-none overflow-hidden bg-sky-50 dark:bg-sky-800">
-        <div class="flex flex-col max-h-96 min-h-96" id="file-tree">
-            <div hx-trigger="load" hx-get="explore-directory" hx-target="#file-tree" hx-vals='{"path":"/alice/sim/"}'>
-            </div>
+        <div class="flex flex-col max-h-96 min-h-96" id="file-tree" hx-trigger="load" hx-get="explore-directory"
+            hx-vals='{"path":"/alice/sim/"}' hx-indicator="#file-tree-overlay">
         </div>
-        <div id="file-tree-overlay" class="hidden absolute inset-0 bg-sky-200 opacity-50 z-10">
+        <div id="file-tree-overlay" class="display-htmx-indicator absolute inset-0 bg-sky-200 opacity-50 z-10">
             <div class="h-full flex justify-center items-center">
                 <img class="size-14 lg:size-20" src="/static/img/spinner.svg" />
             </div>
@@ -19,9 +17,9 @@
         <div class="flex flex-col max-h-96 min-h-96">
             <form id="find-aods-form"
                 class="flex flex-wrap content-stretch bg-white dark:bg-sky-700 justify-end gap-4 items-center border-b-2 border-dotted p-3"
-                hx-get="find-aods" hx-target="#file-list" hx-swap="innerHTML">
+                hx-get="find-aods" hx-target="#file-list" hx-swap="innerHTML" hx-indicator="#file-list-overlay">
                 <label for="path">Path in Grid:</label>
-                <input class="bg-white border-sky-900 rounded-lg flex-grow text-sm py-1 px-2 max-w-1/2"
+                <input class="bg-white border-sky-900 text-gray-800 rounded-lg flex-grow text-sm py-1 px-2 max-w-1/2"
                     placeholder="ex. /alice/sim/2024/LHC24f3/0/523397" type="text" id="path" name="path" required>
                 <button class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2"
                     type="submit">Find AO2Ds</button>
@@ -30,7 +28,7 @@
             <div id="file-list" class="overflow-y-auto max-h-full"></div>
         </div>
 
-        <div id="file-list-overlay" class="hidden absolute inset-0 bg-sky-200 opacity-50 z-10">
+        <div id="file-list-overlay" class="display-htmx-indicator absolute inset-0 bg-sky-200 opacity-50 z-10">
             <div class="h-full flex justify-center items-center">
                 <img class="size-14 lg:size-20" src="/static/img/spinner.svg" />
             </div>
@@ -42,35 +40,19 @@
 <div class="flex flex-col gap-5 items-center">
     <h1 class="text-3xl">Create training Dataset</h1>
     <div class="grid grid-cols-2 auto-rows-auto gap-3">
-        <label class="justify-self-end text-lg self-center" for="dataset-name">Training dataset name:</label>
+        <label class="justify-self-end text-lg self-center" for="train-dataset-name">Training dataset name:</label>
         <input type="text" class="bg-white border-sky-900 text-gray-800 rounded-lg text-lg py-1 px-2"
             name="dataset-name" id="train-dataset-name" />
         <h2 class="justify-self-end text-lg self-center">Selected files:</h2>
         <ul class="grid grid-cols-1 lg:grid-cols-2 gap-2" id="selected-files"></ul>
-        <button class="col-span-2 justify-self-end bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2 text-lg" id="submit-selection">Submit</button>
+        <button
+            class="col-span-2 justify-self-end bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2 text-lg"
+            id="submit-selection">Submit</button>
     </div>
 </div>
 
 <script>
-    const toggleOverlay = (targetId, action) => {
-        const overlayId = `${targetId}-overlay`;
-        const overlayElement = document.getElementById(overlayId);
-        if (overlayElement) {
-            overlayElement.classList[action]('hidden');
-        }
-    };
-
-    const handleBeforeRequest = (event) => {
-        toggleOverlay(event.detail.target.id, 'remove');
-    };
-
-    const handleFileTreeBeforeSwap = () => {
-        toggleOverlay('file-tree', 'add');
-    };
-
     const handleFileListBeforeSwap = (event) => {
-        toggleOverlay('file-list', 'add');
-
         const parser = new DOMParser();
         const serializer = new XMLSerializer();
         const fileList = parser.parseFromString(event.detail.serverResponse, 'text/xml');
@@ -111,8 +93,6 @@
         target.remove();
     };
 
-    document.body.addEventListener('htmx:beforeRequest', handleBeforeRequest);
-    document.getElementById('file-tree').addEventListener('htmx:beforeSwap', handleFileTreeBeforeSwap);
     document.getElementById('file-list').addEventListener('htmx:beforeSwap', handleFileListBeforeSwap);
     document.getElementById('file-list').addEventListener('click', handleFileClick);
     document.getElementById('selected-files').addEventListener('click', handleSelectedFileClick);

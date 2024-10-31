@@ -34,9 +34,13 @@ func (r *trainingDatasetRepository) GetByID(id uint) (*models.TrainingDataset, e
 	return &trainingDataset, nil
 }
 
+func (r *trainingDatasetRepository) allWithDependencies() *gorm.DB {
+	return r.db.Joins("User").Order("\"created_at\" desc")
+}
+
 func (r *trainingDatasetRepository) GetAll() ([]models.TrainingDataset, error) {
 	var trainingDatasets []models.TrainingDataset
-	if err := r.db.Find(&trainingDatasets).Error; err != nil {
+	if err := r.allWithDependencies().Find(&trainingDatasets).Error; err != nil {
 		return nil, err
 	}
 	return trainingDatasets, nil
@@ -44,7 +48,7 @@ func (r *trainingDatasetRepository) GetAll() ([]models.TrainingDataset, error) {
 
 func (r *trainingDatasetRepository) GetAllUser(userId uint) ([]models.TrainingDataset, error) {
 	var trainingDatasets []models.TrainingDataset
-	if err := r.db.Order("\"created_at\" desc").Where("\"user_id\" = ?", userId).Find(&trainingDatasets).Error; err != nil {
+	if err := r.allWithDependencies().Find(&trainingDatasets, r.db.Where("\"user_id\" = ?", userId)).Error; err != nil {
 		return nil, err
 	}
 	return trainingDatasets, nil
