@@ -857,6 +857,10 @@ select {
   display: grid;
 }
 
+.hidden {
+  display: none;
+}
+
 .size-14 {
   width: 3.5rem;
   height: 3.5rem;

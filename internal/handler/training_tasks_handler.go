@@ -13,6 +13,7 @@ import (
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/middleware"
+	"github.com/mytkom/AliceTraINT/internal/utils"
 )
 
 type NNArchSpec struct {
@@ -168,7 +169,7 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	w.Header().Add("Hx-Redirect", "/training-tasks")
+	utils.HTMXRedirect(w, "/training-tasks")
 	w.WriteHeader(http.StatusCreated)
 }
 
