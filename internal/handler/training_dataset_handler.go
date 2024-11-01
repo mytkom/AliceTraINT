@@ -111,6 +111,7 @@ func (h *TrainingDatasetHandler) Create(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
+	utils.HTMXRedirect(w, "/training-datasets")
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -238,7 +239,7 @@ func InitTrainingDatasetRoutes(mux *http.ServeMux, baseTemplate *template.Templa
 
 	mux.Handle(fmt.Sprintf("POST /%s", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.Create),
-		// TODO: make it: validateHtmxMw,
+		validateHtmxMw,
 		authMw,
 	))
 

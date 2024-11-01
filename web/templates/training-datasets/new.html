@@ -39,16 +39,16 @@
 
 <div class="flex flex-col gap-5 items-center">
     <h1 class="text-3xl">Create training Dataset</h1>
-    <div class="grid grid-cols-2 auto-rows-auto gap-3">
+    <form hx-post="/training-datasets" hx-vals="js:{...getSelectedFiles()}" hx-ext="json-enc" class="grid grid-cols-2 auto-rows-auto gap-3">
         <label class="justify-self-end text-lg self-center" for="train-dataset-name">Training dataset name:</label>
         <input type="text" class="bg-white border-sky-900 text-gray-800 rounded-lg text-lg py-1 px-2"
-            name="dataset-name" id="train-dataset-name" />
+            name="name" id="train-dataset-name" required />
         <h2 class="justify-self-end text-lg self-center">Selected files:</h2>
         <ul class="grid grid-cols-1 lg:grid-cols-2 gap-2" id="selected-files"></ul>
         <button
             class="col-span-2 justify-self-end bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2 text-lg"
-            id="submit-selection">Submit</button>
-    </div>
+            type="submit">Submit</button>
+    </form>
 </div>
 
 <script>
@@ -97,7 +97,7 @@
     document.getElementById('file-list').addEventListener('click', handleFileClick);
     document.getElementById('selected-files').addEventListener('click', handleSelectedFileClick);
 
-    document.getElementById('submit-selection').addEventListener('click', function () {
+    const getSelectedFiles = () => {
         const selectedFiles = [];
         document.querySelectorAll('#selected-files li').forEach(function (item) {
             selectedFiles.push({
@@ -110,23 +110,10 @@
             });
         });
 
-
-        fetch('/training-datasets', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ Name: document.getElementById("train-dataset-name").value, AODFiles: selectedFiles }),
-        })
-            .then(data => {
-                if (data.status === 201) {
-                    window.location.replace("/training-datasets")
-                }
-            })
-            .catch(error => {
-                console.error('Error submitting files:', error);
-            });
-    });
+        return {
+            AODFiles: selectedFiles,
+        }
+    }
 </script>
 {{ template "footer" . }}
 {{ end }}
