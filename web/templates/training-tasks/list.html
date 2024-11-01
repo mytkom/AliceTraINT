@@ -1,7 +1,7 @@
 {{ define "training-tasks_list" }}
 <table class="relative w-full text-left border-collapse">
     <thead class="sticky top-0">
-        <tr class="bg-sky-900 text-white uppercase leading-normal">
+        <tr class="bg-white dark:bg-sky-900 uppercase leading-normal">
             <th class="py-3 px-2 text-left">Name</th>
             <th class="py-3 px-2 text-left">Training dataset</th>
             <th class="py-3 px-2 text-left">Created by</th>
@@ -10,9 +10,9 @@
             <th class="py-3 px-2 text-left">Status</th>
         </tr>
     </thead>
-    <tbody class="text-gray-100 font-normal">
+    <tbody class="font-normal">
         {{ range .TrainingTasks }}
-        <tr class="border-b border-sky-700 hover:bg-sky-700">
+        <tr class="border-b border-sky-200 hover:bg-sky-200 dark:border-sky-700 dark:hover:bg-sky-700">
             <td class="py-3 px-4 font-bold"><a href="/training-tasks/{{ .ID }}">{{ .Name }}</a></td>
             <td class="py-3 px-4"><a href="/training-datasets/{{ .ID }}">{{ .TrainingDataset.Name }}</a></td>
             <td class="py-3 px-4">{{ .User.FirstName }} {{ .User.FamilyName}}</td>

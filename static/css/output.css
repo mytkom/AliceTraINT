@@ -857,10 +857,6 @@ select {
   display: grid;
 }
 
-.hidden {
-  display: none;
-}
-
 .size-14 {
   width: 3.5rem;
   height: 3.5rem;
@@ -1003,10 +999,6 @@ select {
   justify-content: space-between;
 }
 
-.justify-around {
-  justify-content: space-around;
-}
-
 .gap-0 {
   gap: 0px;
 }
@@ -1095,6 +1087,16 @@ select {
 .border-sky-900 {
   --tw-border-opacity: 1;
   border-color: rgb(12 74 110 / var(--tw-border-opacity));
+}
+
+.border-sky-300 {
+  --tw-border-opacity: 1;
+  border-color: rgb(125 211 252 / var(--tw-border-opacity));
+}
+
+.border-sky-200 {
+  --tw-border-opacity: 1;
+  border-color: rgb(186 230 253 / var(--tw-border-opacity));
 }
 
 .bg-emerald-600 {
@@ -1341,6 +1343,11 @@ select {
   background-color: rgb(224 242 254 / var(--tw-bg-opacity));
 }
 
+.hover\:bg-sky-300:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(125 211 252 / var(--tw-bg-opacity));
+}
+
 .hover\:bg-sky-700:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(3 105 161 / var(--tw-bg-opacity));
@@ -1349,6 +1356,16 @@ select {
 .hover\:bg-sky-800:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(7 89 133 / var(--tw-bg-opacity));
+}
+
+.hover\:bg-white:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 255 255 / var(--tw-bg-opacity));
+}
+
+.hover\:bg-sky-200:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(186 230 253 / var(--tw-bg-opacity));
 }
 
 @media (min-width: 768px) {
@@ -1420,6 +1437,11 @@ select {
 }
 
 @media (prefers-color-scheme: dark) {
+  .dark\:border-sky-700 {
+    --tw-border-opacity: 1;
+    border-color: rgb(3 105 161 / var(--tw-border-opacity));
+  }
+
   .dark\:bg-sky-600 {
     --tw-bg-opacity: 1;
     background-color: rgb(2 132 199 / var(--tw-bg-opacity));
@@ -1433,6 +1455,11 @@ select {
   .dark\:bg-sky-800 {
     --tw-bg-opacity: 1;
     background-color: rgb(7 89 133 / var(--tw-bg-opacity));
+  }
+
+  .dark\:bg-sky-900 {
+    --tw-bg-opacity: 1;
+    background-color: rgb(12 74 110 / var(--tw-bg-opacity));
   }
 
   .dark\:bg-sky-950 {
@@ -1454,5 +1481,10 @@ select {
   .dark\:hover\:bg-sky-700:hover {
     --tw-bg-opacity: 1;
     background-color: rgb(3 105 161 / var(--tw-bg-opacity));
+  }
+
+  .dark\:hover\:bg-sky-800:hover {
+    --tw-bg-opacity: 1;
+    background-color: rgb(7 89 133 / var(--tw-bg-opacity));
   }
 }
