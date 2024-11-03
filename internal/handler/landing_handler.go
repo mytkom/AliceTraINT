@@ -18,6 +18,14 @@ func (h *LandingHandler) Index(w http.ResponseWriter, r *http.Request) {
 		Title string
 	}
 
+	if r.URL.Path != "/" {
+		err := h.Template.ExecuteTemplate(w, "not-found", nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
 	templateData := TemplateData{
 		Title: "AliceTraINT",
 	}
@@ -26,6 +34,7 @@ func (h *LandingHandler) Index(w http.ResponseWriter, r *http.Request) {
 	loggedUserId := sess.Get("loggedUserId")
 	if loggedUserId != nil {
 		http.Redirect(w, r, "/training-datasets", http.StatusTemporaryRedirect)
+		return
 	}
 
 	err := h.Template.ExecuteTemplate(w, "landing", templateData)

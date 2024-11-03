@@ -1,6 +1,5 @@
 {{ define "landing" }}
 {{ template "head" . }}
-
 <body class="flex flex-col justify-stretch items-stretch w-full min-h-screen">
       <div class="flex flex-col justify-stretch items-stretch w-full min-h-screen">
             <main class="flex flex-grow justify-center h-full items-center bg-sky-100 dark:bg-sky-800 shadow-md">
@@ -15,5 +14,5 @@
                         </div>
                         <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-lg font-bold py-2 px-4"
                               href="/login">Login with CERN SSO</a>
-                        {{ template "footer" . }}
-                        {{ end }}
+{{ template "footer" . }}
+{{ end }}

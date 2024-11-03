@@ -1,0 +1,30 @@
+{{ define "not-found" }}
+{{ template "head" . }}
+<body class="flex flex-col justify-stretch items-stretch w-full min-h-screen">
+    <div class="flex flex-col justify-stretch items-stretch w-full min-h-screen">
+        <main class="flex flex-grow justify-center h-full items-center bg-sky-100 dark:bg-sky-800 shadow-md">
+            <div
+                class="flex flex-col gap-5 rounded-lg items-center p-5 text-gray-800 dark:text-gray-50 bg-sky-50 dark:bg-sky-700">
+                <a href="/">
+                    <div class="flex text-sky-900 dark:text-sky-50 gap-0 justify-start text-3xl font-extrabold">
+                        <div class="flex">
+                            <p class="font-bold">Alice</p>
+                            <p class="">Tra</p>
+                            <p class="font-sans font-medium">INT</p>
+                        </div>
+                    </div>
+                </a>
+                <div class="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="40px" viewBox="0 -960 960 960" width="40px"
+                        fill="#dc2626">
+                        <path
+                            d="M479.99-280q15.01 0 25.18-10.15 10.16-10.16 10.16-25.17 0-15.01-10.15-25.18-10.16-10.17-25.17-10.17-15.01 0-25.18 10.16-10.16 10.15-10.16 25.17 0 15.01 10.15 25.17Q464.98-280 479.99-280Zm-31.32-155.33h66.66V-684h-66.66v248.67ZM480.18-80q-82.83 0-155.67-31.5-72.84-31.5-127.18-85.83Q143-251.67 111.5-324.56T80-480.33q0-82.88 31.5-155.78Q143-709 197.33-763q54.34-54 127.23-85.5T480.33-880q82.88 0 155.78 31.5Q709-817 763-763t85.5 127Q880-563 880-480.18q0 82.83-31.5 155.67Q817-251.67 763-197.46q-54 54.21-127 85.84Q563-80 480.18-80Zm.15-66.67q139 0 236-97.33t97-236.33q0-139-96.87-236-96.88-97-236.46-97-138.67 0-236 96.87-97.33 96.88-97.33 236.46 0 138.67 97.33 236 97.33 97.33 236.33 97.33ZM480-480Z" />
+                    </svg>
+                    <h2 class="text-xl font-bold">
+                        Page not found!
+                    </h2>
+                </div>
+                <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-lg font-bold py-2 px-4"
+                    href="/">Redirect to home page</a>
+{{ template "footer" . }}
+{{ end }}
