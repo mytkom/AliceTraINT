@@ -53,6 +53,7 @@ func (h *UserHandler) Index(w http.ResponseWriter, r *http.Request) {
 	err = h.Template.ExecuteTemplate(w, "users_index", data)
 	if err != nil {
 		http.Error(w, "Cannot render template", http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -60,6 +61,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		http.Error(w, "Cannot parse form", http.StatusInternalServerError)
+		return
 	}
 
 	user := &models.User{
@@ -78,6 +80,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	err = h.Template.ExecuteTemplate(w, "users_user", user)
 	if err != nil {
 		http.Error(w, "Cannot render template", http.StatusInternalServerError)
+		return
 	}
 }
 

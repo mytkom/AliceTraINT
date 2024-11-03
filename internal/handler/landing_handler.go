@@ -40,6 +40,7 @@ func (h *LandingHandler) Index(w http.ResponseWriter, r *http.Request) {
 	err := h.Template.ExecuteTemplate(w, "landing", templateData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 

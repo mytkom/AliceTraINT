@@ -115,8 +115,7 @@ func TestTrainingTaskRepository_GetById(t *testing.T) {
 
 	rows := sqlmock.NewRows([]string{"id", "name", "status", "train_dataset_id", "user_id", "configuration"})
 	rows = rows.AddRow(1, trainingTask.Name, trainingTask.Status, 1, 1, marshalTrainingTaskConfig(t, trainingTask))
-
-	mock.ExpectQuery("SELECT \\* FROM \"training_tasks\" WHERE \"training_tasks\".\"id\" = (.+) ORDER BY \"training_tasks\".\"id\" LIMIT (.+)").
+	mock.ExpectQuery("SELECT (.*) FROM \"training_tasks\" LEFT JOIN \"training_datasets\" (.*) LEFT JOIN \"users\" (.*) WHERE \"training_tasks\".\"id\" = (.+) ORDER BY \"training_tasks\".\"id\" LIMIT (.+)").
 		WillReturnRows(rows)
 
 	trainingTask, err := trainingTaskRepo.GetByID(3)
