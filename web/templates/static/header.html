@@ -1,21 +1,5 @@
-{{define "header"}}
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="/static/css/output.css" rel="stylesheet" />
-    <link href="/static/img/favicon/favicon.ico" rel="icon" type="image/x-icon">
-    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon/favicon-16x16.png">
-    <link rel="manifest" href="/static/img/favicon/site.webmanifest">
-    <title>{{.Title}}</title>
-    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
-    <script src="/static/js/json-enc.js"></script>
-</head>
-
+{{ define "header" }}
+{{ template "head" . }}
 <body class="bg-sky-100 text-gray-900">
     <div class="font-sans font-bold flex flex-col min-h-screen">
         <header class="bg-sky-900 p-6">
@@ -42,4 +26,4 @@
 
         <main class="flex-grow bg-sky-100 text-sm lg:text-md dark:bg-sky-950 dark:text-gray-50">
             <div class="container mx-auto" id="main-content-container">
-                {{end}}
+{{end}}

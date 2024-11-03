@@ -1,9 +1,19 @@
 {{ define "landing" }}
-{{ template "header" . }}
-<h2>You need to Log In through CERN SSO to continue!</h2>
+{{ template "head" . }}
 
-<div class="login">
-      <a href="/login">Login with CERN SSO</a>
-</div>
-{{ template "footer" . }}
-{{ end }}
+<body class="flex flex-col justify-stretch items-stretch w-full min-h-screen">
+      <div class="flex flex-col justify-stretch items-stretch w-full min-h-screen">
+            <main class="flex flex-grow justify-center h-full items-center bg-sky-100 dark:bg-sky-800 shadow-md">
+                  <div
+                        class="flex flex-col gap-5 rounded-lg items-center p-5 text-gray-800 dark:text-gray-50 bg-sky-50 dark:bg-sky-700">
+                        <div class="flex text-sky-900 dark:text-sky-50 gap-0 justify-start text-3xl font-extrabold">
+                              <div class="flex">
+                                    <p class="font-bold">Alice</p>
+                                    <p class="">Tra</p>
+                                    <p class="font-sans font-medium">INT</p>
+                              </div>
+                        </div>
+                        <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-lg font-bold py-2 px-4"
+                              href="/login">Login with CERN SSO</a>
+                        {{ template "footer" . }}
+                        {{ end }}
