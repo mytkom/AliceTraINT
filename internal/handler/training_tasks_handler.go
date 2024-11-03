@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/mytkom/AliceTraINT/internal/auth"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
@@ -75,6 +76,7 @@ func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -99,17 +101,48 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		trainingTasks, err = h.TrainingTaskRepo.GetAllUser(loggedUserId.(uint))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	} else {
 		trainingTasks, err = h.TrainingTaskRepo.GetAll()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
 
 	err = h.Template.ExecuteTemplate(w, "training-tasks_list", TemplateData{
 		TrainingTasks: trainingTasks,
 	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
+	type TemplateData struct {
+		Title        string
+		TrainingTask models.TrainingTask
+	}
+
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		http.Error(w, "invalid training task id", http.StatusUnprocessableEntity)
+		return
+	}
+
+	trainingTask, err := h.TrainingTaskRepo.GetByID(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.Template.ExecuteTemplate(w, "training-tasks_show", TemplateData{
+		Title:        "Training Tasks",
+		TrainingTask: *trainingTask,
+	})
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -128,12 +161,14 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 		_, err := h.UserRepo.GetByID(loggedUserId.(uint))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
 		}
 	}
 
 	trainingDatasets, err := h.TrainingDatasetRepo.GetAllUser(loggedUserId.(uint))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	err = h.Template.ExecuteTemplate(w, "training-tasks_new", TemplateData{
@@ -143,6 +178,7 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -151,6 +187,7 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&trainingTask)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	sess := h.Auth.GlobalSessions.SessionStart(w, r)
@@ -159,6 +196,7 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		loggedUser, err := h.UserRepo.GetByID(loggedUserId.(uint))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
 		}
 
 		trainingTask.UserId = loggedUser.ID
@@ -167,6 +205,7 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	err = h.TrainingTaskRepo.Create(&trainingTask)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	utils.HTMXRedirect(w, "/training-tasks")
@@ -196,6 +235,12 @@ func InitTrainingTasksRoutes(mux *http.ServeMux, baseTemplate *template.Template
 
 	mux.Handle(fmt.Sprintf("GET /%s", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.Index),
+		blockHtmxMw,
+		authMw,
+	))
+
+	mux.Handle(fmt.Sprintf("GET /%s/{id}", prefix), middleware.Chain(
+		http.HandlerFunc(tjh.Show),
 		blockHtmxMw,
 		authMw,
 	))

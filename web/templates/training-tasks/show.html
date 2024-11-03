@@ -1,0 +1,12 @@
+{{ define "training-tasks_show" }}
+{{ template "header" . }}
+<div class="flex flex-col my-4 gap-4">
+    <h2>{{ .TrainingTask.Name }}</h2>
+    <h3>{{ .TrainingTask.User.FirstName }} {{ .TrainingTask.User.FamilyName }}</h3>
+    <h3>{{ .TrainingTask.TrainingDataset.Name }}</h3>
+    <h3>{{ .TrainingTask.Status }}</h3>
+    <h3>{{ .TrainingTask.CreatedAt }}</h3>
+    <h3>{{ .TrainingTask.UpdatedAt }}</h3>
+</div>
+{{ template "footer" . }}
+{{ end }}

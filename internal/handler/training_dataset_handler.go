@@ -53,17 +53,20 @@ func (h *TrainingDatasetHandler) List(w http.ResponseWriter, r *http.Request) {
 			_, err := h.UserRepo.GetByID(loggedUserId.(uint))
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
 			}
 		}
 
 		trainingDatasets, err = h.TrainingDatasetRepo.GetAllUser(loggedUserId.(uint))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	} else {
 		trainingDatasets, err = h.TrainingDatasetRepo.GetAll()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
 
@@ -72,6 +75,7 @@ func (h *TrainingDatasetHandler) List(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -85,6 +89,7 @@ func (h *TrainingDatasetHandler) New(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -93,6 +98,7 @@ func (h *TrainingDatasetHandler) Create(w http.ResponseWriter, r *http.Request) 
 	err := json.NewDecoder(r.Body).Decode(&trainingDataset)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	sess := h.Auth.GlobalSessions.SessionStart(w, r)
@@ -101,6 +107,7 @@ func (h *TrainingDatasetHandler) Create(w http.ResponseWriter, r *http.Request) 
 		loggedUser, err := h.UserRepo.GetByID(loggedUserId.(uint))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
 		}
 
 		trainingDataset.UserId = loggedUser.ID
@@ -109,6 +116,7 @@ func (h *TrainingDatasetHandler) Create(w http.ResponseWriter, r *http.Request) 
 	err = h.TrainingDatasetRepo.Create(&trainingDataset)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	utils.HTMXRedirect(w, "/training-datasets")
@@ -120,6 +128,7 @@ func (h *TrainingDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	sess := h.Auth.GlobalSessions.SessionStart(w, r)
@@ -128,12 +137,14 @@ func (h *TrainingDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) 
 		_, err := h.UserRepo.GetByID(loggedUserId.(uint))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
 		}
 	}
 
 	err = h.TrainingDatasetRepo.Delete(loggedUserId.(uint), uint(trainingDatasetId))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -155,6 +166,7 @@ func (h *TrainingDatasetHandler) ExploreDirectory(w http.ResponseWriter, r *http
 	dirContents, err := jalien.ListAndParseDirectory(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	parentDir := "/"
@@ -173,6 +185,7 @@ func (h *TrainingDatasetHandler) ExploreDirectory(w http.ResponseWriter, r *http
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -186,6 +199,7 @@ func (h *TrainingDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request
 	aods, err := jalien.FindAODFiles(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	err = h.Template.ExecuteTemplate(w, "training-datasets_file-list", TemplateData{
@@ -193,6 +207,7 @@ func (h *TrainingDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
