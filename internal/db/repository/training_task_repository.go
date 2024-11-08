@@ -27,7 +27,11 @@ func (r *trainingTaskRepository) Create(trainingTask *models.TrainingTask) error
 }
 
 func (r *trainingTaskRepository) withDependencies() *gorm.DB {
-	return r.db.Joins("TrainingDataset").Joins("User")
+	return r.db.
+		Preload("TrainingDataset", func(db *gorm.DB) *gorm.DB {
+			return db.Unscoped()
+		}).
+		Joins("User")
 }
 
 func (r *trainingTaskRepository) GetByID(id uint) (*models.TrainingTask, error) {

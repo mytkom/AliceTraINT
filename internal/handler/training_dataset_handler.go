@@ -79,6 +79,34 @@ func (h *TrainingDatasetHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *TrainingDatasetHandler) Show(w http.ResponseWriter, r *http.Request) {
+	type TemplateData struct {
+		Title           string
+		TrainingDataset models.TrainingDataset
+	}
+
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		http.Error(w, "invalid training dataset id", http.StatusUnprocessableEntity)
+		return
+	}
+
+	trainingDataset, err := h.TrainingDatasetRepo.GetByID(uint(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.Template.ExecuteTemplate(w, "training-datasets_show", TemplateData{
+		Title:           "Training Datasets",
+		TrainingDataset: *trainingDataset,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func (h *TrainingDatasetHandler) New(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
 		Title string
@@ -230,6 +258,12 @@ func InitTrainingDatasetRoutes(mux *http.ServeMux, baseTemplate *template.Templa
 
 	mux.Handle(fmt.Sprintf("GET /%s", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.Index),
+		blockHtmxMw,
+		authMw,
+	))
+
+	mux.Handle(fmt.Sprintf("GET /%s/{id}", prefix), middleware.Chain(
+		http.HandlerFunc(tjh.Show),
 		blockHtmxMw,
 		authMw,
 	))

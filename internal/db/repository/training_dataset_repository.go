@@ -26,16 +26,16 @@ func (r *trainingDatasetRepository) Create(trainingDataset *models.TrainingDatas
 	return r.db.Create(trainingDataset).Error
 }
 
+func (r *trainingDatasetRepository) allWithDependencies() *gorm.DB {
+	return r.db.Joins("User").Order("\"created_at\" desc")
+}
+
 func (r *trainingDatasetRepository) GetByID(id uint) (*models.TrainingDataset, error) {
 	var trainingDataset models.TrainingDataset
-	if err := r.db.First(&trainingDataset, id).Error; err != nil {
+	if err := r.allWithDependencies().First(&trainingDataset, id).Error; err != nil {
 		return nil, err
 	}
 	return &trainingDataset, nil
-}
-
-func (r *trainingDatasetRepository) allWithDependencies() *gorm.DB {
-	return r.db.Joins("User").Order("\"created_at\" desc")
 }
 
 func (r *trainingDatasetRepository) GetAll() ([]models.TrainingDataset, error) {

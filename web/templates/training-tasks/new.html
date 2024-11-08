@@ -32,15 +32,15 @@
                     <label for="config.{{$field}}">{{$spec.FullName}}:</label>
 
                     {{if eq $spec.Type "uint" "int"}}
-                    <input class="w-40 text-lg rounded-lg " type="number" id="{{$field}}" name="configuration.{{$field}}" value="{{$spec.DefaultValue}}"
+                    <input class="w-40 text-lg rounded-lg text-gray-800" type="number" id="{{$field}}" name="configuration.{{$field}}" value="{{$spec.DefaultValue}}"
                         min="{{$spec.Min}}" max="{{$spec.Max}}" step="{{$spec.Step}}" required>
                     {{else if eq $spec.Type "float64"}}
-                    <input class="w-40 text-lg rounded-lg " type="number" id="{{$field}}" name="configuration.{{$field}}" value="{{$spec.DefaultValue}}"
+                    <input class="w-40 text-lg rounded-lg text-gray-800" type="number" id="{{$field}}" name="configuration.{{$field}}" value="{{$spec.DefaultValue}}"
                         min="{{$spec.Min}}" max="{{$spec.Max}}" step="{{$spec.Step}}" required>
                     {{else if eq $spec.Type "bool"}}
-                    <input class="w-8 h-8 rounded-full" type="checkbox" id="{{$field}}" name="configuration.{{$field}}">
+                    <input class="w-8 h-8 rounded-full text-gray-800" type="checkbox" id="{{$field}}" name="configuration.{{$field}}">
                     {{else}}
-                    <input class="w-40 text-lg rounded-lg " type="text" id="{{$field}}" name="configuration.{{$field}}" value="{{$spec.DefaultValue}}"
+                    <input class="w-40 text-lg rounded-lg text-gray-800" type="text" id="{{$field}}" name="configuration.{{$field}}" value="{{$spec.DefaultValue}}"
                         required>
                     {{end}}
                 </div>
