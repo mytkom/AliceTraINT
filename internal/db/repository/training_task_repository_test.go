@@ -65,6 +65,20 @@ func TestTrainingTaskRepository_GetAll(t *testing.T) {
 
 	trainingTaskRepo := NewTrainingTaskRepository(db)
 
+	mockTrainingDataset := &models.TrainingDataset{
+		Name: "fbw2",
+		AODFiles: []jalien.AODFile{
+			{
+				Name:      "AO2D.root",
+				Path:      "/alice/sim/2024/LHC24f3/0/654324/AOD/013",
+				Size:      3000000000,
+				LHCPeriod: "LHC24f3",
+				RunNumber: 654324,
+				AODNumber: 12,
+			},
+		},
+	}
+
 	trainingTasks := []models.TrainingTask{
 		{
 			Name:              "LHC24b1b undersampling",
@@ -81,15 +95,20 @@ func TestTrainingTaskRepository_GetAll(t *testing.T) {
 			Configuration:     struct{ bs uint }{bs: 155},
 		},
 	}
-
-	rows := sqlmock.NewRows([]string{"id", "name", "status", "training_dataset_id", "user_id", "configuration"})
+	taskRows := sqlmock.NewRows([]string{"id", "name", "status", "training_dataset_id", "user_id", "configuration"})
 
 	for i, task := range trainingTasks {
-		rows = rows.AddRow(i+1, task.Name, task.Status, 1, 1, marshalTrainingTaskConfig(t, &task))
+		taskRows = taskRows.AddRow(i+1, task.Name, task.Status, 1, 1, marshalTrainingTaskConfig(t, &task))
 	}
 
-	mock.ExpectQuery("SELECT (.*) FROM \"training_tasks\" LEFT JOIN \"training_datasets\" (.*) LEFT JOIN \"users\" (.*) ORDER BY \"created_at\" desc").
-		WillReturnRows(rows)
+	mock.ExpectQuery("SELECT (.*) FROM \"training_tasks\" LEFT JOIN \"users\" (.*) ORDER BY \"created_at\" desc").
+		WillReturnRows(taskRows)
+
+	datasetRows := sqlmock.NewRows([]string{"id", "name", "user_id", "AODFiles"})
+	datasetRows = datasetRows.AddRow(1, mockTrainingDataset.Name, 1, marshalAODFiles(t, mockTrainingDataset))
+
+	mock.ExpectQuery("SELECT (.*) FROM \"training_datasets\"").
+		WillReturnRows(datasetRows)
 
 	trainingTasks, err := trainingTaskRepo.GetAll()
 	assert.NoError(t, err)
@@ -115,7 +134,7 @@ func TestTrainingTaskRepository_GetById(t *testing.T) {
 
 	rows := sqlmock.NewRows([]string{"id", "name", "status", "train_dataset_id", "user_id", "configuration"})
 	rows = rows.AddRow(1, trainingTask.Name, trainingTask.Status, 1, 1, marshalTrainingTaskConfig(t, trainingTask))
-	mock.ExpectQuery("SELECT (.*) FROM \"training_tasks\" LEFT JOIN \"training_datasets\" (.*) LEFT JOIN \"users\" (.*) WHERE \"training_tasks\".\"id\" = (.+) ORDER BY \"training_tasks\".\"id\" LIMIT (.+)").
+	mock.ExpectQuery("SELECT (.*) FROM \"training_tasks\" LEFT JOIN \"users\" (.*) WHERE \"training_tasks\".\"id\" = (.+) ORDER BY \"training_tasks\".\"id\" LIMIT (.+)").
 		WillReturnRows(rows)
 
 	trainingTask, err := trainingTaskRepo.GetByID(3)

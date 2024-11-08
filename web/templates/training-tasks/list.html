@@ -14,7 +14,11 @@
         {{ range .TrainingTasks }}
         <tr class="border-b border-sky-200 hover:bg-sky-200 dark:border-sky-700 dark:hover:bg-sky-700">
             <td class="py-3 px-4 font-bold"><a href="/training-tasks/{{ .ID }}">{{ .Name }}</a></td>
-            <td class="py-3 px-4"><a href="/training-datasets/{{ .ID }}">{{ .TrainingDataset.Name }}</a></td>
+            {{ if .TrainingDataset.DeletedAt.Valid }}
+            <td class="py-3 px-4 text-red-500">{{ .TrainingDataset.Name }}</td>
+            {{ else }}
+            <td class="py-3 px-4"><a href="/training-datasets/{{ .TrainingDataset.ID }}">{{ .TrainingDataset.Name }}</a></td>
+            {{ end }}
             <td class="py-3 px-4">{{ .User.FirstName }} {{ .User.FamilyName}}</td>
             <td class="py-3 px-4">{{ .CreatedAt.Format "02 Jan 06 15:04 MST" }}</td>
             <td class="py-3 px-4">{{ .UpdatedAt.Format "02 Jan 06 15:04 MST" }}</td>
