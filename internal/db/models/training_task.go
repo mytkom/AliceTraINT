@@ -69,5 +69,4 @@ type TrainingTask struct {
 	TrainingDatasetId uint
 	TrainingDataset   TrainingDataset
 	Configuration     interface{} `gorm:"serializer:json"`
-	// TODO: benchmarks' files
 }

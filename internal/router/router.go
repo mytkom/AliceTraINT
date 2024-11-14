@@ -22,6 +22,7 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 	userRepo := repository.NewUserRepository(db)
 	trainingDatasetRepo := repository.NewTrainingDatasetRepository(db)
 	trainingTaskRepo := repository.NewTrainingTaskRepository(db)
+	trainingMachineRepo := repository.NewTrainingMachineRepository(db)
 
 	auth := auth.NewAuth(userRepo)
 
@@ -34,7 +35,8 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 	handler.InitLandingRoutes(mux, baseTemplate, auth)
 	handler.InitUserRoutes(mux, baseTemplate, userRepo, auth)
 	handler.InitTrainingDatasetRoutes(mux, baseTemplate, trainingDatasetRepo, userRepo, auth, cfg.JalienCacheMinutes)
-	handler.InitTrainingTasksRoutes(mux, baseTemplate, trainingTaskRepo, trainingDatasetRepo, userRepo, auth)
+	handler.InitTrainingTaskRoutes(mux, baseTemplate, trainingTaskRepo, trainingDatasetRepo, userRepo, auth)
+	handler.InitTrainingMachineRoutes(mux, baseTemplate, trainingMachineRepo, userRepo, auth)
 
 	return mux
 }
