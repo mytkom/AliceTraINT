@@ -10,7 +10,7 @@ import (
 	"github.com/mytkom/AliceTraINT/internal/auth"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
-	utils "github.com/mytkom/AliceTraINT/internal/hash"
+	"github.com/mytkom/AliceTraINT/internal/hash"
 	"github.com/mytkom/AliceTraINT/internal/middleware"
 )
 
@@ -144,13 +144,13 @@ func (h *TrainingMachineHandler) Create(w http.ResponseWriter, r *http.Request) 
 		trainingMachine.UserId = loggedUser.ID
 	}
 
-	secretKey, err := utils.GenerateKey(32)
+	secretKey, err := hash.GenerateKey(32)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	trainingMachine.SecretKeyHashed, err = utils.HashKey(secretKey)
+	trainingMachine.SecretKeyHashed, err = hash.HashKey(secretKey)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

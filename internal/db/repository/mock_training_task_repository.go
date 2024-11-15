@@ -29,11 +29,6 @@ func (m *MockTrainingTaskRepository) GetByID(id uint) (*models.TrainingTask, err
 	return args.Get(0).(*models.TrainingTask), args.Error(1)
 }
 
-func (m *MockTrainingTaskRepository) Update(updatedTrainingTask *models.TrainingTask) error {
-	args := m.Called()
-	return args.Error(0)
-}
-
 func (m *MockTrainingTaskRepository) Delete(userId uint, id uint) error {
 	args := m.Called()
 	return args.Error(0)
