@@ -50,7 +50,7 @@ func TestTrainingTaskRepository_Create(t *testing.T) {
 		WithArgs(AnyTime(), AnyTime(), AnyTime(), trainingDataset.Name, marshalAODFiles(t, trainingDataset), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery(`INSERT INTO "training_tasks" (.+) RETURNING "id"`).
-		WithArgs(AnyTime(), AnyTime(), AnyTime(), trainingTask.Name, trainingTask.Status, 1, 1, marshalTrainingTaskConfig(t, trainingTask)).
+		WithArgs(AnyTime(), AnyTime(), AnyTime(), trainingTask.Name, trainingTask.Status, 1, 1, nil, marshalTrainingTaskConfig(t, trainingTask)).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
@@ -95,10 +95,10 @@ func TestTrainingTaskRepository_GetAll(t *testing.T) {
 			Configuration:     struct{ bs uint }{bs: 155},
 		},
 	}
-	taskRows := sqlmock.NewRows([]string{"id", "name", "status", "training_dataset_id", "user_id", "configuration"})
+	taskRows := sqlmock.NewRows([]string{"id", "name", "status", "training_dataset_id", "user_id", "training_machine_id", "configuration"})
 
 	for i, task := range trainingTasks {
-		taskRows = taskRows.AddRow(i+1, task.Name, task.Status, 1, 1, marshalTrainingTaskConfig(t, &task))
+		taskRows = taskRows.AddRow(i+1, task.Name, task.Status, 1, 1, task.TrainingMachineId, marshalTrainingTaskConfig(t, &task))
 	}
 
 	mock.ExpectQuery("SELECT (.*) FROM \"training_tasks\" LEFT JOIN \"users\" (.*) ORDER BY \"created_at\" desc").
@@ -132,8 +132,8 @@ func TestTrainingTaskRepository_GetById(t *testing.T) {
 		Configuration:     struct{ bs uint }{bs: 155},
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "name", "status", "train_dataset_id", "user_id", "configuration"})
-	rows = rows.AddRow(1, trainingTask.Name, trainingTask.Status, 1, 1, marshalTrainingTaskConfig(t, trainingTask))
+	rows := sqlmock.NewRows([]string{"id", "name", "status", "train_dataset_id", "user_id", "training_machine_id", "configuration"})
+	rows = rows.AddRow(1, trainingTask.Name, trainingTask.Status, 1, 1, trainingTask.TrainingMachineId, marshalTrainingTaskConfig(t, trainingTask))
 	mock.ExpectQuery("SELECT (.*) FROM \"training_tasks\" LEFT JOIN \"users\" (.*) WHERE \"training_tasks\".\"id\" = (.+) ORDER BY \"training_tasks\".\"id\" LIMIT (.+)").
 		WillReturnRows(rows)
 

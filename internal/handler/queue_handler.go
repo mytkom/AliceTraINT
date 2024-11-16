@@ -37,7 +37,10 @@ func (qh *QueueHandler) getAuthorizedTrainingMachine(r *http.Request, tmId uint)
 	}
 
 	trainingMachine.LastActivityAt = time.Now()
-	qh.TrainingMachineRepo.Update(trainingMachine)
+	err = qh.TrainingMachineRepo.Update(trainingMachine)
+	if err != nil {
+		return nil, fmt.Errorf("machine activity timestamp error")
+	}
 
 	return trainingMachine, nil
 }
@@ -134,7 +137,11 @@ func (qh *QueueHandler) QueryTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(j)
+	_, err = w.Write(j)
+	if err != nil {
+		http.Error(w, "cannot write response", http.StatusUnprocessableEntity)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
