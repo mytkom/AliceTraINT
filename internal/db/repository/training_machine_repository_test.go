@@ -110,3 +110,23 @@ func TestTrainingMachineRepository_Delete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestTrainingMachineRepository_Update(t *testing.T) {
+	db, mock, cleanup := setupTestDB(t)
+	defer cleanup()
+	trainingMachineRepo := NewTrainingMachineRepository(db)
+	trainingMachine := &models.TrainingMachine{
+		Name:            "LHC24b1b undersampling",
+		UserId:          1,
+		SecretKeyHashed: "salt:secret",
+		LastActivityAt:  time.Now(),
+	}
+	mock.ExpectBegin()
+	mock.ExpectQuery(`INSERT INTO "training_machines" (.+) RETURNING "id"`).
+		WithArgs(AnyTime(), AnyTime(), AnyTime(), trainingMachine.Name, trainingMachine.LastActivityAt, trainingMachine.SecretKeyHashed, trainingMachine.UserId).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectCommit()
+	err := trainingMachineRepo.Update(trainingMachine)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}

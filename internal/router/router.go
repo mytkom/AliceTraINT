@@ -37,6 +37,7 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 	handler.InitTrainingDatasetRoutes(mux, baseTemplate, trainingDatasetRepo, userRepo, auth, cfg.JalienCacheMinutes)
 	handler.InitTrainingTaskRoutes(mux, baseTemplate, trainingTaskRepo, trainingDatasetRepo, userRepo, auth)
 	handler.InitTrainingMachineRoutes(mux, baseTemplate, trainingMachineRepo, userRepo, auth)
+	handler.InitQueryRoutes(mux, trainingMachineRepo, trainingTaskRepo)
 
 	return mux
 }

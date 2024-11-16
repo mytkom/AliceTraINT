@@ -157,3 +157,24 @@ func TestTrainingTaskRepository_Delete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestTrainingTaskRepository_Update(t *testing.T) {
+	db, mock, cleanup := setupTestDB(t)
+	defer cleanup()
+	trainingTaskRepo := NewTrainingTaskRepository(db)
+	trainingTask := &models.TrainingTask{
+		Name:              "LHC24b1b undersampling",
+		Status:            models.Queued,
+		TrainingDatasetId: 1,
+		UserId:            1,
+		Configuration:     struct{ bs uint }{bs: 155},
+	}
+	mock.ExpectBegin()
+	mock.ExpectQuery(`INSERT INTO "training_tasks" (.+) RETURNING "id"`).
+		WithArgs(AnyTime(), AnyTime(), AnyTime(), trainingTask.Name, trainingTask.Status, 1, 1, nil, marshalTrainingTaskConfig(t, trainingTask)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectCommit()
+	err := trainingTaskRepo.Update(trainingTask)
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}

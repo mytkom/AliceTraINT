@@ -10,6 +10,7 @@ type TrainingMachineRepository interface {
 	GetByID(id uint) (*models.TrainingMachine, error)
 	GetAll() ([]models.TrainingMachine, error)
 	GetAllUser(userId uint) ([]models.TrainingMachine, error)
+	Update(tm *models.TrainingMachine) error
 	Delete(userId uint, id uint) error
 }
 
@@ -51,6 +52,10 @@ func (r *trainingMachineRepository) GetAllUser(userId uint) ([]models.TrainingMa
 		return nil, err
 	}
 	return trainingTasks, nil
+}
+
+func (r *trainingMachineRepository) Update(tm *models.TrainingMachine) error {
+	return r.db.Save(tm).Error
 }
 
 func (r *trainingMachineRepository) Delete(userId uint, id uint) error {
