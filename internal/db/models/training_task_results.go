@@ -16,7 +16,7 @@ const (
 )
 
 func (s *TrainingTaskResultType) Scan(value interface{}) error {
-	val, ok := value.(uint)
+	val, ok := value.(int64)
 	if !ok {
 		return fmt.Errorf("failed to scan TrainingTaskStatus")
 	}
@@ -25,7 +25,7 @@ func (s *TrainingTaskResultType) Scan(value interface{}) error {
 }
 
 func (s TrainingTaskResultType) Value() (driver.Value, error) {
-	return uint(s), nil
+	return int64(s), nil
 }
 
 type TrainingTaskResult struct {
