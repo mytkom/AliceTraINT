@@ -27,7 +27,7 @@ func (s *TrainingTaskStatus) Scan(value interface{}) error {
 }
 
 func (s TrainingTaskStatus) Value() (driver.Value, error) {
-	if s < Queued || s > Completed {
+	if s < Queued || s > Failed {
 		return nil, fmt.Errorf("bad status")
 	}
 
