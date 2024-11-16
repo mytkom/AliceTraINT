@@ -14,8 +14,9 @@ import (
 )
 
 type QueueHandler struct {
-	TrainingMachineRepo repository.TrainingMachineRepository
-	TrainingTaskRepo    repository.TrainingTaskRepository
+	TrainingMachineRepo    repository.TrainingMachineRepository
+	TrainingTaskRepo       repository.TrainingTaskRepository
+	TrainingTaskResultRepo repository.TrainingTaskResultRepository
 }
 
 func (qh *QueueHandler) getAuthorizedTrainingMachine(r *http.Request, tmId uint) (*models.TrainingMachine, error) {
@@ -137,12 +138,57 @@ func (qh *QueueHandler) QueryTask(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func InitQueryRoutes(mux *http.ServeMux, tmRepo repository.TrainingMachineRepository, ttRepo repository.TrainingTaskRepository) {
+func (qh *QueueHandler) CreateTrainingTaskResult(w http.ResponseWriter, r *http.Request) {
+	ttIdStr := r.PathValue("id")
+	ttId, err := strconv.ParseUint(ttIdStr, 10, 32)
+	if err != nil {
+		http.Error(w, "invalid training dataset id", http.StatusUnprocessableEntity)
+		return
+	}
+
+	tt, err := qh.TrainingTaskRepo.GetByID(uint(ttId))
+	if err != nil {
+		http.Error(w, "training task does not exist", http.StatusNotFound)
+		return
+	}
+
+	if tt.TrainingMachineId == nil {
+		http.Error(w, "unauthorized machine", http.StatusUnauthorized)
+		return
+	}
+
+	_, err = qh.getAuthorizedTrainingMachine(r, *tt.TrainingMachineId)
+	if err != nil {
+		http.Error(w, "unauthorized machine", http.StatusUnauthorized)
+		return
+	}
+
+	var ttr models.TrainingTaskResult
+	err = json.NewDecoder(r.Body).Decode(&ttr)
+	if err != nil {
+		http.Error(w, "incorrect data format", http.StatusUnprocessableEntity)
+		return
+	}
+
+	ttr.TrainingTaskId = tt.ID
+
+	err = qh.TrainingTaskResultRepo.Create(&ttr)
+	if err != nil {
+		http.Error(w, "error during task result creation", http.StatusUnprocessableEntity)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func InitQueryRoutes(mux *http.ServeMux, tmRepo repository.TrainingMachineRepository, ttRepo repository.TrainingTaskRepository, ttrRepo repository.TrainingTaskResultRepository) {
 	qh := &QueueHandler{
-		TrainingMachineRepo: tmRepo,
-		TrainingTaskRepo:    ttRepo,
+		TrainingMachineRepo:    tmRepo,
+		TrainingTaskRepo:       ttRepo,
+		TrainingTaskResultRepo: ttrRepo,
 	}
 
 	mux.Handle("POST /training_tasks/{id}/status", http.HandlerFunc(qh.UpdateStatus))
 	mux.Handle("GET /training_machines/{id}/training_task", http.HandlerFunc(qh.QueryTask))
+	mux.Handle("POST /training_tasks/{id}/training_task_results", http.HandlerFunc(qh.CreateTrainingTaskResult))
 }
