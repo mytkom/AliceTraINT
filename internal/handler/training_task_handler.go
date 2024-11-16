@@ -89,16 +89,13 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if r.URL.Query().Get("userScoped") == "on" {
-		sess := h.Auth.GlobalSessions.SessionStart(w, r)
-		loggedUserId := sess.Get("loggedUserId")
-		if loggedUserId != nil {
-			_, err := h.UserRepo.GetByID(loggedUserId.(uint))
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-			}
+		loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
 		}
 
-		trainingTasks, err = h.TrainingTaskRepo.GetAllUser(loggedUserId.(uint))
+		trainingTasks, err = h.TrainingTaskRepo.GetAllUser(loggedUser.ID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -155,17 +152,13 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 		NNArchSpec       map[string]NNArchSpec
 	}
 
-	sess := h.Auth.GlobalSessions.SessionStart(w, r)
-	loggedUserId := sess.Get("loggedUserId")
-	if loggedUserId != nil {
-		_, err := h.UserRepo.GetByID(loggedUserId.(uint))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
+	loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
 	}
 
-	trainingDatasets, err := h.TrainingDatasetRepo.GetAllUser(loggedUserId.(uint))
+	trainingDatasets, err := h.TrainingDatasetRepo.GetAllUser(loggedUser.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -190,17 +183,12 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sess := h.Auth.GlobalSessions.SessionStart(w, r)
-	loggedUserId := sess.Get("loggedUserId")
-	if loggedUserId != nil {
-		loggedUser, err := h.UserRepo.GetByID(loggedUserId.(uint))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		trainingTask.UserId = loggedUser.ID
+	loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
 	}
+	trainingTask.UserId = loggedUser.ID
 
 	err = h.TrainingTaskRepo.Create(&trainingTask)
 	if err != nil {
