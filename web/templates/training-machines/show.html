@@ -1,0 +1,17 @@
+{{ define "training-machines_show" }}
+{{ template "header" . }}
+<div class="flex flex-col gap-4 my-4 items-center">
+    <h2 class="text-2xl">{{ .TrainingMachine.Name }}</h2>
+    <div class="grid grid-cols-2 justify-stretch items-center gap-4 text-lg">
+        <h2 class="text-right">Created by:</h2>
+        <h3>{{ .TrainingMachine.User.FirstName }} {{ .TrainingMachine.User.FamilyName }} ({{ .TrainingMachine.User.Username }}) </h3>
+        <h2 class="text-right">Last activity at:</h2>
+        <h3>{{ .TrainingMachine.LastActivityAt.Format "02 Jan 06 15:04 MST" }}</h3>
+        <h2 class="text-right">Created at:</h2>
+        <h3>{{ .TrainingMachine.CreatedAt.Format "02 Jan 06 15:04 MST" }}</h3>
+        <h2 class="text-right">Last update at:</h2>
+        <h3>{{ .TrainingMachine.UpdatedAt.Format "02 Jan 06 15:04 MST" }}</h3>
+    </div>
+</div>
+{{ template "footer" . }}
+{{ end }}

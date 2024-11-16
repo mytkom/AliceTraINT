@@ -62,12 +62,11 @@ func (s TrainingTaskStatus) Color() string {
 
 type TrainingTask struct {
 	gorm.Model
-	Name              string             `gorm:"type:varchar(255);not null"`
+	Name              string             `gorm:"type:varchar(255);not null;uniqueIndex"`
 	Status            TrainingTaskStatus `gorm:"type:smallint"`
 	UserId            uint
 	User              User
 	TrainingDatasetId uint
 	TrainingDataset   TrainingDataset
 	Configuration     interface{} `gorm:"serializer:json"`
-	// TODO: benchmarks' files
 }

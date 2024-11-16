@@ -10,7 +10,6 @@ type TrainingDatasetRepository interface {
 	GetByID(id uint) (*models.TrainingDataset, error)
 	GetAll() ([]models.TrainingDataset, error)
 	GetAllUser(userId uint) ([]models.TrainingDataset, error)
-	Update(userId uint, trainingDataset *models.TrainingDataset) error
 	Delete(userId uint, id uint) error
 }
 
@@ -52,12 +51,6 @@ func (r *trainingDatasetRepository) GetAllUser(userId uint) ([]models.TrainingDa
 		return nil, err
 	}
 	return trainingDatasets, nil
-}
-
-func (r *trainingDatasetRepository) Update(userId uint, trainingDataset *models.TrainingDataset) error {
-	// TODO: authorize user
-
-	return r.db.Save(trainingDataset).Error
 }
 
 func (r *trainingDatasetRepository) Delete(userId uint, id uint) error {

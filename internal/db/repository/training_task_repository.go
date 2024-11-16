@@ -10,7 +10,6 @@ type TrainingTaskRepository interface {
 	GetByID(id uint) (*models.TrainingTask, error)
 	GetAll() ([]models.TrainingTask, error)
 	GetAllUser(userId uint) ([]models.TrainingTask, error)
-	Update(userId uint, trainingTask *models.TrainingTask) error
 	Delete(userId uint, id uint) error
 }
 
@@ -56,12 +55,6 @@ func (r *trainingTaskRepository) GetAllUser(userId uint) ([]models.TrainingTask,
 		return nil, err
 	}
 	return trainingTasks, nil
-}
-
-func (r *trainingTaskRepository) Update(userId uint, trainingTask *models.TrainingTask) error {
-	// TODO: authorize user
-
-	return r.db.Save(trainingTask).Error
 }
 
 func (r *trainingTaskRepository) Delete(userId uint, id uint) error {

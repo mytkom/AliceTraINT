@@ -149,34 +149,3 @@ func TestTrainingDatasetRepository_Delete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
-
-func TestTrainingDatasetRepository_Update(t *testing.T) {
-	db, mock, cleanup := setupTestDB(t)
-	defer cleanup()
-
-	trainingDatasetRepo := NewTrainingDatasetRepository(db)
-	mockTrainingDataset := &models.TrainingDataset{
-		Name: "fbw2",
-		AODFiles: []jalien.AODFile{
-			{
-				Name:      "AO2D.root",
-				Path:      "/alice/sim/2024/LHC24f3/0/654324/AOD/013",
-				Size:      3000000000,
-				LHCPeriod: "LHC24f3",
-				RunNumber: 654324,
-				AODNumber: 12,
-			},
-		},
-		UserId: 1,
-	}
-
-	mock.ExpectBegin()
-	mock.ExpectQuery(`INSERT INTO "training_datasets" (.+) RETURNING "id"`).
-		WithArgs(AnyTime(), AnyTime(), AnyTime(), mockTrainingDataset.Name, marshalAODFiles(t, mockTrainingDataset), 1).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-	mock.ExpectCommit()
-
-	err := trainingDatasetRepo.Update(1, mockTrainingDataset)
-	assert.NoError(t, err)
-	assert.NoError(t, mock.ExpectationsWereMet())
-}

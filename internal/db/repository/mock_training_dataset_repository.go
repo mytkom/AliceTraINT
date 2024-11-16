@@ -29,11 +29,6 @@ func (m *MockTrainingDatasetRepository) GetByID(id uint) (*models.TrainingDatase
 	return args.Get(0).(*models.TrainingDataset), args.Error(1)
 }
 
-func (m *MockTrainingDatasetRepository) Update(updatedTrainingDataset *models.TrainingDataset) error {
-	args := m.Called()
-	return args.Error(0)
-}
-
 func (m *MockTrainingDatasetRepository) Delete(userId uint, id uint) error {
 	args := m.Called()
 	return args.Error(0)

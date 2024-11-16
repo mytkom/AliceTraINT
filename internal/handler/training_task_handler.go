@@ -212,7 +212,7 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func InitTrainingTasksRoutes(mux *http.ServeMux, baseTemplate *template.Template, trainingTaskRepo repository.TrainingTaskRepository, trainingDatasetRepo repository.TrainingDatasetRepository, userRepo repository.UserRepository, auth *auth.Auth) {
+func InitTrainingTaskRoutes(mux *http.ServeMux, baseTemplate *template.Template, trainingTaskRepo repository.TrainingTaskRepository, trainingDatasetRepo repository.TrainingDatasetRepository, userRepo repository.UserRepository, auth *auth.Auth) {
 	prefix := "training-tasks"
 
 	nnArchSpec, err := loadNNArchSpec("internal/nn_architectures/proposed.json")
