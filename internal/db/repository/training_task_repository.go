@@ -10,6 +10,8 @@ type TrainingTaskRepository interface {
 	GetByID(id uint) (*models.TrainingTask, error)
 	GetAll() ([]models.TrainingTask, error)
 	GetAllUser(userId uint) ([]models.TrainingTask, error)
+	GetFirstQueued() (*models.TrainingTask, error)
+	Update(trainingTask *models.TrainingTask) error
 	Delete(userId uint, id uint) error
 }
 
@@ -41,6 +43,15 @@ func (r *trainingTaskRepository) GetByID(id uint) (*models.TrainingTask, error) 
 	return &trainingTask, nil
 }
 
+func (r *trainingTaskRepository) GetFirstQueued() (*models.TrainingTask, error) {
+	var trainingTask models.TrainingTask
+	if err := r.withDependencies().Where("\"status\" = ?", models.Queued).Order("\"created_at\" asc").First(&trainingTask).Error; err != nil {
+		return nil, err
+	}
+
+	return &trainingTask, nil
+}
+
 func (r *trainingTaskRepository) GetAll() ([]models.TrainingTask, error) {
 	var trainingTasks []models.TrainingTask
 	if err := r.withDependencies().Order("\"created_at\" desc").Find(&trainingTasks).Error; err != nil {
@@ -55,6 +66,10 @@ func (r *trainingTaskRepository) GetAllUser(userId uint) ([]models.TrainingTask,
 		return nil, err
 	}
 	return trainingTasks, nil
+}
+
+func (r *trainingTaskRepository) Update(trainingTask *models.TrainingTask) error {
+	return r.db.Save(trainingTask).Error
 }
 
 func (r *trainingTaskRepository) Delete(userId uint, id uint) error {

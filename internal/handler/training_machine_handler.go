@@ -45,16 +45,13 @@ func (h *TrainingMachineHandler) List(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if r.URL.Query().Get("userScoped") == "on" {
-		sess := h.Auth.GlobalSessions.SessionStart(w, r)
-		loggedUserId := sess.Get("loggedUserId")
-		if loggedUserId != nil {
-			_, err := h.UserRepo.GetByID(loggedUserId.(uint))
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-			}
+		loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
 		}
 
-		trainingMachines, err = h.TrainingMachineRepo.GetAllUser(loggedUserId.(uint))
+		trainingMachines, err = h.TrainingMachineRepo.GetAllUser(loggedUser.ID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -132,17 +129,12 @@ func (h *TrainingMachineHandler) Create(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	sess := h.Auth.GlobalSessions.SessionStart(w, r)
-	loggedUserId := sess.Get("loggedUserId")
-	if loggedUserId != nil {
-		loggedUser, err := h.UserRepo.GetByID(loggedUserId.(uint))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		trainingMachine.UserId = loggedUser.ID
+	loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
 	}
+	trainingMachine.UserId = loggedUser.ID
 
 	secretKey, err := hash.GenerateKey(32)
 	if err != nil {
@@ -180,17 +172,13 @@ func (h *TrainingMachineHandler) Delete(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	sess := h.Auth.GlobalSessions.SessionStart(w, r)
-	loggedUserId := sess.Get("loggedUserId")
-	if loggedUserId != nil {
-		_, err := h.UserRepo.GetByID(loggedUserId.(uint))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
+	loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
 	}
 
-	err = h.TrainingMachineRepo.Delete(loggedUserId.(uint), uint(trainingMachineId))
+	err = h.TrainingMachineRepo.Delete(loggedUser.ID, uint(trainingMachineId))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

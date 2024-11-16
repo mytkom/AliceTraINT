@@ -14,18 +14,23 @@ const (
 	Training
 	Benchmarking
 	Completed
+	Failed
 )
 
 func (s *TrainingTaskStatus) Scan(value interface{}) error {
 	val, ok := value.(int64)
 	if !ok {
-		return fmt.Errorf("failed to scan TrainingTaskStatus")
+		return fmt.Errorf("failed to scan status")
 	}
 	*s = TrainingTaskStatus(val)
 	return nil
 }
 
 func (s TrainingTaskStatus) Value() (driver.Value, error) {
+	if s < Queued || s > Failed {
+		return nil, fmt.Errorf("bad status")
+	}
+
 	return int64(s), nil
 }
 
@@ -39,6 +44,8 @@ func (s TrainingTaskStatus) String() string {
 		return "Benchmarking"
 	case Completed:
 		return "Completed"
+	case Failed:
+		return "Failed"
 	default:
 		return "Unknown"
 	}
@@ -55,6 +62,8 @@ func (s TrainingTaskStatus) Color() string {
 		return "yellow-600"
 	case Completed:
 		return "green-600"
+	case Failed:
+		return "red-400"
 	default:
 		return "gray-400"
 	}
@@ -68,5 +77,7 @@ type TrainingTask struct {
 	User              User
 	TrainingDatasetId uint
 	TrainingDataset   TrainingDataset
+	TrainingMachineId *uint
+	TrainingMachine   TrainingMachine
 	Configuration     interface{} `gorm:"serializer:json"`
 }

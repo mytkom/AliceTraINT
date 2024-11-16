@@ -5,31 +5,31 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type MockTrainingTaskRepository struct {
+type MockTrainingTaskResultRepository struct {
 	mock.Mock
 }
 
-func (m *MockTrainingTaskRepository) Create(trainingTask *models.TrainingTask) error {
-	args := m.Called(trainingTask)
+func (m *MockTrainingTaskResultRepository) Create(ttr *models.TrainingTaskResult) error {
+	args := m.Called(ttr)
 	return args.Error(0)
 }
 
-func (m *MockTrainingTaskRepository) GetAll() ([]models.TrainingTask, error) {
+func (m *MockTrainingTaskResultRepository) GetAll() ([]models.TrainingTaskResult, error) {
 	args := m.Called()
-	return args.Get(0).([]models.TrainingTask), args.Error(1)
+	return args.Get(0).([]models.TrainingTaskResult), args.Error(1)
 }
 
-func (m *MockTrainingTaskRepository) GetAllUser(userId uint) ([]models.TrainingTask, error) {
+func (m *MockTrainingTaskResultRepository) GetByID(id uint) (*models.TrainingTaskResult, error) {
 	args := m.Called()
-	return args.Get(0).([]models.TrainingTask), args.Error(1)
+	return args.Get(0).(*models.TrainingTaskResult), args.Error(1)
 }
 
-func (m *MockTrainingTaskRepository) GetByID(id uint) (*models.TrainingTask, error) {
-	args := m.Called()
-	return args.Get(0).(*models.TrainingTask), args.Error(1)
+func (m *MockTrainingTaskResultRepository) Update(ttr *models.TrainingTaskResult) error {
+	args := m.Called(ttr)
+	return args.Error(0)
 }
 
-func (m *MockTrainingTaskRepository) Delete(userId uint, id uint) error {
+func (m *MockTrainingTaskResultRepository) Delete(userId uint, id uint) error {
 	args := m.Called()
 	return args.Error(0)
 }
