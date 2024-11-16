@@ -62,6 +62,8 @@ func (s TrainingTaskStatus) Color() string {
 		return "yellow-600"
 	case Completed:
 		return "green-600"
+	case Failed:
+		return "red-400"
 	default:
 		return "gray-400"
 	}
