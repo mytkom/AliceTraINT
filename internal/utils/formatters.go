@@ -1,6 +1,8 @@
 package utils
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func FormatSizePretty(bytes uint64) string {
 	const (
