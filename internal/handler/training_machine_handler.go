@@ -104,7 +104,7 @@ func (h *TrainingMachineHandler) Show(w http.ResponseWriter, r *http.Request) {
 func (h *TrainingMachineHandler) New(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
 		Title      string
-		NNArchSpec map[string]NNArchSpec
+		NNArchSpec map[string]NNConfigField
 	}
 
 	err := h.Template.ExecuteTemplate(w, "training-machines_new", TemplateData{
@@ -197,7 +197,7 @@ func InitTrainingMachineRoutes(mux *http.ServeMux, baseTemplate *template.Templa
 		Template:            baseTemplate,
 	}
 
-	authMw := middleware.NewAuthMw(auth)
+	authMw := middleware.NewAuthMw(auth, true)
 	validateHtmxMw := middleware.NewValidateHTMXMw()
 	blockHtmxMw := middleware.NewBlockHTMXMw()
 

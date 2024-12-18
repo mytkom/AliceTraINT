@@ -13,6 +13,11 @@ type Config struct {
 	Database           DatabaseConfig
 	Port               string
 	JalienCacheMinutes uint
+	CCDBBaseURL        string
+	CCDBUploadSubdir   string
+	CCDBCertPath       string
+	CCDBKeyPath        string
+	DataDirPath        string
 }
 
 type DatabaseConfig struct {
@@ -41,6 +46,11 @@ func LoadConfig() *Config {
 		},
 		Port:               getEnv("ALICETRAINT_PORT", "8088"),
 		JalienCacheMinutes: getEnvAsUint("ALICETRAINT_JALIEN_CACHE_MINUTES", 60),
+		CCDBBaseURL:        getEnv("CCDB_URL", "http://ccdb-test.cern.ch:8080"),
+		CCDBUploadSubdir:   getEnv("CCDB_UPLOAD_SUBDIR", "/Users/m/mmytkows"),
+		CCDBCertPath:       getEnv("CCDB_SSL_CERT_PATH", ""),
+		CCDBKeyPath:        getEnv("CCDB_SSL_KEY_PATH", ""),
+		DataDirPath:        getEnv("ALICETRAINT_DATA_DIR_PATH", "data"),
 	}
 }
 

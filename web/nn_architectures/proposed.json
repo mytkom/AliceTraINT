@@ -1,4 +1,17 @@
 {
+  "expected_results": {
+    "onnx": {
+      "kaon.onnx": "simple_model_321.onnx",
+      "antikaon.onnx": "simple_model_0321.onnx",
+      "proton.onnx": "simple_model_2212.onnx",
+      "antiproton.onnx": "simple_model_02212.onnx",
+      "pion.onnx": "simple_model_211.onnx",
+      "antipion.onnx": "simple_model_0211.onnx"
+    },
+    "images": {},
+    "logs": {}
+  },
+  "field_configs": {
     "bs": {
       "full_name": "Batch Size",
       "type": "uint",
@@ -116,4 +129,5 @@
       "step": 0.00001,
       "description": "Initial learning rate for model training."
     }
+  }
 }

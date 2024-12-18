@@ -51,6 +51,10 @@ func (s TrainingTaskStatus) String() string {
 	}
 }
 
+func (s TrainingTaskStatus) IsCompleted() bool {
+	return s == Completed
+}
+
 // returns tailwind color suffix and this classes should be included in tailwind's safelist
 func (s TrainingTaskStatus) Color() string {
 	switch s {
@@ -71,13 +75,14 @@ func (s TrainingTaskStatus) Color() string {
 
 type TrainingTask struct {
 	gorm.Model
-	Name              string             `gorm:"type:varchar(255);not null;uniqueIndex"`
-	Status            TrainingTaskStatus `gorm:"type:smallint"`
-	UserId            uint
-	User              User
-	TrainingDatasetId uint
-	TrainingDataset   TrainingDataset
-	TrainingMachineId *uint
-	TrainingMachine   TrainingMachine
-	Configuration     interface{} `gorm:"serializer:json"`
+	Name                string             `gorm:"type:varchar(255);not null;uniqueIndex"`
+	Status              TrainingTaskStatus `gorm:"type:smallint"`
+	UserId              uint
+	User                User
+	TrainingDatasetId   uint
+	TrainingDataset     TrainingDataset
+	TrainingTaskResults []TrainingTaskResult
+	TrainingMachineId   *uint
+	TrainingMachine     TrainingMachine
+	Configuration       interface{} `gorm:"serializer:json"`
 }

@@ -87,7 +87,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 func InitUserRoutes(mux *http.ServeMux, baseTemplate *template.Template, userRepo repository.UserRepository, auth *auth.Auth) {
 	uh := NewUserHandler(baseTemplate, userRepo, auth)
 
-	authMw := middleware.NewAuthMw(auth)
+	authMw := middleware.NewAuthMw(auth, true)
 
 	mux.Handle("GET /users", middleware.Chain(
 		http.HandlerFunc(uh.Index),

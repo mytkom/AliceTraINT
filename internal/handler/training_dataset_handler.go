@@ -238,7 +238,7 @@ func InitTrainingDatasetRoutes(mux *http.ServeMux, baseTemplate *template.Templa
 
 	cache := utils.NewCache(time.Duration(jalienCacheMinutes) * time.Minute)
 
-	authMw := middleware.NewAuthMw(auth)
+	authMw := middleware.NewAuthMw(auth, true)
 	cacheMw := middleware.NewCacheMw(cache)
 	validateHtmxMw := middleware.NewValidateHTMXMw()
 	blockHtmxMw := middleware.NewBlockHTMXMw()

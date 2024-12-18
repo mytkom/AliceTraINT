@@ -11,12 +11,14 @@ import (
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/hash"
 	"github.com/mytkom/AliceTraINT/internal/jalien"
+	"github.com/mytkom/AliceTraINT/internal/service"
 )
 
 type QueueHandler struct {
 	TrainingMachineRepo    repository.TrainingMachineRepository
 	TrainingTaskRepo       repository.TrainingTaskRepository
 	TrainingTaskResultRepo repository.TrainingTaskResultRepository
+	FileService            service.IFileService
 }
 
 func (qh *QueueHandler) getAuthorizedTrainingMachine(r *http.Request, tmId uint) (*models.TrainingMachine, error) {
@@ -149,7 +151,7 @@ func (qh *QueueHandler) CreateTrainingTaskResult(w http.ResponseWriter, r *http.
 	ttIdStr := r.PathValue("id")
 	ttId, err := strconv.ParseUint(ttIdStr, 10, 32)
 	if err != nil {
-		http.Error(w, "invalid training dataset id", http.StatusUnprocessableEntity)
+		http.Error(w, "invalid training task id", http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -171,12 +173,24 @@ func (qh *QueueHandler) CreateTrainingTaskResult(w http.ResponseWriter, r *http.
 	}
 
 	var ttr models.TrainingTaskResult
-	err = json.NewDecoder(r.Body).Decode(&ttr)
+	r.ParseMultipartForm(20 << 20) // max size 20MB
+	file, handler, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "incorrect data format", http.StatusUnprocessableEntity)
+		http.Error(w, "error reading file", http.StatusUnprocessableEntity)
 		return
 	}
 
+	fileModel, err := qh.FileService.SaveFile(file, handler)
+	if err != nil {
+		http.Error(w, "error saving file", http.StatusUnprocessableEntity)
+		return
+	}
+	ttr.File = *fileModel
+	ttr.Name = r.Form.Get("name")
+	ttr.Description = r.Form.Get("description")
+	fileTypeStr := r.Form.Get("file-type")
+	fileTypeUint, _ := strconv.ParseUint(fileTypeStr, 10, 64)
+	ttr.Type = models.TrainingTaskResultType(fileTypeUint)
 	ttr.TrainingTaskId = tt.ID
 
 	err = qh.TrainingTaskResultRepo.Create(&ttr)
@@ -188,11 +202,12 @@ func (qh *QueueHandler) CreateTrainingTaskResult(w http.ResponseWriter, r *http.
 	w.WriteHeader(http.StatusCreated)
 }
 
-func InitQueryRoutes(mux *http.ServeMux, tmRepo repository.TrainingMachineRepository, ttRepo repository.TrainingTaskRepository, ttrRepo repository.TrainingTaskResultRepository) {
+func InitQueryRoutes(mux *http.ServeMux, tmRepo repository.TrainingMachineRepository, ttRepo repository.TrainingTaskRepository, ttrRepo repository.TrainingTaskResultRepository, fileUploadService service.IFileService) {
 	qh := &QueueHandler{
 		TrainingMachineRepo:    tmRepo,
 		TrainingTaskRepo:       ttRepo,
 		TrainingTaskResultRepo: ttrRepo,
+		FileService:            fileUploadService,
 	}
 
 	mux.Handle("POST /training_tasks/{id}/status", http.HandlerFunc(qh.UpdateStatus))

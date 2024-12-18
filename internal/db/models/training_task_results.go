@@ -33,7 +33,8 @@ type TrainingTaskResult struct {
 	Name           string
 	Type           TrainingTaskResultType
 	Description    string
-	File           []byte
+	FileId         uint
+	File           File
 	TrainingTaskId uint
 	TrainingTask   TrainingTask
 }

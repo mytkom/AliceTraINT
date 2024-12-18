@@ -8,6 +8,7 @@ import (
 type TrainingTaskResultRepository interface {
 	Create(ttr *models.TrainingTaskResult) error
 	GetByID(id uint) (*models.TrainingTaskResult, error)
+	GetByType(ttId uint, resultType models.TrainingTaskResultType) ([]models.TrainingTaskResult, error)
 	GetAll(taskId uint) ([]models.TrainingTaskResult, error)
 	Update(ttr *models.TrainingTaskResult) error
 	Delete(id uint) error
@@ -33,9 +34,21 @@ func (r *trainingTaskResultRepository) GetByID(id uint) (*models.TrainingTaskRes
 	return &trainingTask, nil
 }
 
+func (r *trainingTaskResultRepository) getAll(taskId uint) *gorm.DB {
+	return r.db.Order("\"created_at\" desc").Where("\"training_task_id\" = ?", taskId).Joins("File")
+}
+
+func (r *trainingTaskResultRepository) GetByType(ttId uint, resultType models.TrainingTaskResultType) ([]models.TrainingTaskResult, error) {
+	var trainingTasks []models.TrainingTaskResult
+	if err := r.getAll(ttId).Find(&trainingTasks, r.db.Where("\"type\" = ?", int(resultType))).Error; err != nil {
+		return nil, err
+	}
+	return trainingTasks, nil
+}
+
 func (r *trainingTaskResultRepository) GetAll(taskId uint) ([]models.TrainingTaskResult, error) {
 	var trainingTasks []models.TrainingTaskResult
-	if err := r.db.Order("\"created_at\" desc").Find(&trainingTasks, r.db.Where("\"training_task_id\" = ?", taskId)).Error; err != nil {
+	if err := r.getAll(taskId).Find(&trainingTasks).Error; err != nil {
 		return nil, err
 	}
 	return trainingTasks, nil

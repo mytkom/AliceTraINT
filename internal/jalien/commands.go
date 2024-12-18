@@ -118,6 +118,9 @@ func FindAODFiles(path string) ([]AODFile, error) {
 		if err != nil {
 			return nil, err
 		}
+		if pathVariables == nil {
+			continue
+		}
 
 		aods = append(aods, AODFile{
 			Name:      aodFilename,
