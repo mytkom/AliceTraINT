@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +15,10 @@ import (
 	"github.com/thomasdarimont/go-kc-example/session"
 	_ "github.com/thomasdarimont/go-kc-example/session_memory"
 	"golang.org/x/oauth2"
+)
+
+const (
+	loggedUserIdQuery string = "loggedUserId"
 )
 
 type Auth struct {
@@ -77,6 +82,24 @@ func NewAuth(userRepo repository.UserRepository) *Auth {
 		state:          "auth-state",
 		GlobalSessions: globalSessions,
 	}
+}
+
+func (a *Auth) GetAuthorizedUser(w http.ResponseWriter, r *http.Request) (*models.User, error) {
+	sess := a.GlobalSessions.SessionStart(w, r)
+	loggedUserId := sess.Get(loggedUserIdQuery)
+	if loggedUserId != nil {
+		loggedUser, err := a.userRepo.GetByID(loggedUserId.(uint))
+		if err != nil {
+			return nil, err
+		}
+		return loggedUser, nil
+	}
+
+	return nil, fmt.Errorf("user not logged in")
+}
+
+func (a *Auth) LogUser(sess session.Session, userId uint) error {
+	return sess.Set(loggedUserIdQuery, userId)
 }
 
 func (a *Auth) LoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -174,7 +197,7 @@ func (a *Auth) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Failed to set session", http.StatusInternalServerError)
 	}
-	err = sess.Set("loggedUserId", user.ID)
+	err = a.LogUser(sess, user.ID)
 	if err != nil {
 		http.Error(w, "Failed to set session", http.StatusInternalServerError)
 	}

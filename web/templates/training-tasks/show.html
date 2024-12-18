@@ -29,7 +29,7 @@
         {{ if .TrainingTask.Status.IsCompleted }}
         <button class="bg-sky-800 hover:bg-sky-700 text-gray-50 rounded-lg text-lg font-bold py-1 px-2"
             hx-post="/training-tasks/{{ .TrainingTask.ID }}/upload-to-ccdb" hx-swap="none"
-            hx-confirm="Are you sure you want to upload {{ .TrainingTask.Name }}?">Upload to CCDB</button>
+            hx-confirm="Are you sure you want to upload {{ .TrainingTask.Name }}?">{{ if .TrainingTask.Status.IsUploaded }}Reupload{{ else }}Upload{{ end }} to CCDB</button>
         {{ end }}
     </div>
     {{ end }}

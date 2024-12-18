@@ -50,7 +50,7 @@ func setupIntegrationTest(t *testing.T) (*environment.Env, func()) {
 func addSessionCookie(t *testing.T, env *environment.Env, req *http.Request, userId uint) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
 	sess := env.GlobalSessions.SessionStart(rr, req)
-	assert.NoError(t, sess.Set("loggedUserId", userId))
+	assert.NoError(t, env.LogUser(sess, userId))
 
 	cookie := &http.Cookie{
 		Name:  "gosessionid",

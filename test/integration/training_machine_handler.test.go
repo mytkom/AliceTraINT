@@ -10,6 +10,7 @@ import (
 
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/handler"
+	"github.com/mytkom/AliceTraINT/internal/service"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +18,9 @@ func TestTrainingMachineHandler_List(t *testing.T) {
 	env, cleanup := setupIntegrationTest(t)
 	defer cleanup()
 
-	handler := handler.NewTrainingMachineHandler(env)
+	hasher := service.NewArgon2Hasher()
+	tmService := service.NewTrainingMachineService(env.RepositoryContext, hasher)
+	handler := handler.NewTrainingMachineHandler(env, tmService)
 
 	user := &models.User{CernPersonId: "12345", Username: "user1"}
 	assert.NoError(t, handler.User.Create(user))
@@ -51,7 +54,9 @@ func TestTrainingMachineHandler_Create(t *testing.T) {
 	env, cleanup := setupIntegrationTest(t)
 	defer cleanup()
 
-	handler := handler.NewTrainingMachineHandler(env)
+	hasher := service.NewArgon2Hasher()
+	tmService := service.NewTrainingMachineService(env.RepositoryContext, hasher)
+	handler := handler.NewTrainingMachineHandler(env, tmService)
 
 	user := &models.User{CernPersonId: "12345", Username: "user1"}
 	assert.NoError(t, handler.User.Create(user))
@@ -83,7 +88,9 @@ func TestTrainingMachineHandler_Show(t *testing.T) {
 	env, cleanup := setupIntegrationTest(t)
 	defer cleanup()
 
-	handler := handler.NewTrainingMachineHandler(env)
+	hasher := service.NewArgon2Hasher()
+	tmService := service.NewTrainingMachineService(env.RepositoryContext, hasher)
+	handler := handler.NewTrainingMachineHandler(env, tmService)
 
 	user := &models.User{CernPersonId: "12345", Username: "user1"}
 	assert.NoError(t, handler.User.Create(user))

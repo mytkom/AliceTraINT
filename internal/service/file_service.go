@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -23,9 +24,9 @@ type LocalFileService struct {
 func (l *LocalFileService) SaveFile(file multipart.File, handler *multipart.FileHeader) (*models.File, error) {
 	defer file.Close()
 
-	fmt.Printf("File name: %+v\n", handler.Filename)
-	fmt.Printf("File size: %+v\n", handler.Size)
-	fmt.Printf("File header: %+v\n", handler.Header)
+	log.Printf("File name: %+v\n", handler.Filename)
+	log.Printf("File size: %+v\n", handler.Size)
+	log.Printf("File header: %+v\n", handler.Header)
 
 	today := time.Now().Format("2006-01-02")
 	tempFolderPath := filepath.Join(l.BasePath, today)

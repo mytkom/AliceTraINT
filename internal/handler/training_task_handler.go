@@ -3,12 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
-	"os"
-	"slices"
-	"sort"
 	"strconv"
 
 	"github.com/mytkom/AliceTraINT/internal/ccdb"
@@ -19,59 +14,16 @@ import (
 	"github.com/mytkom/AliceTraINT/internal/utils"
 )
 
-type NNExpectedResults struct {
-	Onnx map[string]string `json:"onnx"`
-}
-
-type NNConfigField struct {
-	FullName     string      `json:"full_name"`
-	Type         string      `json:"type"`
-	DefaultValue interface{} `json:"default_value"`
-	Min          interface{} `json:"min"`
-	Max          interface{} `json:"max"`
-	Step         interface{} `json:"step"`
-	Description  string      `json:"description"`
-}
-
-type NNArchSpec struct {
-	FieldConfigs    map[string]NNConfigField `json:"field_configs"`
-	ExpectedResults NNExpectedResults        `json:"expected_results"`
-}
-
-func loadNNArchSpec(filename string) (*NNArchSpec, error) {
-	file, err := os.Open(filename)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var arch NNArchSpec
-	bytes, err := io.ReadAll(file)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = file.Close()
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(bytes, &arch)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &arch, nil
-}
-
 type TrainingTaskHandler struct {
 	*environment.Env
-	CCDBApi     *ccdb.CCDBApi
-	NNArchSpec  *NNArchSpec
-	FileService service.IFileService
+	Service service.ITrainingTaskService
+}
+
+func NewTrainingTaskHandler(env *environment.Env, ttService service.ITrainingTaskService) *TrainingTaskHandler {
+	return &TrainingTaskHandler{
+		Env:     env,
+		Service: ttService,
+	}
 }
 
 func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -94,27 +46,15 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		TrainingTasks []models.TrainingTask
 	}
 
-	var trainingTasks []models.TrainingTask
-	var err error
+	loggedUser, err := h.GetAuthorizedUser(w, r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
 
-	if r.URL.Query().Get("userScoped") == "on" {
-		loggedUser, err := getAuthorizedUser(h.Auth, h.User, w, r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		trainingTasks, err = h.TrainingTask.GetAllUser(loggedUser.ID)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	} else {
-		trainingTasks, err = h.TrainingTask.GetAll()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	trainingTasks, err := h.Service.GetAll(loggedUser.ID, utils.IsUserScoped(r))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 	err = h.ExecuteTemplate(w, "training-tasks_list", TemplateData{
@@ -133,69 +73,13 @@ func (h *TrainingTaskHandler) UploadToCCDB(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	trainingTask, err := h.TrainingTask.GetByID(uint(id))
+	err = h.Service.UploadOnnxResults(uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "invalid training task id", http.StatusInternalServerError)
 		return
 	}
 
-	runs := []uint64{}
-	for _, aod := range trainingTask.TrainingDataset.AODFiles {
-		if !slices.Contains(runs, aod.RunNumber) {
-			runs = append(runs, aod.RunNumber)
-		}
-	}
-
-	if len(runs) == 0 {
-		http.Error(w, "unexpected behaviour: empty training dataset", http.StatusInternalServerError)
-		return
-	}
-
-	sort.Slice(runs, func(i, j int) bool {
-		return runs[i] < runs[j]
-	})
-
-	firstRunInfo, err := h.CCDBApi.GetRunInformation(runs[0])
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	lastRunInfo, err := h.CCDBApi.GetRunInformation(runs[len(runs)-1])
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	fmt.Printf("From run %d, SOR %d", firstRunInfo.RunNumber, firstRunInfo.SOR)
-	fmt.Printf("to run %d, EOR %d", lastRunInfo.RunNumber, lastRunInfo.SOR)
-
-	onnxFiles, err := h.TrainingTaskResult.GetByType(trainingTask.ID, models.Onnx)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	for _, onnxFile := range onnxFiles {
-		file, close, err := h.FileService.OpenFile(onnxFile.File.Path)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer close(file)
-
-		if upload_filename, ok := h.NNArchSpec.ExpectedResults.Onnx[onnxFile.Name]; ok {
-			err = ccdb.UploadFile(h.Config, firstRunInfo.SOR, lastRunInfo.EOR, upload_filename, file)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		} else {
-			fmt.Printf("not expected file: %s", onnxFile.Name)
-			continue
-		}
-	}
-
+	utils.HTMXRefresh(w)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -214,19 +98,7 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	trainingTask, err := h.TrainingTask.GetByID(uint(id))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	imageFiles, err := h.TrainingTaskResult.GetByType(trainingTask.ID, models.Image)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	onnxFiles, err := h.TrainingTaskResult.GetByType(trainingTask.ID, models.Onnx)
+	tt, err := h.Service.GetByID(uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -234,9 +106,9 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 
 	err = h.ExecuteTemplate(w, "training-tasks_show", TemplateData{
 		Title:        "Training Tasks",
-		TrainingTask: *trainingTask,
-		ImageFiles:   imageFiles,
-		OnnxFiles:    onnxFiles,
+		TrainingTask: *tt.TrainingTask,
+		ImageFiles:   tt.ImageFiles,
+		OnnxFiles:    tt.OnnxFiles,
 	})
 
 	if err != nil {
@@ -248,16 +120,16 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
 		Title            string
 		TrainingDatasets []models.TrainingDataset
-		NNArchSpec       *NNArchSpec
+		FieldConfigs     service.NNFieldConfigs
 	}
 
-	loggedUser, err := getAuthorizedUser(h.Auth, h.User, w, r)
+	loggedUser, err := h.GetAuthorizedUser(w, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	trainingDatasets, err := h.TrainingDataset.GetAllUser(loggedUser.ID)
+	ttHelpers, err := h.Service.GetHelpers(loggedUser.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -265,8 +137,8 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 
 	err = h.ExecuteTemplate(w, "training-tasks_new", TemplateData{
 		Title:            "Create New Training Task!",
-		TrainingDatasets: trainingDatasets,
-		NNArchSpec:       h.NNArchSpec,
+		TrainingDatasets: ttHelpers.TrainingDatasets,
+		FieldConfigs:     ttHelpers.FieldConfigs,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -282,14 +154,14 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loggedUser, err := getAuthorizedUser(h.Auth, h.User, w, r)
+	loggedUser, err := h.GetAuthorizedUser(w, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 	trainingTask.UserId = loggedUser.ID
 
-	err = h.TrainingTask.Create(&trainingTask)
+	err = h.Service.Create(&trainingTask)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -299,20 +171,11 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func InitTrainingTaskRoutes(mux *http.ServeMux, env *environment.Env, ccdbApi *ccdb.CCDBApi, fileService service.IFileService) {
+func InitTrainingTaskRoutes(mux *http.ServeMux, env *environment.Env, ccdbApi *ccdb.CCDBApi, fileService service.IFileService, nnArch service.INNArchService) {
 	prefix := "training-tasks"
 
-	nnArchSpec, err := loadNNArchSpec("web/nn_architectures/proposed.json")
-	if err != nil {
-		log.Fatal("cannot load architecture configuration specification file")
-	}
-
-	tjh := &TrainingTaskHandler{
-		Env:         env,
-		CCDBApi:     ccdbApi,
-		NNArchSpec:  nnArchSpec,
-		FileService: fileService,
-	}
+	ttService := service.NewTrainingTaskService(env.RepositoryContext, ccdbApi, fileService, nnArch, env.Config)
+	tjh := NewTrainingTaskHandler(env, ttService)
 
 	authMw := middleware.NewAuthMw(env.Auth, true)
 	validateHtmxMw := middleware.NewValidateHTMXMw()

@@ -42,7 +42,7 @@ func (h *TrainingDatasetHandler) List(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if r.URL.Query().Get("userScoped") == "on" {
-		loggedUser, err := getAuthorizedUser(h.Auth, h.User, w, r)
+		loggedUser, err := h.GetAuthorizedUser(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
@@ -120,7 +120,7 @@ func (h *TrainingDatasetHandler) Create(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	loggedUser, err := getAuthorizedUser(h.Auth, h.User, w, r)
+	loggedUser, err := h.GetAuthorizedUser(w, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -145,7 +145,7 @@ func (h *TrainingDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	loggedUser, err := getAuthorizedUser(h.Auth, h.User, w, r)
+	loggedUser, err := h.GetAuthorizedUser(w, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return

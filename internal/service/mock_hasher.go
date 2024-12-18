@@ -7,8 +7,8 @@ type MockHasher struct {
 	mock.Mock
 }
 
-func (m *MockHasher) GenerateKey(keyLength uint) (string, error) {
-	args := m.Called(keyLength)
+func (m *MockHasher) GenerateKey() (string, error) {
+	args := m.Called()
 	return args.String(0), args.Error(1)
 }
 

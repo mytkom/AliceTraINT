@@ -144,10 +144,10 @@ func (qh *QueueHandler) CreateTrainingTaskResult(w http.ResponseWriter, r *http.
 	json.NewEncoder(w).Encode(ttr)
 }
 
-func InitQueueRoutes(mux *http.ServeMux, env *environment.Env, qs service.IQueueService) {
+func InitQueueRoutes(mux *http.ServeMux, env *environment.Env, fileService service.IFileService, hasher service.Hasher) {
 	qh := &QueueHandler{
 		Env:          env,
-		QueueService: qs,
+		QueueService: service.NewQueueService(fileService, env.RepositoryContext, hasher),
 	}
 
 	mux.Handle("POST /training_tasks/{id}/status", http.HandlerFunc(qh.UpdateStatus))

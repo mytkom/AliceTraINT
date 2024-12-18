@@ -38,6 +38,6 @@ func main() {
 	loggedR := logMw(r)
 
 	portString := fmt.Sprintf(":%s", cfg.Port)
-	fmt.Printf("Starting server on %s\n", portString)
+	log.Printf("Starting server on %s\n", portString)
 	log.Fatal(http.ListenAndServe(portString, loggedR))
 }

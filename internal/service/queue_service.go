@@ -50,7 +50,7 @@ func (qs *QueueService) AuthorizeTrainingMachine(secretID string, tmID uint) (*m
 	trainingMachine.LastActivityAt = time.Now()
 	err = qs.TrainingMachine.Update(trainingMachine)
 	if err != nil {
-		return nil, fmt.Errorf("machine activity timestamp error")
+		return nil, errors.New("machine activity timestamp error")
 	}
 
 	return trainingMachine, nil

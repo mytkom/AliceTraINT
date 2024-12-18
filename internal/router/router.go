@@ -28,10 +28,10 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 
 	// services
 	hasher := service.NewArgon2Hasher()
-	fileService := service.NewLocalFileService(cfg.DataDirPath)
-	queueService := service.NewQueueService(fileService, repoContext, hasher)
-	auth := auth.NewAuth(repoContext.User)
 	ccdbApi := ccdb.NewCCDBApi(cfg.CCDBBaseURL)
+	nnArch := service.NewNNArchService(cfg.NNArchPath)
+	fileService := service.NewLocalFileService(cfg.DataDirPath)
+	auth := auth.NewAuth(repoContext.User)
 
 	env := environment.NewEnv(repoContext, auth, baseTemplate, cfg)
 
@@ -45,9 +45,9 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 	handler.InitLandingRoutes(mux, env)
 	handler.InitUserRoutes(mux, env)
 	handler.InitTrainingDatasetRoutes(mux, env)
-	handler.InitTrainingTaskRoutes(mux, env, ccdbApi, fileService)
-	handler.InitTrainingMachineRoutes(mux, env)
-	handler.InitQueueRoutes(mux, env, queueService)
+	handler.InitTrainingTaskRoutes(mux, env, ccdbApi, fileService, nnArch)
+	handler.InitTrainingMachineRoutes(mux, env, hasher)
+	handler.InitQueueRoutes(mux, env, fileService, hasher)
 
 	return mux
 }

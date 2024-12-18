@@ -14,6 +14,7 @@ const (
 	Training
 	Benchmarking
 	Completed
+	Uploaded
 	Failed
 )
 
@@ -44,6 +45,8 @@ func (s TrainingTaskStatus) String() string {
 		return "Benchmarking"
 	case Completed:
 		return "Completed"
+	case Uploaded:
+		return "Uploaded"
 	case Failed:
 		return "Failed"
 	default:
@@ -52,7 +55,11 @@ func (s TrainingTaskStatus) String() string {
 }
 
 func (s TrainingTaskStatus) IsCompleted() bool {
-	return s == Completed
+	return s == Completed || s == Uploaded
+}
+
+func (s TrainingTaskStatus) IsUploaded() bool {
+	return s == Uploaded
 }
 
 // returns tailwind color suffix and this classes should be included in tailwind's safelist
@@ -66,6 +73,8 @@ func (s TrainingTaskStatus) Color() string {
 		return "yellow-600"
 	case Completed:
 		return "green-600"
+	case Uploaded:
+		return "green-400"
 	case Failed:
 		return "red-400"
 	default:

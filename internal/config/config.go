@@ -18,6 +18,7 @@ type Config struct {
 	CCDBCertPath       string
 	CCDBKeyPath        string
 	DataDirPath        string
+	NNArchPath         string
 }
 
 type DatabaseConfig struct {
@@ -51,6 +52,7 @@ func LoadConfig() *Config {
 		CCDBCertPath:       getEnv("CCDB_SSL_CERT_PATH", ""),
 		CCDBKeyPath:        getEnv("CCDB_SSL_KEY_PATH", ""),
 		DataDirPath:        getEnv("ALICETRAINT_DATA_DIR_PATH", "data"),
+		NNArchPath:         getEnv("ALICETRAINT_NN_ARCH_DIR", "web/nn_architectures/proposed.json"),
 	}
 }
 

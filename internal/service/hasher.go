@@ -4,7 +4,7 @@ import "github.com/mytkom/AliceTraINT/internal/hash"
 
 // Hasher defines the interface for key hashing and verification.
 type Hasher interface {
-	GenerateKey(keyLength uint) (string, error)
+	GenerateKey() (string, error)
 	HashKey(key string) (string, error)
 	VerifyKey(key, encodedHash string) (bool, error)
 }
@@ -16,8 +16,8 @@ func NewArgon2Hasher() *Argon2Hasher {
 	return &Argon2Hasher{}
 }
 
-func (a *Argon2Hasher) GenerateKey(keyLength uint) (string, error) {
-	return hash.GenerateKey(keyLength)
+func (a *Argon2Hasher) GenerateKey() (string, error) {
+	return hash.GenerateKey(32)
 }
 
 func (a *Argon2Hasher) HashKey(key string) (string, error) {
