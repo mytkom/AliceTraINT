@@ -1,5 +1,7 @@
 package repository
 
+import "gorm.io/gorm"
+
 type RepositoryContext struct {
 	User               UserRepository
 	TrainingMachine    TrainingMachineRepository
@@ -8,12 +10,12 @@ type RepositoryContext struct {
 	TrainingTaskResult TrainingTaskResultRepository
 }
 
-func NewRepositoryContext(user UserRepository, trainingMachine TrainingMachineRepository, trainingDataset TrainingDatasetRepository, trainingTask TrainingTaskRepository, trainingTaskResult TrainingTaskResultRepository) *RepositoryContext {
+func NewRepositoryContext(db *gorm.DB) *RepositoryContext {
 	return &RepositoryContext{
-		User:               user,
-		TrainingMachine:    trainingMachine,
-		TrainingDataset:    trainingDataset,
-		TrainingTask:       trainingTask,
-		TrainingTaskResult: trainingTaskResult,
+		User:               NewUserRepository(db),
+		TrainingMachine:    NewTrainingMachineRepository(db),
+		TrainingDataset:    NewTrainingDatasetRepository(db),
+		TrainingTask:       NewTrainingTaskRepository(db),
+		TrainingTaskResult: NewTrainingTaskResultRepository(db),
 	}
 }

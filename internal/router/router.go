@@ -7,6 +7,7 @@ import (
 	"github.com/mytkom/AliceTraINT/internal/ccdb"
 	"github.com/mytkom/AliceTraINT/internal/config"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
+	"github.com/mytkom/AliceTraINT/internal/environment"
 	"github.com/mytkom/AliceTraINT/internal/handler"
 	"github.com/mytkom/AliceTraINT/internal/middleware"
 	"github.com/mytkom/AliceTraINT/internal/service"
@@ -23,13 +24,7 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 	baseTemplate := utils.BaseTemplate()
 
 	// repositories
-	repoContext := repository.NewRepositoryContext(
-		repository.NewUserRepository(db),
-		repository.NewTrainingMachineRepository(db),
-		repository.NewTrainingDatasetRepository(db),
-		repository.NewTrainingTaskRepository(db),
-		repository.NewTrainingTaskResultRepository(db),
-	)
+	repoContext := repository.NewRepositoryContext(db)
 
 	// services
 	hasher := service.NewArgon2Hasher()
@@ -38,6 +33,8 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 	auth := auth.NewAuth(repoContext.User)
 	ccdbApi := ccdb.NewCCDBApi(cfg.CCDBBaseURL)
 
+	env := environment.NewEnv(repoContext, auth, baseTemplate, cfg)
+
 	// routes
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 	mux.Handle("GET /data/", middleware.Chain(http.StripPrefix("/data/", fsData), middleware.NewAuthMw(auth, false)))
@@ -45,12 +42,12 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 	mux.HandleFunc("GET /callback", auth.CallbackHandler)
 
 	// handlers' routes
-	handler.InitLandingRoutes(mux, baseTemplate, auth)
-	handler.InitUserRoutes(mux, baseTemplate, repoContext.User, auth)
-	handler.InitTrainingDatasetRoutes(mux, baseTemplate, repoContext.TrainingDataset, repoContext.User, auth, cfg.JalienCacheMinutes)
-	handler.InitTrainingTaskRoutes(mux, baseTemplate, repoContext.TrainingTask, repoContext.TrainingDataset, repoContext.TrainingTaskResult, repoContext.User, auth, ccdbApi, cfg, fileService)
-	handler.InitTrainingMachineRoutes(mux, baseTemplate, repoContext.TrainingMachine, repoContext.User, auth)
-	handler.InitQueueRoutes(mux, repoContext, queueService)
+	handler.InitLandingRoutes(mux, env)
+	handler.InitUserRoutes(mux, env)
+	handler.InitTrainingDatasetRoutes(mux, env)
+	handler.InitTrainingTaskRoutes(mux, env, ccdbApi, fileService)
+	handler.InitTrainingMachineRoutes(mux, env)
+	handler.InitQueueRoutes(mux, env, queueService)
 
 	return mux
 }

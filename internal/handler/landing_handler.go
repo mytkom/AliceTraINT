@@ -1,16 +1,14 @@
 package handler
 
 import (
-	"html/template"
 	"net/http"
 
-	"github.com/mytkom/AliceTraINT/internal/auth"
+	"github.com/mytkom/AliceTraINT/internal/environment"
 	"github.com/mytkom/AliceTraINT/internal/middleware"
 )
 
 type LandingHandler struct {
-	Template *template.Template
-	Auth     *auth.Auth
+	*environment.Env
 }
 
 func (h *LandingHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +17,7 @@ func (h *LandingHandler) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.URL.Path != "/" {
-		err := h.Template.ExecuteTemplate(w, "not-found", nil)
+		err := h.ExecuteTemplate(w, "not-found", nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -30,24 +28,23 @@ func (h *LandingHandler) Index(w http.ResponseWriter, r *http.Request) {
 		Title: "AliceTraINT",
 	}
 
-	sess := h.Auth.GlobalSessions.SessionStart(w, r)
+	sess := h.GlobalSessions.SessionStart(w, r)
 	loggedUserId := sess.Get("loggedUserId")
 	if loggedUserId != nil {
 		http.Redirect(w, r, "/training-datasets", http.StatusTemporaryRedirect)
 		return
 	}
 
-	err := h.Template.ExecuteTemplate(w, "landing", templateData)
+	err := h.ExecuteTemplate(w, "landing", templateData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
-func InitLandingRoutes(mux *http.ServeMux, baseTemplate *template.Template, auth *auth.Auth) {
+func InitLandingRoutes(mux *http.ServeMux, env *environment.Env) {
 	lh := &LandingHandler{
-		Auth:     auth,
-		Template: baseTemplate,
+		Env: env,
 	}
 
 	blockHtmxMw := middleware.NewBlockHTMXMw()

@@ -19,21 +19,21 @@ type IQueueService interface {
 }
 
 type QueueService struct {
-	Repo        *repository.RepositoryContext
+	*repository.RepositoryContext
 	FileService IFileService
 	Hasher      Hasher
 }
 
 func NewQueueService(fileService IFileService, repo *repository.RepositoryContext, hasher Hasher) *QueueService {
 	return &QueueService{
-		Repo:        repo,
-		FileService: fileService,
-		Hasher:      hasher,
+		RepositoryContext: repo,
+		FileService:       fileService,
+		Hasher:            hasher,
 	}
 }
 
 func (qs *QueueService) AuthorizeTrainingMachine(secretID string, tmID uint) (*models.TrainingMachine, error) {
-	trainingMachine, err := qs.Repo.TrainingMachine.GetByID(tmID)
+	trainingMachine, err := qs.TrainingMachine.GetByID(tmID)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (qs *QueueService) AuthorizeTrainingMachine(secretID string, tmID uint) (*m
 	}
 
 	trainingMachine.LastActivityAt = time.Now()
-	err = qs.Repo.TrainingMachine.Update(trainingMachine)
+	err = qs.TrainingMachine.Update(trainingMachine)
 	if err != nil {
 		return nil, fmt.Errorf("machine activity timestamp error")
 	}
@@ -57,17 +57,17 @@ func (qs *QueueService) AuthorizeTrainingMachine(secretID string, tmID uint) (*m
 }
 
 func (qs *QueueService) UpdateTrainingTaskStatus(taskID uint, status models.TrainingTaskStatus) error {
-	tt, err := qs.Repo.TrainingTask.GetByID(taskID)
+	tt, err := qs.TrainingTask.GetByID(taskID)
 	if err != nil {
 		return err
 	}
 
 	tt.Status = status
-	return qs.Repo.TrainingTask.Update(tt)
+	return qs.TrainingTask.Update(tt)
 }
 
 func (qs *QueueService) AssignTaskToMachine(tmID uint) (*models.TrainingTask, error) {
-	tt, err := qs.Repo.TrainingTask.GetFirstQueued()
+	tt, err := qs.TrainingTask.GetFirstQueued()
 	if err != nil {
 		return nil, errors.New("no task to run")
 	}
@@ -75,7 +75,7 @@ func (qs *QueueService) AssignTaskToMachine(tmID uint) (*models.TrainingTask, er
 	tt.TrainingMachineId = &tmID
 	tt.Status = models.Training
 
-	err = qs.Repo.TrainingTask.Update(tt)
+	err = qs.TrainingTask.Update(tt)
 	if err != nil {
 		return nil, fmt.Errorf("cannot assign task to machine: %w", err)
 	}
@@ -84,7 +84,7 @@ func (qs *QueueService) AssignTaskToMachine(tmID uint) (*models.TrainingTask, er
 }
 
 func (qs *QueueService) CreateTrainingTaskResult(ttID uint, file multipart.File, handler *multipart.FileHeader, name, description, fileType string) (*models.TrainingTaskResult, error) {
-	tt, err := qs.Repo.TrainingTask.GetByID(ttID)
+	tt, err := qs.TrainingTask.GetByID(ttID)
 	if err != nil {
 		return nil, errors.New("training task does not exist")
 	}
@@ -104,7 +104,7 @@ func (qs *QueueService) CreateTrainingTaskResult(ttID uint, file multipart.File,
 		TrainingTaskId: tt.ID,
 	}
 
-	err = qs.Repo.TrainingTaskResult.Create(ttr)
+	err = qs.TrainingTaskResult.Create(ttr)
 	if err != nil {
 		return nil, fmt.Errorf("error during task result creation: %w", err)
 	}

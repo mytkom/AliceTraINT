@@ -7,13 +7,13 @@ import (
 	"strconv"
 
 	"github.com/mytkom/AliceTraINT/internal/db/models"
-	"github.com/mytkom/AliceTraINT/internal/db/repository"
+	"github.com/mytkom/AliceTraINT/internal/environment"
 	"github.com/mytkom/AliceTraINT/internal/jalien"
 	"github.com/mytkom/AliceTraINT/internal/service"
 )
 
 type QueueHandler struct {
-	Repo         *repository.RepositoryContext
+	*environment.Env
 	QueueService service.IQueueService
 }
 
@@ -33,7 +33,7 @@ func (qh *QueueHandler) trainingMachineFromPath(r *http.Request) (*models.Traini
 		return nil, nil, fmt.Errorf("invalid training task id: %s", err.Error())
 	}
 
-	tt, err := qh.Repo.TrainingTask.GetByID(uint(ttId))
+	tt, err := qh.TrainingTask.GetByID(uint(ttId))
 	if err != nil {
 		return nil, nil, fmt.Errorf("training task does not exist: %s", err.Error())
 	}
@@ -144,9 +144,9 @@ func (qh *QueueHandler) CreateTrainingTaskResult(w http.ResponseWriter, r *http.
 	json.NewEncoder(w).Encode(ttr)
 }
 
-func InitQueueRoutes(mux *http.ServeMux, repo *repository.RepositoryContext, qs service.IQueueService) {
+func InitQueueRoutes(mux *http.ServeMux, env *environment.Env, qs service.IQueueService) {
 	qh := &QueueHandler{
-		Repo:         repo,
+		Env:          env,
 		QueueService: qs,
 	}
 

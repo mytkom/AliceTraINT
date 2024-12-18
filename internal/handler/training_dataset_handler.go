@@ -3,26 +3,21 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/mytkom/AliceTraINT/internal/auth"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
-	"github.com/mytkom/AliceTraINT/internal/db/repository"
+	"github.com/mytkom/AliceTraINT/internal/environment"
 	"github.com/mytkom/AliceTraINT/internal/jalien"
 	"github.com/mytkom/AliceTraINT/internal/middleware"
 	"github.com/mytkom/AliceTraINT/internal/utils"
 )
 
 type TrainingDatasetHandler struct {
-	TrainingDatasetRepo repository.TrainingDatasetRepository
-	UserRepo            repository.UserRepository
-	Auth                *auth.Auth
-	Template            *template.Template
+	*environment.Env
 }
 
 func (h *TrainingDatasetHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +25,7 @@ func (h *TrainingDatasetHandler) Index(w http.ResponseWriter, r *http.Request) {
 		Title string
 	}
 
-	err := h.Template.ExecuteTemplate(w, "training-datasets_index", TemplateData{
+	err := h.ExecuteTemplate(w, "training-datasets_index", TemplateData{
 		Title: "Training Datasets",
 	})
 	if err != nil {
@@ -47,26 +42,26 @@ func (h *TrainingDatasetHandler) List(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if r.URL.Query().Get("userScoped") == "on" {
-		loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
+		loggedUser, err := getAuthorizedUser(h.Auth, h.User, w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		trainingDatasets, err = h.TrainingDatasetRepo.GetAllUser(loggedUser.ID)
+		trainingDatasets, err = h.TrainingDataset.GetAllUser(loggedUser.ID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	} else {
-		trainingDatasets, err = h.TrainingDatasetRepo.GetAll()
+		trainingDatasets, err = h.TrainingDataset.GetAll()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 
-	err = h.Template.ExecuteTemplate(w, "training-datasets_list", TemplateData{
+	err = h.ExecuteTemplate(w, "training-datasets_list", TemplateData{
 		TrainingDatasets: trainingDatasets,
 	})
 	if err != nil {
@@ -88,13 +83,13 @@ func (h *TrainingDatasetHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	trainingDataset, err := h.TrainingDatasetRepo.GetByID(uint(id))
+	trainingDataset, err := h.TrainingDataset.GetByID(uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = h.Template.ExecuteTemplate(w, "training-datasets_show", TemplateData{
+	err = h.ExecuteTemplate(w, "training-datasets_show", TemplateData{
 		Title:           "Training Datasets",
 		TrainingDataset: *trainingDataset,
 	})
@@ -108,7 +103,7 @@ func (h *TrainingDatasetHandler) New(w http.ResponseWriter, r *http.Request) {
 		Title string
 	}
 
-	err := h.Template.ExecuteTemplate(w, "training-datasets_new", TemplateData{
+	err := h.ExecuteTemplate(w, "training-datasets_new", TemplateData{
 		Title: "Create New Training Dataset!",
 	})
 	if err != nil {
@@ -125,14 +120,14 @@ func (h *TrainingDatasetHandler) Create(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
+	loggedUser, err := getAuthorizedUser(h.Auth, h.User, w, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 	trainingDataset.UserId = loggedUser.ID
 
-	err = h.TrainingDatasetRepo.Create(&trainingDataset)
+	err = h.TrainingDataset.Create(&trainingDataset)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -150,13 +145,13 @@ func (h *TrainingDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
+	loggedUser, err := getAuthorizedUser(h.Auth, h.User, w, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	err = h.TrainingDatasetRepo.Delete(loggedUser.ID, uint(trainingDatasetId))
+	err = h.TrainingDataset.Delete(loggedUser.ID, uint(trainingDatasetId))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -192,7 +187,7 @@ func (h *TrainingDatasetHandler) ExploreDirectory(w http.ResponseWriter, r *http
 		}
 	}
 
-	err = h.Template.ExecuteTemplate(w, "training-datasets_tree-browser", TemplateData{
+	err = h.ExecuteTemplate(w, "training-datasets_tree-browser", TemplateData{
 		Path:      path,
 		AODFiles:  dirContents.AODFiles,
 		Subdirs:   dirContents.Subdirs,
@@ -217,7 +212,7 @@ func (h *TrainingDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = h.Template.ExecuteTemplate(w, "training-datasets_file-list", TemplateData{
+	err = h.ExecuteTemplate(w, "training-datasets_file-list", TemplateData{
 		AODFiles: aods,
 	})
 	if err != nil {
@@ -226,19 +221,16 @@ func (h *TrainingDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func InitTrainingDatasetRoutes(mux *http.ServeMux, baseTemplate *template.Template, trainingDatasetRepo repository.TrainingDatasetRepository, userRepo repository.UserRepository, auth *auth.Auth, jalienCacheMinutes uint) {
+func InitTrainingDatasetRoutes(mux *http.ServeMux, env *environment.Env) {
 	prefix := "training-datasets"
 
 	tjh := &TrainingDatasetHandler{
-		TrainingDatasetRepo: trainingDatasetRepo,
-		UserRepo:            userRepo,
-		Auth:                auth,
-		Template:            baseTemplate,
+		Env: env,
 	}
 
-	cache := utils.NewCache(time.Duration(jalienCacheMinutes) * time.Minute)
+	cache := utils.NewCache(time.Duration(tjh.JalienCacheMinutes) * time.Minute)
 
-	authMw := middleware.NewAuthMw(auth, true)
+	authMw := middleware.NewAuthMw(tjh.Auth, true)
 	cacheMw := middleware.NewCacheMw(cache)
 	validateHtmxMw := middleware.NewValidateHTMXMw()
 	blockHtmxMw := middleware.NewBlockHTMXMw()
