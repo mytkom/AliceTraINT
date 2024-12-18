@@ -18,13 +18,13 @@ func TestTrainingTaskResultRepository_Create(t *testing.T) {
 		Name:           "train log",
 		Type:           models.Log,
 		Description:    "log of training",
-		File:           []byte("file"),
+		FileId:         1,
 		TrainingTaskId: 1,
 	}
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "training_task_results" (.+) RETURNING "id"`).
-		WithArgs(AnyTime(), AnyTime(), AnyTime(), ttr.Name, ttr.Type, ttr.Description, ttr.File, ttr.TrainingTaskId).
+		WithArgs(AnyTime(), AnyTime(), AnyTime(), ttr.Name, ttr.Type, ttr.Description, ttr.FileId, ttr.TrainingTaskId).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
@@ -44,32 +44,72 @@ func TestTrainingTaskResultRepository_GetAll(t *testing.T) {
 			Name:           "train log",
 			Type:           models.Log,
 			Description:    "log of training",
-			File:           []byte("file"),
+			FileId:         1,
 			TrainingTaskId: 1,
 		},
 		{
 			Name:           "benchmark log",
 			Type:           models.Log,
 			Description:    "log of benchmarking",
-			File:           []byte("file"),
+			FileId:         2,
 			TrainingTaskId: 1,
 		},
 	}
 
-	taskRows := sqlmock.NewRows([]string{"id", "name", "type", "description", "file", "training_task_id"})
+	taskRows := sqlmock.NewRows([]string{"id", "name", "type", "description", "file_id", "training_task_id"})
 
 	for i, ttr := range ttrs {
-		taskRows = taskRows.AddRow(i+1, ttr.Name, ttr.Type, ttr.Description, ttr.File, ttr.TrainingTaskId)
+		taskRows = taskRows.AddRow(i+1, ttr.Name, ttr.Type, ttr.Description, ttr.FileId, ttr.TrainingTaskId)
 	}
 
-	mock.ExpectQuery("SELECT (.*) FROM \"training_task_results\" WHERE \"training_task_id\" = (.*) ORDER BY \"created_at\" desc").
+	mock.ExpectQuery(`SELECT .* FROM "training_task_results" LEFT JOIN "files" .* WHERE "training_task_id" = (.+) AND .* ORDER BY "created_at" desc`).
 		WillReturnRows(taskRows)
 
-	ttrs, err := trainingTaskRepo.GetAll(1)
+	results, err := trainingTaskRepo.GetAll(1)
 	assert.NoError(t, err)
-	assert.Len(t, ttrs, 2)
-	assert.Equal(t, ttrs[0].Name, "train log")
-	assert.Equal(t, ttrs[1].Name, "benchmark log")
+	assert.Len(t, results, 2)
+	assert.Equal(t, results[0].Name, "train log")
+	assert.Equal(t, results[1].Name, "benchmark log")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTrainingTaskResultRepository_GetByType(t *testing.T) {
+	db, mock, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	trainingTaskRepo := NewTrainingTaskResultRepository(db)
+
+	ttrs := []models.TrainingTaskResult{
+		{
+			Name:           "train log",
+			Type:           models.Log,
+			Description:    "log of training",
+			FileId:         1,
+			TrainingTaskId: 1,
+		},
+		{
+			Name:           "benchmark log",
+			Type:           models.Log,
+			Description:    "log of benchmarking",
+			FileId:         2,
+			TrainingTaskId: 1,
+		},
+	}
+
+	taskRows := sqlmock.NewRows([]string{"id", "name", "type", "description", "file_id", "training_task_id"})
+
+	for i, ttr := range ttrs {
+		taskRows = taskRows.AddRow(i+1, ttr.Name, ttr.Type, ttr.Description, ttr.FileId, ttr.TrainingTaskId)
+	}
+
+	mock.ExpectQuery(`SELECT .* FROM "training_task_results" LEFT JOIN "files" .* WHERE "training_task_id" = (.+) AND "type" = (.*) AND .* ORDER BY "created_at" desc`).
+		WillReturnRows(taskRows)
+
+	results, err := trainingTaskRepo.GetByType(1, models.Log)
+	assert.NoError(t, err)
+	assert.Len(t, results, 2)
+	assert.Equal(t, results[0].Name, "train log")
+	assert.Equal(t, results[1].Name, "benchmark log")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -83,18 +123,18 @@ func TestTrainingTaskResultRepository_GetById(t *testing.T) {
 		Name:           "train log",
 		Type:           models.Log,
 		Description:    "log of training",
-		File:           []byte("file"),
+		FileId:         1,
 		TrainingTaskId: 1,
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "name", "type", "description", "file", "training_task_id"})
-	rows = rows.AddRow(1, ttr.Name, ttr.Type, ttr.Description, ttr.File, ttr.TrainingTaskId)
+	rows := sqlmock.NewRows([]string{"id", "name", "type", "description", "file_id", "training_task_id"})
+	rows = rows.AddRow(1, ttr.Name, ttr.Type, ttr.Description, ttr.FileId, ttr.TrainingTaskId)
 	mock.ExpectQuery("SELECT (.*) FROM \"training_task_results\" WHERE \"training_task_results\".\"id\" = (.+) LIMIT (.+)").
 		WillReturnRows(rows)
 
-	ttr, err := trainingTaskResultRepo.GetByID(1)
+	result, err := trainingTaskResultRepo.GetByID(1)
 	assert.NoError(t, err)
-	assert.Equal(t, "train log", ttr.Name)
+	assert.Equal(t, "train log", result.Name)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -109,27 +149,6 @@ func TestTrainingTaskResultRepository_Delete(t *testing.T) {
 	mock.ExpectCommit()
 
 	err := trainingTaskResultRepo.Delete(1)
-	assert.NoError(t, err)
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestTrainingTaskResultRepository_Update(t *testing.T) {
-	db, mock, cleanup := setupTestDB(t)
-	defer cleanup()
-	trainingTaskResultRepo := NewTrainingTaskResultRepository(db)
-	ttr := &models.TrainingTaskResult{
-		Name:           "train log",
-		Type:           models.Log,
-		Description:    "log of training",
-		File:           []byte("file"),
-		TrainingTaskId: 1,
-	}
-	mock.ExpectBegin()
-	mock.ExpectQuery(`INSERT INTO "training_task_results" (.+) RETURNING "id"`).
-		WithArgs(AnyTime(), AnyTime(), AnyTime(), ttr.Name, ttr.Type, ttr.Description, ttr.File, ttr.TrainingTaskId).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-	mock.ExpectCommit()
-	err := trainingTaskResultRepo.Update(ttr)
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

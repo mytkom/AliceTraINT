@@ -49,6 +49,7 @@
           tailwindcss
           alienpyPkg
           makeWrapper
+          cypress
         ];
 
         shellHook = ''

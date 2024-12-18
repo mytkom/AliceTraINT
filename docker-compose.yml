@@ -19,6 +19,7 @@ services:
         condition: service_healthy
     volumes:
       - ./data:/app/data
+      - ./static:/app/static
 
   postgres:
     image: postgres:15-alpine

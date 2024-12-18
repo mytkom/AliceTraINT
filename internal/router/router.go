@@ -23,15 +23,19 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 	baseTemplate := utils.BaseTemplate()
 
 	// repositories
-	userRepo := repository.NewUserRepository(db)
-	trainingDatasetRepo := repository.NewTrainingDatasetRepository(db)
-	trainingTaskRepo := repository.NewTrainingTaskRepository(db)
-	trainingMachineRepo := repository.NewTrainingMachineRepository(db)
-	trainingTaskResultRepo := repository.NewTrainingTaskResultRepository(db)
+	repoContext := repository.NewRepositoryContext(
+		repository.NewUserRepository(db),
+		repository.NewTrainingMachineRepository(db),
+		repository.NewTrainingDatasetRepository(db),
+		repository.NewTrainingTaskRepository(db),
+		repository.NewTrainingTaskResultRepository(db),
+	)
 
 	// services
+	hasher := service.NewArgon2Hasher()
 	fileService := service.NewLocalFileService(cfg.DataDirPath)
-	auth := auth.NewAuth(userRepo)
+	queueService := service.NewQueueService(fileService, repoContext, hasher)
+	auth := auth.NewAuth(repoContext.User)
 	ccdbApi := ccdb.NewCCDBApi(cfg.CCDBBaseURL)
 
 	// routes
@@ -42,11 +46,11 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 
 	// handlers' routes
 	handler.InitLandingRoutes(mux, baseTemplate, auth)
-	handler.InitUserRoutes(mux, baseTemplate, userRepo, auth)
-	handler.InitTrainingDatasetRoutes(mux, baseTemplate, trainingDatasetRepo, userRepo, auth, cfg.JalienCacheMinutes)
-	handler.InitTrainingTaskRoutes(mux, baseTemplate, trainingTaskRepo, trainingDatasetRepo, trainingTaskResultRepo, userRepo, auth, ccdbApi, cfg, fileService)
-	handler.InitTrainingMachineRoutes(mux, baseTemplate, trainingMachineRepo, userRepo, auth)
-	handler.InitQueryRoutes(mux, trainingMachineRepo, trainingTaskRepo, trainingTaskResultRepo, fileService)
+	handler.InitUserRoutes(mux, baseTemplate, repoContext.User, auth)
+	handler.InitTrainingDatasetRoutes(mux, baseTemplate, repoContext.TrainingDataset, repoContext.User, auth, cfg.JalienCacheMinutes)
+	handler.InitTrainingTaskRoutes(mux, baseTemplate, repoContext.TrainingTask, repoContext.TrainingDataset, repoContext.TrainingTaskResult, repoContext.User, auth, ccdbApi, cfg, fileService)
+	handler.InitTrainingMachineRoutes(mux, baseTemplate, repoContext.TrainingMachine, repoContext.User, auth)
+	handler.InitQueueRoutes(mux, repoContext, queueService)
 
 	return mux
 }

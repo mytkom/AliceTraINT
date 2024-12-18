@@ -5,31 +5,60 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type MockTrainingTaskResultRepository struct {
+type MockTrainingTaskRepository struct {
 	mock.Mock
 }
 
-func (m *MockTrainingTaskResultRepository) Create(ttr *models.TrainingTaskResult) error {
-	args := m.Called(ttr)
+func (m *MockTrainingTaskRepository) Create(trainingTask *models.TrainingTask) error {
+	args := m.Called(trainingTask)
 	return args.Error(0)
 }
 
-func (m *MockTrainingTaskResultRepository) GetAll() ([]models.TrainingTaskResult, error) {
+func (m *MockTrainingTaskRepository) GetAll() ([]models.TrainingTask, error) {
 	args := m.Called()
-	return args.Get(0).([]models.TrainingTaskResult), args.Error(1)
+
+	if args.Error(1) != nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).([]models.TrainingTask), args.Error(1)
 }
 
-func (m *MockTrainingTaskResultRepository) GetByID(id uint) (*models.TrainingTaskResult, error) {
-	args := m.Called()
-	return args.Get(0).(*models.TrainingTaskResult), args.Error(1)
+func (m *MockTrainingTaskRepository) GetAllUser(userId uint) ([]models.TrainingTask, error) {
+	args := m.Called(userId)
+
+	if args.Error(1) != nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).([]models.TrainingTask), args.Error(1)
 }
 
-func (m *MockTrainingTaskResultRepository) Update(ttr *models.TrainingTaskResult) error {
-	args := m.Called(ttr)
+func (m *MockTrainingTaskRepository) GetByID(id uint) (*models.TrainingTask, error) {
+	args := m.Called(id)
+
+	if args.Error(1) != nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(*models.TrainingTask), args.Error(1)
+}
+func (m *MockTrainingTaskRepository) GetFirstQueued() (*models.TrainingTask, error) {
+	args := m.Called()
+
+	if args.Error(1) != nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(*models.TrainingTask), args.Error(1)
+}
+
+func (m *MockTrainingTaskRepository) Update(trainingTask *models.TrainingTask) error {
+	args := m.Called(trainingTask)
 	return args.Error(0)
 }
 
-func (m *MockTrainingTaskResultRepository) Delete(userId uint, id uint) error {
-	args := m.Called()
+func (m *MockTrainingTaskRepository) Delete(userId uint, id uint) error {
+	args := m.Called(userId, id)
 	return args.Error(0)
 }

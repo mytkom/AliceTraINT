@@ -18,7 +18,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Make paths relative to root dir when running tests
 func init() {
 	if err := os.Chdir("../.."); err != nil {
 		panic(err)
@@ -58,7 +57,6 @@ func TestUserHandler_Integration_Index(t *testing.T) {
 	handler, cleanup := setupIntegrationTest(t)
 	defer cleanup()
 
-	// Seed the database with a user
 	err := handler.UserRepo.Create(&models.User{
 		CernPersonId: "12345",
 		Username:     "johndoe",
@@ -68,14 +66,11 @@ func TestUserHandler_Integration_Index(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	// Create an HTTP request to the index route
 	req, err := http.NewRequest("GET", "/", strings.NewReader(""))
 	assert.NoError(t, err)
 
-	// Record the response
 	rr := httptest.NewRecorder()
 
-	// Mock the session to simulate a logged-in user
 	sess := handler.Auth.GlobalSessions.SessionStart(rr, req)
 	err = sess.Set("loggedUserId", uint(1))
 	assert.NoError(t, err)
@@ -88,10 +83,8 @@ func TestUserHandler_Integration_Index(t *testing.T) {
 
 	handler.Index(rr, req)
 
-	// Check the response status code
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	// Check the response body
 	assert.Contains(t, rr.Body.String(), "John (johndoe@example.com)")
 }
 
@@ -99,20 +92,16 @@ func TestUserHandler_Integration_CreateUser(t *testing.T) {
 	handler, cleanup := setupIntegrationTest(t)
 	defer cleanup()
 
-	// Create a POST request to create a new user
 	form := strings.NewReader("cern-person-id=67890&username=janedoe&first-name=Jane&family-name=Doe&email=janedoe@example.com")
 	req, err := http.NewRequest("POST", "/users", form)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	// Record the response
 	rr := httptest.NewRecorder()
 	handler.CreateUser(rr, req)
 
-	// Check the response status code
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	// Verify that the user was created in the database
 	users, err := handler.UserRepo.GetAll()
 	assert.NoError(t, err)
 	assert.Len(t, users, 1)
