@@ -42,13 +42,13 @@ func (h *TrainingDatasetHandler) List(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if r.URL.Query().Get("userScoped") == "on" {
-		loggedUser, err := h.GetAuthorizedUser(w, r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+		user, ok := middleware.GetLoggedUserFromContext(r.Context())
+		if !ok || user == nil {
+			http.Error(w, "user not found in context", http.StatusUnauthorized)
 			return
 		}
 
-		trainingDatasets, err = h.TrainingDataset.GetAllUser(loggedUser.ID)
+		trainingDatasets, err = h.TrainingDataset.GetAllUser(user.ID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -120,12 +120,12 @@ func (h *TrainingDatasetHandler) Create(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	loggedUser, err := h.GetAuthorizedUser(w, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+	user, ok := middleware.GetLoggedUserFromContext(r.Context())
+	if !ok || user == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
 	}
-	trainingDataset.UserId = loggedUser.ID
+	trainingDataset.UserId = user.ID
 
 	err = h.TrainingDataset.Create(&trainingDataset)
 	if err != nil {
@@ -145,13 +145,13 @@ func (h *TrainingDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	loggedUser, err := h.GetAuthorizedUser(w, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+	user, ok := middleware.GetLoggedUserFromContext(r.Context())
+	if !ok || user == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
 	}
 
-	err = h.TrainingDataset.Delete(loggedUser.ID, uint(trainingDatasetId))
+	err = h.TrainingDataset.Delete(user.ID, uint(trainingDatasetId))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

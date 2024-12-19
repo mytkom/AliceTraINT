@@ -46,13 +46,13 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		TrainingTasks []models.TrainingTask
 	}
 
-	loggedUser, err := h.GetAuthorizedUser(w, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+	user, ok := middleware.GetLoggedUserFromContext(r.Context())
+	if !ok || user == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
 	}
 
-	trainingTasks, err := h.Service.GetAll(loggedUser.ID, utils.IsUserScoped(r))
+	trainingTasks, err := h.Service.GetAll(user.ID, utils.IsUserScoped(r))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -123,13 +123,13 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 		FieldConfigs     service.NNFieldConfigs
 	}
 
-	loggedUser, err := h.GetAuthorizedUser(w, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+	user, ok := middleware.GetLoggedUserFromContext(r.Context())
+	if !ok || user == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
 	}
 
-	ttHelpers, err := h.Service.GetHelpers(loggedUser.ID)
+	ttHelpers, err := h.Service.GetHelpers(user.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -154,12 +154,12 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loggedUser, err := h.GetAuthorizedUser(w, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+	user, ok := middleware.GetLoggedUserFromContext(r.Context())
+	if !ok || user == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
 	}
-	trainingTask.UserId = loggedUser.ID
+	trainingTask.UserId = user.ID
 
 	err = h.Service.Create(&trainingTask)
 	if err != nil {
