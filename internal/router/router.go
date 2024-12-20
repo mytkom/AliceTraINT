@@ -66,10 +66,6 @@ func MockRouter(db *gorm.DB, cfg *config.Config) (*http.ServeMux, *environment.E
 
 	env := environment.NewEnv(repoContext, auth, baseTemplate, cfg)
 
-	// routes
-	mux.HandleFunc("GET /login", auth.LoginHandler)
-	mux.HandleFunc("GET /callback", auth.CallbackHandler)
-
 	// handlers' routes
 	handler.InitLandingRoutes(mux, env)
 	handler.InitTrainingDatasetRoutes(mux, env)
