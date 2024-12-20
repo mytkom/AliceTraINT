@@ -43,11 +43,39 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 
 	// handlers' routes
 	handler.InitLandingRoutes(mux, env)
-	handler.InitUserRoutes(mux, env)
 	handler.InitTrainingDatasetRoutes(mux, env)
 	handler.InitTrainingTaskRoutes(mux, env, ccdbApi, fileService, nnArch)
 	handler.InitTrainingMachineRoutes(mux, env, hasher)
 	handler.InitQueueRoutes(mux, env, fileService, hasher)
 
 	return mux
+}
+
+func MockRouter(db *gorm.DB, cfg *config.Config) (*http.ServeMux, *environment.Env) {
+	mux := http.NewServeMux()
+
+	baseTemplate := utils.BaseTemplate()
+	repoContext := repository.NewRepositoryContext(db)
+
+	// services
+	hasher := service.NewArgon2Hasher()
+	ccdbApi := ccdb.NewCCDBApi(cfg.CCDBBaseURL)
+	nnArch := service.NewNNArchService(cfg.NNArchPath)
+	fileService := service.NewLocalFileService(cfg.DataDirPath)
+	auth := auth.MockAuth(repoContext.User)
+
+	env := environment.NewEnv(repoContext, auth, baseTemplate, cfg)
+
+	// routes
+	mux.HandleFunc("GET /login", auth.LoginHandler)
+	mux.HandleFunc("GET /callback", auth.CallbackHandler)
+
+	// handlers' routes
+	handler.InitLandingRoutes(mux, env)
+	handler.InitTrainingDatasetRoutes(mux, env)
+	handler.InitTrainingTaskRoutes(mux, env, ccdbApi, fileService, nnArch)
+	handler.InitTrainingMachineRoutes(mux, env, hasher)
+	handler.InitQueueRoutes(mux, env, fileService, hasher)
+
+	return mux, env
 }

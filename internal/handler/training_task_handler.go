@@ -46,7 +46,7 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		TrainingTasks []models.TrainingTask
 	}
 
-	user, ok := middleware.GetLoggedUserFromContext(r.Context())
+	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
 		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
@@ -123,7 +123,7 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 		FieldConfigs     service.NNFieldConfigs
 	}
 
-	user, ok := middleware.GetLoggedUserFromContext(r.Context())
+	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
 		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
@@ -154,7 +154,7 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, ok := middleware.GetLoggedUserFromContext(r.Context())
+	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
 		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return

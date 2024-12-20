@@ -1,4 +1,4 @@
-package handler
+package handler_test
 
 import (
 	"net/http"
@@ -6,12 +6,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mytkom/AliceTraINT/internal/auth"
 	"github.com/mytkom/AliceTraINT/internal/config"
 	"github.com/mytkom/AliceTraINT/internal/db/migrate"
-	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/environment"
-	"github.com/mytkom/AliceTraINT/internal/utils"
+	"github.com/mytkom/AliceTraINT/internal/router"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -23,7 +21,7 @@ func init() {
 	}
 }
 
-func setupIntegrationTest(t *testing.T) (*environment.Env, func()) {
+func setupIntegrationTest(t *testing.T) (*http.ServeMux, *environment.Env, func()) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("failed to connect to database: %v", err)
@@ -31,11 +29,7 @@ func setupIntegrationTest(t *testing.T) (*environment.Env, func()) {
 
 	migrate.MigrateDB(db)
 	cfg := config.LoadConfig()
-	tmpl := utils.BaseTemplate()
-	repoContext := repository.NewRepositoryContext(db)
-	auth := auth.MockAuth()
-
-	env := environment.NewEnv(repoContext, auth, tmpl, cfg)
+	router, env := router.MockRouter(db, cfg)
 
 	cleanup := func() {
 		dbSQL, err := db.DB()
@@ -44,7 +38,7 @@ func setupIntegrationTest(t *testing.T) (*environment.Env, func()) {
 		}
 	}
 
-	return env, cleanup
+	return router, env, cleanup
 }
 
 func addSessionCookie(t *testing.T, env *environment.Env, req *http.Request, userId uint) *httptest.ResponseRecorder {
@@ -59,4 +53,8 @@ func addSessionCookie(t *testing.T, env *environment.Env, req *http.Request, use
 	req.AddCookie(cookie)
 
 	return rr
+}
+
+func HTMXReq(r *http.Request) {
+	r.Header.Set("HX-Request", "true")
 }

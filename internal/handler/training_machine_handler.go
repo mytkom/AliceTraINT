@@ -45,7 +45,7 @@ func (h *TrainingMachineHandler) List(w http.ResponseWriter, r *http.Request) {
 		TrainingMachines []models.TrainingMachine
 	}
 
-	user, ok := middleware.GetLoggedUserFromContext(r.Context())
+	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
 		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
@@ -121,7 +121,7 @@ func (h *TrainingMachineHandler) Create(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user, ok := middleware.GetLoggedUserFromContext(r.Context())
+	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
 		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
@@ -152,7 +152,7 @@ func (h *TrainingMachineHandler) Delete(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user, ok := middleware.GetLoggedUserFromContext(r.Context())
+	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
 		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return

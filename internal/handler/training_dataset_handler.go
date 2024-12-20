@@ -42,7 +42,7 @@ func (h *TrainingDatasetHandler) List(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if r.URL.Query().Get("userScoped") == "on" {
-		user, ok := middleware.GetLoggedUserFromContext(r.Context())
+		user, ok := middleware.GetLoggedUser(r)
 		if !ok || user == nil {
 			http.Error(w, "user not found in context", http.StatusUnauthorized)
 			return
@@ -120,7 +120,7 @@ func (h *TrainingDatasetHandler) Create(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user, ok := middleware.GetLoggedUserFromContext(r.Context())
+	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
 		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
@@ -145,7 +145,7 @@ func (h *TrainingDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user, ok := middleware.GetLoggedUserFromContext(r.Context())
+	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
 		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return

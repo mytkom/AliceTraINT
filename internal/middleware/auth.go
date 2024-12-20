@@ -26,15 +26,19 @@ func NewAuthMw(auth *auth.Auth, redirect bool) Middleware {
 				}
 			}
 
-			ctx := context.WithValue(r.Context(), userContextKey, user)
-			r = r.WithContext(ctx)
+			r = SetUserContext(r, user)
 
 			next.ServeHTTP(w, r)
 		})
 	}
 }
 
-func GetLoggedUserFromContext(ctx context.Context) (*models.User, bool) {
-	user, ok := ctx.Value(userContextKey).(*models.User)
+func SetUserContext(r *http.Request, user *models.User) *http.Request {
+	ctx := context.WithValue(r.Context(), userContextKey, user)
+	return r.WithContext(ctx)
+}
+
+func GetLoggedUser(r *http.Request) (*models.User, bool) {
+	user, ok := r.Context().Value(userContextKey).(*models.User)
 	return user, ok
 }

@@ -37,7 +37,7 @@ type UserInfo struct {
 	Email             string `json:"email"`
 }
 
-func MockAuth() *Auth {
+func MockAuth(userRepo repository.UserRepository) *Auth {
 	globalSessions, err := session.NewManager("memory", "gosessionid", 3600)
 	if err != nil {
 		log.Fatal(err)
@@ -46,6 +46,7 @@ func MockAuth() *Auth {
 
 	return &Auth{
 		GlobalSessions: globalSessions,
+		userRepo:       userRepo,
 	}
 }
 
