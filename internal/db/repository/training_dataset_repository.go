@@ -26,7 +26,7 @@ func (r *trainingDatasetRepository) Create(trainingDataset *models.TrainingDatas
 }
 
 func (r *trainingDatasetRepository) allWithDependencies() *gorm.DB {
-	return r.db.Joins("User").Order("\"created_at\" desc")
+	return r.db.Joins("User").Order("\"training_datasets\".\"created_at\" desc")
 }
 
 func (r *trainingDatasetRepository) GetByID(id uint) (*models.TrainingDataset, error) {

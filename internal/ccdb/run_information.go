@@ -5,16 +5,6 @@ import (
 	"strconv"
 )
 
-type CCDBApi struct {
-	baseURL string
-}
-
-func NewCCDBApi(baseUrl string) *CCDBApi {
-	return &CCDBApi{
-		baseURL: baseUrl,
-	}
-}
-
 type RunInformation struct {
 	RunNumber uint64
 	SOR       uint64
@@ -26,8 +16,8 @@ const (
 	AGENT        string = "AliceTraINT_Agent/1.0"
 )
 
-func (c *CCDBApi) GetRunInformation(runNumber uint64) (*RunInformation, error) {
-	url := fmt.Sprintf("%s/%s/%d", c.baseURL, RCT_ENDPOINT, runNumber)
+func GetRunInformation(baseURL string, runNumber uint64) (*RunInformation, error) {
+	url := fmt.Sprintf("%s/%s/%d", baseURL, RCT_ENDPOINT, runNumber)
 
 	headers, err := doRemoteHeaderCall(url, AGENT, -1)
 	if err != nil {

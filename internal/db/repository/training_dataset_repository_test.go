@@ -89,7 +89,7 @@ func TestTrainingDatasetRepository_GetAll(t *testing.T) {
 		rows = rows.AddRow(i+1, dataset.Name, marshalAODFiles(t, &dataset))
 	}
 
-	mock.ExpectQuery("SELECT (.*) FROM \"training_datasets\" LEFT JOIN \"users\" (.*) ORDER BY \"created_at\" desc").
+	mock.ExpectQuery("SELECT (.*) FROM \"training_datasets\" LEFT JOIN \"users\" (.*) ORDER BY \"training_datasets\".\"created_at\" desc").
 		WillReturnRows(rows)
 
 	trainingDatasets, err := trainingDatasetRepo.GetAll()
@@ -125,7 +125,7 @@ func TestTrainingDatasetRepository_GetById(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "name", "aod_files"})
 	rows = rows.AddRow(1, mockTrainingDataset.Name, marshalAODFiles(t, mockTrainingDataset))
 
-	mock.ExpectQuery("SELECT (.+) FROM \"training_datasets\" LEFT JOIN \"users\" (.+) WHERE \"training_datasets\".\"id\" = (.+) ORDER BY \"created_at\" desc(.+)LIMIT (.+)").
+	mock.ExpectQuery("SELECT (.+) FROM \"training_datasets\" LEFT JOIN \"users\" (.+) WHERE \"training_datasets\".\"id\" = (.+) ORDER BY \"training_datasets\".\"created_at\" desc(.+)LIMIT (.+)").
 		WillReturnRows(rows)
 
 	trainingDataset, err := trainingDatasetRepo.GetByID(3)

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/mytkom/AliceTraINT/internal/ccdb"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/environment"
 	"github.com/mytkom/AliceTraINT/internal/middleware"
@@ -171,10 +170,10 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func InitTrainingTaskRoutes(mux *http.ServeMux, env *environment.Env, ccdbApi *ccdb.CCDBApi, fileService service.IFileService, nnArch service.INNArchService) {
+func InitTrainingTaskRoutes(mux *http.ServeMux, env *environment.Env, ccdbService service.ICCDBService, fileService service.IFileService, nnArch service.INNArchService) {
 	prefix := "training-tasks"
 
-	ttService := service.NewTrainingTaskService(env.RepositoryContext, ccdbApi, fileService, nnArch, env.Config)
+	ttService := service.NewTrainingTaskService(env.RepositoryContext, ccdbService, fileService, nnArch)
 	tjh := NewTrainingTaskHandler(env, ttService)
 
 	authMw := middleware.NewAuthMw(env.Auth, true)

@@ -4,20 +4,27 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/environment"
 	"github.com/mytkom/AliceTraINT/internal/jalien"
 	"github.com/mytkom/AliceTraINT/internal/middleware"
+	"github.com/mytkom/AliceTraINT/internal/service"
 	"github.com/mytkom/AliceTraINT/internal/utils"
 )
 
 type TrainingDatasetHandler struct {
 	*environment.Env
+	Service service.ITrainingDatasetService
+}
+
+func NewTrainingDatasetHandler(env *environment.Env, service service.ITrainingDatasetService) *TrainingDatasetHandler {
+	return &TrainingDatasetHandler{
+		Env:     env,
+		Service: service,
+	}
 }
 
 func (h *TrainingDatasetHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -38,27 +45,15 @@ func (h *TrainingDatasetHandler) List(w http.ResponseWriter, r *http.Request) {
 		TrainingDatasets []models.TrainingDataset
 	}
 
-	var trainingDatasets []models.TrainingDataset
-	var err error
+	user, ok := middleware.GetLoggedUser(r)
+	if !ok || user == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
+		return
+	}
 
-	if r.URL.Query().Get("userScoped") == "on" {
-		user, ok := middleware.GetLoggedUser(r)
-		if !ok || user == nil {
-			http.Error(w, "user not found in context", http.StatusUnauthorized)
-			return
-		}
-
-		trainingDatasets, err = h.TrainingDataset.GetAllUser(user.ID)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	} else {
-		trainingDatasets, err = h.TrainingDataset.GetAll()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	trainingDatasets, err := h.Service.GetAll(user.ID, utils.IsUserScoped(r))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 	err = h.ExecuteTemplate(w, "training-datasets_list", TemplateData{
@@ -83,7 +78,7 @@ func (h *TrainingDatasetHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	trainingDataset, err := h.TrainingDataset.GetByID(uint(id))
+	trainingDataset, err := h.Service.GetByID(uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -127,7 +122,7 @@ func (h *TrainingDatasetHandler) Create(w http.ResponseWriter, r *http.Request) 
 	}
 	trainingDataset.UserId = user.ID
 
-	err = h.TrainingDataset.Create(&trainingDataset)
+	err = h.Service.Create(&trainingDataset)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -151,7 +146,7 @@ func (h *TrainingDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = h.TrainingDataset.Delete(user.ID, uint(trainingDatasetId))
+	err = h.Service.Delete(user.ID, uint(trainingDatasetId))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -169,22 +164,10 @@ func (h *TrainingDatasetHandler) ExploreDirectory(w http.ResponseWriter, r *http
 	}
 
 	path := r.URL.Query().Get("path")
-	if path == "" {
-		path = "/"
-	}
-
-	dirContents, err := jalien.ListAndParseDirectory(path)
+	dirContents, parentDir, err := h.Service.ExploreDirectory(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-
-	parentDir := "/"
-	if path != "/" {
-		parentDir = filepath.Dir(strings.TrimSuffix(path, "/"))
-		if parentDir != "/" {
-			parentDir += "/"
-		}
 	}
 
 	err = h.ExecuteTemplate(w, "training-datasets_tree-browser", TemplateData{
@@ -205,8 +188,7 @@ func (h *TrainingDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request
 	}
 
 	path := r.URL.Query().Get("path")
-
-	aods, err := jalien.FindAODFiles(path)
+	aods, err := h.Service.FindAods(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -221,11 +203,12 @@ func (h *TrainingDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func InitTrainingDatasetRoutes(mux *http.ServeMux, env *environment.Env) {
+func InitTrainingDatasetRoutes(mux *http.ServeMux, env *environment.Env, jalien service.IJAliEnService) {
 	prefix := "training-datasets"
 
 	tjh := &TrainingDatasetHandler{
-		Env: env,
+		Env:     env,
+		Service: service.NewTrainingDatasetService(env.RepositoryContext, jalien),
 	}
 
 	cache := utils.NewCache(time.Duration(tjh.JalienCacheMinutes) * time.Minute)

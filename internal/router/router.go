@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/mytkom/AliceTraINT/internal/auth"
-	"github.com/mytkom/AliceTraINT/internal/ccdb"
 	"github.com/mytkom/AliceTraINT/internal/config"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/environment"
@@ -26,14 +25,16 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 	// repositories
 	repoContext := repository.NewRepositoryContext(db)
 
+	// environment
+	auth := auth.NewAuth(repoContext.User)
+	env := environment.NewEnv(repoContext, auth, baseTemplate, cfg)
+
 	// services
 	hasher := service.NewArgon2Hasher()
-	ccdbApi := ccdb.NewCCDBApi(cfg.CCDBBaseURL)
+	ccdbService := service.NewCCDBService(env)
+	jalienService := service.NewJAliEnService()
 	nnArch := service.NewNNArchService(cfg.NNArchPath)
 	fileService := service.NewLocalFileService(cfg.DataDirPath)
-	auth := auth.NewAuth(repoContext.User)
-
-	env := environment.NewEnv(repoContext, auth, baseTemplate, cfg)
 
 	// routes
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
@@ -43,35 +44,10 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 
 	// handlers' routes
 	handler.InitLandingRoutes(mux, env)
-	handler.InitTrainingDatasetRoutes(mux, env)
-	handler.InitTrainingTaskRoutes(mux, env, ccdbApi, fileService, nnArch)
+	handler.InitTrainingDatasetRoutes(mux, env, jalienService)
+	handler.InitTrainingTaskRoutes(mux, env, ccdbService, fileService, nnArch)
 	handler.InitTrainingMachineRoutes(mux, env, hasher)
 	handler.InitQueueRoutes(mux, env, fileService, hasher)
 
 	return mux
-}
-
-func MockRouter(db *gorm.DB, cfg *config.Config) (*http.ServeMux, *environment.Env) {
-	mux := http.NewServeMux()
-
-	baseTemplate := utils.BaseTemplate()
-	repoContext := repository.NewRepositoryContext(db)
-
-	// services
-	hasher := service.NewArgon2Hasher()
-	ccdbApi := ccdb.NewCCDBApi(cfg.CCDBBaseURL)
-	nnArch := service.NewNNArchService(cfg.NNArchPath)
-	fileService := service.NewLocalFileService(cfg.DataDirPath)
-	auth := auth.MockAuth(repoContext.User)
-
-	env := environment.NewEnv(repoContext, auth, baseTemplate, cfg)
-
-	// handlers' routes
-	handler.InitLandingRoutes(mux, env)
-	handler.InitTrainingDatasetRoutes(mux, env)
-	handler.InitTrainingTaskRoutes(mux, env, ccdbApi, fileService, nnArch)
-	handler.InitTrainingMachineRoutes(mux, env, hasher)
-	handler.InitQueueRoutes(mux, env, fileService, hasher)
-
-	return mux, env
 }

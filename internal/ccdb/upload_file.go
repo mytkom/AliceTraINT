@@ -2,25 +2,16 @@ package ccdb
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io"
-
-	"github.com/mytkom/AliceTraINT/internal/config"
 )
 
-func UploadFile(cfg *config.Config, sor, eor uint64, filename string, file io.Reader) error {
-	cert, err := tls.LoadX509KeyPair(cfg.CCDBCertPath, cfg.CCDBKeyPath)
-	if err != nil {
-		return err
-	}
-
+func UploadFile(uploadSubdirUrl string, cert *tls.Certificate, sor, eor uint64, filename string, file io.Reader) error {
 	ssl := &tls.Config{
-		Certificates:       []tls.Certificate{cert},
+		Certificates:       []tls.Certificate{*cert},
 		InsecureSkipVerify: true,
 	}
 
-	url := fmt.Sprintf("%s/%s", cfg.CCDBBaseURL, cfg.CCDBUploadSubdir)
-	err = uploadFile(filename, url, file, sor, eor, ssl)
+	err := uploadFile(filename, uploadSubdirUrl, file, sor, eor, ssl)
 	if err != nil {
 		return err
 	}

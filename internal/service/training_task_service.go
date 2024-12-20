@@ -6,8 +6,6 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/mytkom/AliceTraINT/internal/ccdb"
-	"github.com/mytkom/AliceTraINT/internal/config"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
 )
@@ -33,19 +31,17 @@ type ITrainingTaskService interface {
 
 type TrainingTaskService struct {
 	*repository.RepositoryContext
-	CCDBApi     *ccdb.CCDBApi
+	CCDBService ICCDBService
 	FileService IFileService
 	NNArch      INNArchService
-	Config      *config.Config
 }
 
-func NewTrainingTaskService(repo *repository.RepositoryContext, ccdbApi *ccdb.CCDBApi, fileService IFileService, nnArch INNArchService, cfg *config.Config) *TrainingTaskService {
+func NewTrainingTaskService(repo *repository.RepositoryContext, ccdbService ICCDBService, fileService IFileService, nnArch INNArchService) *TrainingTaskService {
 	return &TrainingTaskService{
 		RepositoryContext: repo,
-		CCDBApi:           ccdbApi,
+		CCDBService:       ccdbService,
 		FileService:       fileService,
 		NNArch:            nnArch,
-		Config:            cfg,
 	}
 }
 
@@ -128,12 +124,12 @@ func (s *TrainingTaskService) UploadOnnxResults(id uint) error {
 		return runs[i] < runs[j]
 	})
 
-	firstRunInfo, err := s.CCDBApi.GetRunInformation(runs[0])
+	firstRunInfo, err := s.CCDBService.GetRunInformation(runs[0])
 	if err != nil {
 		return err
 	}
 
-	lastRunInfo, err := s.CCDBApi.GetRunInformation(runs[len(runs)-1])
+	lastRunInfo, err := s.CCDBService.GetRunInformation(runs[len(runs)-1])
 	if err != nil {
 		return err
 	}
@@ -154,7 +150,7 @@ func (s *TrainingTaskService) UploadOnnxResults(id uint) error {
 		defer close(file)
 
 		if upload_filename, ok := s.NNArch.GetUploadFilename(onnxFile.Name); ok {
-			err = ccdb.UploadFile(s.Config, firstRunInfo.SOR, lastRunInfo.EOR, upload_filename, file)
+			err = s.CCDBService.UploadFile(firstRunInfo.SOR, lastRunInfo.EOR, upload_filename, file)
 			if err != nil {
 				return err
 			}

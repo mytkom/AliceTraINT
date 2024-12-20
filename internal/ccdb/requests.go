@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// Inspired by retrieeveHeaders method of O2 CcdbApi
+// Inspired by retrieveHeaders method of O2 CcdbApi
 func doRemoteHeaderCall(url, uniqueAgentID string, timestamp int64) (map[string]string, error) {
 	client := &http.Client{
 		Timeout: 10 * time.Second,

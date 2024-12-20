@@ -24,18 +24,15 @@ func (h *LandingHandler) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templateData := TemplateData{
-		Title: "AliceTraINT",
-	}
-
-	sess := h.GlobalSessions.SessionStart(w, r)
-	loggedUserId := sess.Get("loggedUserId")
-	if loggedUserId != nil {
+	_, err := h.Auth.GetAuthorizedUser(w, r)
+	if err == nil {
 		http.Redirect(w, r, "/training-datasets", http.StatusTemporaryRedirect)
 		return
 	}
 
-	err := h.ExecuteTemplate(w, "landing", templateData)
+	err = h.ExecuteTemplate(w, "landing", TemplateData{
+		Title: "AliceTraINT",
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
