@@ -1,10 +1,11 @@
-package repository
+package repository_test
 
 import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
+	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,7 +13,7 @@ func TestUserRepository_Create(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	userRepo := NewUserRepository(db)
+	userRepo := repository.NewUserRepository(db)
 
 	user := &models.User{
 		CernPersonId: "1",
@@ -37,7 +38,7 @@ func TestUserRepository_GetAll(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	userRepo := NewUserRepository(db)
+	userRepo := repository.NewUserRepository(db)
 
 	rows := sqlmock.NewRows([]string{"id", "cern_person_id", "username", "first_name", "family_name", "email"}).
 		AddRow(1, "1", "aeinstein", "Albert", "Einstein", "aeinstein@example.com").
@@ -58,7 +59,7 @@ func TestUserRepository_GetById(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	userRepo := NewUserRepository(db)
+	userRepo := repository.NewUserRepository(db)
 
 	rows := sqlmock.NewRows([]string{"id", "cern_person_id", "username", "first_name", "family_name", "email"}).
 		AddRow(1, "1", "aeinstein", "Albert", "Einstein", "aeinstein@example.com")
@@ -76,7 +77,7 @@ func TestUserRepository_GetByCernPersonId(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	userRepo := NewUserRepository(db)
+	userRepo := repository.NewUserRepository(db)
 
 	rows := sqlmock.NewRows([]string{"id", "cern_person_id", "username", "first_name", "family_name", "email"}).
 		AddRow(1, "1", "aeinstein", "Albert", "Einstein", "aeinstein@example.com").
@@ -96,7 +97,7 @@ func TestUserRepository_Delete(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	userRepo := NewUserRepository(db)
+	userRepo := repository.NewUserRepository(db)
 
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE \"users\" SET \"deleted_at\"=(.+) WHERE \"users\".\"id\" = (.+) AND \"users\".\"deleted_at\" IS NULL").WithArgs(AnyTime(), 1).WillReturnResult(sqlmock.NewResult(1, 1))
@@ -111,7 +112,7 @@ func TestUserRepository_Update(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	userRepo := NewUserRepository(db)
+	userRepo := repository.NewUserRepository(db)
 	user := &models.User{
 		CernPersonId: "1",
 		Username:     "aeinstein",

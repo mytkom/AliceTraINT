@@ -12,7 +12,7 @@ type contextKey string
 
 const userContextKey contextKey = "userId"
 
-func NewAuthMw(auth *auth.Auth, redirect bool) Middleware {
+func NewAuthMw(auth auth.IAuthService, redirect bool) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			user, err := auth.GetAuthorizedUser(w, r)

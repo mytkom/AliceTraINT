@@ -1,10 +1,9 @@
 /// <reference types="cypress" />
 
 describe('Training Dataset Management', () => {
-    const baseUrl = 'http://localhost:8088/';
+    const baseUrl = 'http://localhost:8088/login';
 
     beforeEach(() => {
-        cy.setCookie('gosessionid', Cypress.env('GO_SESSION_ID'));
         cy.visit(baseUrl);
     });
 
@@ -30,8 +29,7 @@ describe('Training Dataset Management', () => {
         cy.get('#find-aods-form input').type('/alice/sim/2024/LHC24f3/0/523397');
         cy.get('#find-aods-form button').click();
 
-        cy.wait(2000);
-        cy.get('#file-list li').should('have.length', 22);
+        cy.get('#file-list ul').children().its('length').should('be.gt', 0);
 
         selectFiles([
             '#file-list li:first-child',
@@ -45,9 +43,17 @@ describe('Training Dataset Management', () => {
             .contains('Submit')
             .click();
 
-        cy.get('#training-datasets-listing button')
-            .contains('Remove')
-            .click();
+        let datasetEntry = cy.get('#training-datasets-listing').children('div', testName).first()
+        datasetEntry.should('exist')
+        datasetEntry.within(() => cy.get('button').contains('Remove').click())
+
+        cy.contains('#training-datasets-listing div', testName).should('not.exist')
+    });
+
+    it('userScoped', () => {
+        cy.get('#training-datasets-listing').children().should('have.length', 2)
+        cy.get('input[name="userScoped"]').click();
+        cy.get('#training-datasets-listing').children().should('have.length', 1)
     });
 
     it('disallows submission without a name', () => {

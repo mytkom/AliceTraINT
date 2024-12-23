@@ -176,7 +176,7 @@ func InitTrainingTaskRoutes(mux *http.ServeMux, env *environment.Env, ccdbServic
 	ttService := service.NewTrainingTaskService(env.RepositoryContext, ccdbService, fileService, nnArch)
 	tjh := NewTrainingTaskHandler(env, ttService)
 
-	authMw := middleware.NewAuthMw(env.Auth, true)
+	authMw := middleware.NewAuthMw(env.IAuthService, true)
 	validateHtmxMw := middleware.NewValidateHTMXMw()
 	blockHtmxMw := middleware.NewBlockHTMXMw()
 

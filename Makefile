@@ -6,6 +6,10 @@ build:
 run:
 	go run ./cmd/AliceTraINT
 
+.PHONY: run-test
+run-test:
+	go run ./cmd/AliceTraINT_test
+
 .PHONY: lint
 lint:
 	golangci-lint run

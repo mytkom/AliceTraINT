@@ -10,15 +10,15 @@ import (
 
 type Env struct {
 	*repository.RepositoryContext
-	*auth.Auth
+	auth.IAuthService
 	*template.Template
 	*config.Config
 }
 
-func NewEnv(repoContext *repository.RepositoryContext, auth *auth.Auth, baseTemp *template.Template, cfg *config.Config) *Env {
+func NewEnv(repoContext *repository.RepositoryContext, auth auth.IAuthService, baseTemp *template.Template, cfg *config.Config) *Env {
 	return &Env{
 		RepositoryContext: repoContext,
-		Auth:              auth,
+		IAuthService:      auth,
 		Template:          baseTemp,
 		Config:            cfg,
 	}

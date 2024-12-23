@@ -50,7 +50,7 @@ func loadSpec(filename string) (*NNArchSpec, error) {
 }
 
 type INNArchService interface {
-	GetFieldConfigs() map[string]NNConfigField
+	GetFieldConfigs() NNFieldConfigs
 	GetUploadFilename(filename string) (string, bool)
 }
 
@@ -70,7 +70,7 @@ func NewNNArchService(filename string) *NNArchService {
 	}
 }
 
-func (s *NNArchService) GetFieldConfigs() map[string]NNConfigField {
+func (s *NNArchService) GetFieldConfigs() NNFieldConfigs {
 	return s.FieldConfigs
 }
 

@@ -172,7 +172,7 @@ func InitTrainingMachineRoutes(mux *http.ServeMux, env *environment.Env, hasher 
 
 	tmService := service.NewTrainingMachineService(env.RepositoryContext, hasher)
 	tmh := NewTrainingMachineHandler(env, tmService)
-	authMw := middleware.NewAuthMw(env.Auth, true)
+	authMw := middleware.NewAuthMw(env.IAuthService, true)
 	validateHtmxMw := middleware.NewValidateHTMXMw()
 	blockHtmxMw := middleware.NewBlockHTMXMw()
 

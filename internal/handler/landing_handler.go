@@ -24,7 +24,7 @@ func (h *LandingHandler) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.Auth.GetAuthorizedUser(w, r)
+	_, err := h.GetAuthorizedUser(w, r)
 	if err == nil {
 		http.Redirect(w, r, "/training-datasets", http.StatusTemporaryRedirect)
 		return

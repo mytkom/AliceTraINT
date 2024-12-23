@@ -30,6 +30,7 @@ type MockedServices struct {
 	CCDB        *service.MockCCDBService
 	JAliEn      *service.MockJAliEnService
 	FileService *service.LocalFileService
+	Auth        *auth.AuthServiceMock
 }
 
 type IntegrationTestUtils struct {
@@ -43,7 +44,7 @@ func mockRouter(db *gorm.DB, cfg *config.Config) *IntegrationTestUtils {
 
 	baseTemplate := utils.BaseTemplate()
 	repoContext := repository.NewRepositoryContext(db)
-	auth := auth.MockAuth(repoContext.User)
+	auth := auth.MockAuthService(repoContext.User)
 
 	env := environment.NewEnv(repoContext, auth, baseTemplate, cfg)
 
@@ -68,12 +69,14 @@ func mockRouter(db *gorm.DB, cfg *config.Config) *IntegrationTestUtils {
 			CCDB:        ccdbService,
 			JAliEn:      jalienService,
 			FileService: fileService,
+			Auth:        auth,
 		},
 	}
 }
 
 func setupIntegrationTest(t *testing.T) (*IntegrationTestUtils, func()) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	t.Parallel()
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{TranslateError: true})
 	if err != nil {
 		t.Fatalf("failed to connect to database: %v", err)
 	}
@@ -92,10 +95,10 @@ func setupIntegrationTest(t *testing.T) (*IntegrationTestUtils, func()) {
 	return testUtils, cleanup
 }
 
-func addSessionCookie(t *testing.T, env *environment.Env, req *http.Request, userId uint) *httptest.ResponseRecorder {
+func addSessionCookie(t *testing.T, auth *auth.AuthServiceMock, req *http.Request, userId uint) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
-	sess := env.GlobalSessions.SessionStart(rr, req)
-	assert.NoError(t, env.LogUser(sess, userId))
+	sess := auth.GlobalSessions.SessionStart(rr, req)
+	assert.NoError(t, auth.LogUser(sess, userId))
 
 	cookie := &http.Cookie{
 		Name:  "gosessionid",
@@ -130,4 +133,22 @@ func testUnauthorized(t *testing.T, method, url string, body []byte) {
 	ut.Router.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
+}
+
+type MockTimeoutError struct{}
+
+func NewMockTimeoutError() *MockTimeoutError {
+	return &MockTimeoutError{}
+}
+
+func (e MockTimeoutError) Timeout() bool {
+	return true
+}
+
+func (e MockTimeoutError) Temporary() bool {
+	return true
+}
+
+func (e MockTimeoutError) Error() string {
+	return ""
 }

@@ -1,4 +1,4 @@
-package router
+package internal
 
 import (
 	"net/http"
@@ -11,10 +11,9 @@ import (
 	"github.com/mytkom/AliceTraINT/internal/middleware"
 	"github.com/mytkom/AliceTraINT/internal/service"
 	"github.com/mytkom/AliceTraINT/internal/utils"
-	"gorm.io/gorm"
 )
 
-func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
+func NewRouter(cfg *config.Config, repoContext *repository.RepositoryContext, authService auth.IAuthService) *http.ServeMux {
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir("static"))
 	fsData := http.FileServer(http.Dir("data"))
@@ -22,12 +21,7 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 	// templates
 	baseTemplate := utils.BaseTemplate()
 
-	// repositories
-	repoContext := repository.NewRepositoryContext(db)
-
-	// environment
-	auth := auth.NewAuth(repoContext.User)
-	env := environment.NewEnv(repoContext, auth, baseTemplate, cfg)
+	env := environment.NewEnv(repoContext, authService, baseTemplate, cfg)
 
 	// services
 	hasher := service.NewArgon2Hasher()
@@ -38,9 +32,9 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *http.ServeMux {
 
 	// routes
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
-	mux.Handle("GET /data/", middleware.Chain(http.StripPrefix("/data/", fsData), middleware.NewAuthMw(auth, false)))
-	mux.HandleFunc("GET /login", auth.LoginHandler)
-	mux.HandleFunc("GET /callback", auth.CallbackHandler)
+	mux.Handle("GET /data/", middleware.Chain(http.StripPrefix("/data/", fsData), middleware.NewAuthMw(authService, false)))
+	mux.HandleFunc("GET /login", authService.LoginHandler)
+	mux.HandleFunc("GET /callback", authService.CallbackHandler)
 
 	// handlers' routes
 	handler.InitLandingRoutes(mux, env)

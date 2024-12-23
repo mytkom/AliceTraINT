@@ -21,7 +21,7 @@ func TestTrainingMachineHandler_Index(t *testing.T) {
 
 	req, err := http.NewRequest("GET", "/training-machines", nil)
 	assert.NoError(t, err)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
@@ -45,7 +45,7 @@ func TestTrainingMachineHandler_List(t *testing.T) {
 	req, err := http.NewRequest("GET", "/training-machines/list", nil)
 	assert.NoError(t, err)
 	HTMXReq(req)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
@@ -70,7 +70,7 @@ func TestTrainingMachineHandler_Show(t *testing.T) {
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("/training-machines/%d", trainingMachine.ID), nil)
 	assert.NoError(t, err)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
@@ -87,7 +87,7 @@ func TestTrainingMachineHandler_New(t *testing.T) {
 
 	req, err := http.NewRequest("GET", "/training-machines/new", nil)
 	assert.NoError(t, err)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
@@ -112,7 +112,7 @@ func TestTrainingMachineHandler_Create(t *testing.T) {
 	req, err := http.NewRequest("POST", "/training-machines", bytes.NewReader(body))
 	assert.NoError(t, err)
 	HTMXReq(req)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
@@ -138,7 +138,7 @@ func TestTrainingMachineHandler_Delete(t *testing.T) {
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("/training-machines/%d", trainingMachine.ID), nil)
 	assert.NoError(t, err)
 	HTMXReq(req)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 

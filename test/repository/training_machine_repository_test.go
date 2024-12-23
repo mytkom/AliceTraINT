@@ -1,4 +1,4 @@
-package repository
+package repository_test
 
 import (
 	"testing"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
+	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,7 +14,7 @@ func TestTrainingMachineRepository_Create(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingMachineRepo := NewTrainingMachineRepository(db)
+	trainingMachineRepo := repository.NewTrainingMachineRepository(db)
 
 	trainingMachine := &models.TrainingMachine{
 		Name:            "m1",
@@ -37,7 +38,7 @@ func TestTrainingMachineRepository_GetAll(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingMachineRepo := NewTrainingMachineRepository(db)
+	trainingMachineRepo := repository.NewTrainingMachineRepository(db)
 
 	trainingMachines := []models.TrainingMachine{
 		{
@@ -75,7 +76,7 @@ func TestTrainingMachineRepository_GetById(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingMachineRepo := NewTrainingMachineRepository(db)
+	trainingMachineRepo := repository.NewTrainingMachineRepository(db)
 
 	trainingMachine := &models.TrainingMachine{
 		Name:            "m1",
@@ -100,7 +101,7 @@ func TestTrainingMachineRepository_Delete(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingMachineRepo := NewTrainingMachineRepository(db)
+	trainingMachineRepo := repository.NewTrainingMachineRepository(db)
 
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE \"training_machines\" SET \"deleted_at\"=(.+) WHERE \"user_id\" = (.+) AND \"training_machines\".\"id\" = (.+) AND \"training_machines\".\"deleted_at\" IS NULL").WithArgs(AnyTime(), 1, 1).WillReturnResult(sqlmock.NewResult(1, 1))
@@ -114,7 +115,7 @@ func TestTrainingMachineRepository_Delete(t *testing.T) {
 func TestTrainingMachineRepository_Update(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
-	trainingMachineRepo := NewTrainingMachineRepository(db)
+	trainingMachineRepo := repository.NewTrainingMachineRepository(db)
 	trainingMachine := &models.TrainingMachine{
 		Name:            "LHC24b1b undersampling",
 		UserId:          1,

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	oidc "github.com/coreos/go-oidc"
 	"github.com/google/uuid"
@@ -21,14 +22,6 @@ const (
 	loggedUserIdQuery string = "loggedUserId"
 )
 
-type Auth struct {
-	config         *oauth2.Config
-	verifier       *oidc.IDTokenVerifier
-	userRepo       repository.UserRepository
-	state          string
-	GlobalSessions *session.Manager
-}
-
 type UserInfo struct {
 	CernPersonId      string `json:"cern_person_id"`
 	PreferredUsername string `json:"preferred_username"`
@@ -37,20 +30,22 @@ type UserInfo struct {
 	Email             string `json:"email"`
 }
 
-func MockAuth(userRepo repository.UserRepository) *Auth {
-	globalSessions, err := session.NewManager("memory", "gosessionid", 3600)
-	if err != nil {
-		log.Fatal(err)
-	}
-	go globalSessions.GC()
-
-	return &Auth{
-		GlobalSessions: globalSessions,
-		userRepo:       userRepo,
-	}
+type IAuthService interface {
+	LoginHandler(w http.ResponseWriter, r *http.Request)
+	CallbackHandler(w http.ResponseWriter, r *http.Request)
+	GetAuthorizedUser(w http.ResponseWriter, r *http.Request) (*models.User, error)
+	LogUser(sess session.Session, userId uint) error
 }
 
-func NewAuth(userRepo repository.UserRepository) *Auth {
+type AuthService struct {
+	config         *oauth2.Config
+	verifier       *oidc.IDTokenVerifier
+	userRepo       repository.UserRepository
+	state          string
+	GlobalSessions *session.Manager
+}
+
+func NewAuthService(userRepo repository.UserRepository) *AuthService {
 	globalSessions, err := session.NewManager("memory", "gosessionid", 3600)
 	if err != nil {
 		log.Fatal(err)
@@ -70,7 +65,7 @@ func NewAuth(userRepo repository.UserRepository) *Auth {
 	}
 	verifier := provider.Verifier(oidcConfig)
 
-	return &Auth{
+	return &AuthService{
 		config: &oauth2.Config{
 			ClientID:     os.Getenv("CERN_CLIENT_ID"),
 			ClientSecret: os.Getenv("CERN_CLIENT_SECRET"),
@@ -85,7 +80,7 @@ func NewAuth(userRepo repository.UserRepository) *Auth {
 	}
 }
 
-func (a *Auth) GetAuthorizedUser(w http.ResponseWriter, r *http.Request) (*models.User, error) {
+func (a *AuthService) GetAuthorizedUser(w http.ResponseWriter, r *http.Request) (*models.User, error) {
 	sess := a.GlobalSessions.SessionStart(w, r)
 	loggedUserId := sess.Get(loggedUserIdQuery)
 	if loggedUserId != nil {
@@ -99,11 +94,11 @@ func (a *Auth) GetAuthorizedUser(w http.ResponseWriter, r *http.Request) (*model
 	return nil, fmt.Errorf("user not logged in")
 }
 
-func (a *Auth) LogUser(sess session.Session, userId uint) error {
+func (a *AuthService) LogUser(sess session.Session, userId uint) error {
 	return sess.Set(loggedUserIdQuery, userId)
 }
 
-func (a *Auth) LoginHandler(w http.ResponseWriter, r *http.Request) {
+func (a *AuthService) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	sess := a.GlobalSessions.SessionStart(w, r)
 	oauthState := uuid.New().String()
 	err := sess.Set(a.state, oauthState)
@@ -122,7 +117,7 @@ func (a *Auth) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func (a *Auth) CallbackHandler(w http.ResponseWriter, r *http.Request) {
+func (a *AuthService) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	sess := a.GlobalSessions.SessionStart(w, r)
 
 	state := sess.Get(a.state)
@@ -204,4 +199,75 @@ func (a *Auth) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+// AuthService without external SSO (for testing purposes)
+type AuthServiceMock struct {
+	GlobalSessions *session.Manager
+	userRepo       repository.UserRepository
+}
+
+func MockAuthService(userRepo repository.UserRepository) *AuthServiceMock {
+	globalSessions, err := session.NewManager("memory", "gosessionid", 3600)
+	if err != nil {
+		log.Fatal(err)
+	}
+	go globalSessions.GC()
+
+	return &AuthServiceMock{
+		GlobalSessions: globalSessions,
+		userRepo:       userRepo,
+	}
+}
+
+func (a *AuthServiceMock) GetAuthorizedUser(w http.ResponseWriter, r *http.Request) (*models.User, error) {
+	sess := a.GlobalSessions.SessionStart(w, r)
+	loggedUserId := sess.Get(loggedUserIdQuery)
+	if loggedUserId != nil {
+		loggedUser, err := a.userRepo.GetByID(loggedUserId.(uint))
+		if err != nil {
+			return nil, err
+		}
+		return loggedUser, nil
+	}
+
+	return nil, fmt.Errorf("user not logged in")
+}
+
+func (a *AuthServiceMock) LogUser(sess session.Session, userId uint) error {
+	return sess.Set(loggedUserIdQuery, userId)
+}
+
+func (a *AuthServiceMock) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	sess := a.GlobalSessions.SessionStart(w, r)
+
+	var userId uint
+	var err error
+
+	// get user id to log in from path
+	userIdStr := r.URL.Query().Get("userId")
+	if userIdStr != "" {
+		uId, err := strconv.ParseUint(userIdStr, 10, 32)
+		if err != nil {
+			log.Panic(err.Error())
+		}
+		userId = uint(uId)
+	} else {
+		// default to user with id 1
+		userId = uint(1)
+	}
+
+	// log in in session
+	err = a.LogUser(sess, userId)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+
+	// redirect to home page
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+// for interface completeness
+func (a *AuthServiceMock) CallbackHandler(w http.ResponseWriter, r *http.Request) {
+	a.LoginHandler(w, r)
 }

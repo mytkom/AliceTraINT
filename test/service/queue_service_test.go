@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestUpdateTrainingTaskStatus_Success(t *testing.T) {
+func TestQueueService_UpdateTrainingTaskStatus_Success(t *testing.T) {
 	// Arrange
 	mockHasher := &service.MockHasher{}
 	mockTaskRepo := &repository.MockTrainingTaskRepository{}
@@ -39,7 +39,7 @@ func TestUpdateTrainingTaskStatus_Success(t *testing.T) {
 	mockTaskRepo.AssertCalled(t, "Update", &mockTask)
 }
 
-func TestUpdateTrainingTaskStatus_TaskNotFound(t *testing.T) {
+func TestQueueService_UpdateTrainingTaskStatus_TaskNotFound(t *testing.T) {
 	// Arrange
 	mockHasher := &service.MockHasher{}
 	mockTaskRepo := &repository.MockTrainingTaskRepository{}
@@ -63,7 +63,7 @@ func TestUpdateTrainingTaskStatus_TaskNotFound(t *testing.T) {
 	mockTaskRepo.AssertNotCalled(t, "Update", mock.Anything)
 }
 
-func TestAuthorizeTrainingMachine_Success(t *testing.T) {
+func TestQueueService_AuthorizeTrainingMachine_Success(t *testing.T) {
 	// Arrange
 	mockHasher := &service.MockHasher{}
 	mockMachineRepo := &repository.MockTrainingMachineRepository{}
@@ -96,7 +96,7 @@ func TestAuthorizeTrainingMachine_Success(t *testing.T) {
 	mockHasher.AssertCalled(t, "VerifyKey", secretID, hashedSecret)
 }
 
-func TestAuthorizeTrainingMachine_Failure(t *testing.T) {
+func TestQueueService_AuthorizeTrainingMachine_Failure(t *testing.T) {
 	// Arrange
 	mockHasher := &service.MockHasher{}
 	mockMachineRepo := &repository.MockTrainingMachineRepository{}
@@ -128,7 +128,7 @@ func TestAuthorizeTrainingMachine_Failure(t *testing.T) {
 	mockHasher.AssertCalled(t, "VerifyKey", secretID, hashedSecret)
 }
 
-func TestAssignTaskToMachine_Success(t *testing.T) {
+func TestQueueService_AssignTaskToMachine_Success(t *testing.T) {
 	// Arrange
 	mockHasher := &service.MockHasher{}
 	mockTaskRepo := &repository.MockTrainingTaskRepository{}
@@ -157,7 +157,7 @@ func TestAssignTaskToMachine_Success(t *testing.T) {
 	mockTaskRepo.AssertCalled(t, "Update", mockTask)
 }
 
-func TestAssignTaskToMachine_NoTask(t *testing.T) {
+func TestQueueService_AssignTaskToMachine_NoTask(t *testing.T) {
 	// Arrange
 	mockHasher := &service.MockHasher{}
 	mockTaskRepo := &repository.MockTrainingTaskRepository{}
@@ -179,7 +179,7 @@ func TestAssignTaskToMachine_NoTask(t *testing.T) {
 	mockTaskRepo.AssertNotCalled(t, "Update", mock.Anything)
 }
 
-func TestAssignTaskToMachine_UpdateError(t *testing.T) {
+func TestQueueService_AssignTaskToMachine_UpdateError(t *testing.T) {
 	// Arrange
 	mockHasher := &service.MockHasher{}
 	mockTaskRepo := &repository.MockTrainingTaskRepository{}
@@ -207,7 +207,7 @@ func TestAssignTaskToMachine_UpdateError(t *testing.T) {
 	mockTaskRepo.AssertCalled(t, "Update", mockTask)
 }
 
-func TestCreateTrainingTaskResult_Success(t *testing.T) {
+func TestQueueService_CreateTrainingTaskResult_Success(t *testing.T) {
 	// Arrange
 	mockHasher := &service.MockHasher{}
 	mockTaskRepo := &repository.MockTrainingTaskRepository{}
@@ -251,7 +251,7 @@ func TestCreateTrainingTaskResult_Success(t *testing.T) {
 	mockTaskResultRepo.AssertCalled(t, "Create", mock.Anything)
 }
 
-func TestCreateTrainingTaskResult_TaskNotFound(t *testing.T) {
+func TestQueueService_CreateTrainingTaskResult_TaskNotFound(t *testing.T) {
 	// Arrange
 	mockHasher := &service.MockHasher{}
 	mockTaskRepo := &repository.MockTrainingTaskRepository{}
@@ -278,7 +278,7 @@ func TestCreateTrainingTaskResult_TaskNotFound(t *testing.T) {
 	mockTaskResultRepo.AssertNotCalled(t, "Create", mock.Anything)
 }
 
-func TestCreateTrainingTaskResult_FileSaveError(t *testing.T) {
+func TestQueueService_CreateTrainingTaskResult_FileSaveError(t *testing.T) {
 	// Arrange
 	mockHasher := &service.MockHasher{}
 	mockTaskRepo := &repository.MockTrainingTaskRepository{}

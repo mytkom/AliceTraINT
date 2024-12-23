@@ -37,6 +37,7 @@ func (h *TrainingDatasetHandler) Index(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -53,7 +54,8 @@ func (h *TrainingDatasetHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	trainingDatasets, err := h.Service.GetAll(user.ID, utils.IsUserScoped(r))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
+		return
 	}
 
 	err = h.ExecuteTemplate(w, "training-datasets_list", TemplateData{
@@ -80,7 +82,7 @@ func (h *TrainingDatasetHandler) Show(w http.ResponseWriter, r *http.Request) {
 
 	trainingDataset, err := h.Service.GetByID(uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
 		return
 	}
 
@@ -124,7 +126,7 @@ func (h *TrainingDatasetHandler) Create(w http.ResponseWriter, r *http.Request) 
 
 	err = h.Service.Create(&trainingDataset)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
 		return
 	}
 
@@ -148,7 +150,7 @@ func (h *TrainingDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) 
 
 	err = h.Service.Delete(user.ID, uint(trainingDatasetId))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
 		return
 	}
 
@@ -166,7 +168,7 @@ func (h *TrainingDatasetHandler) ExploreDirectory(w http.ResponseWriter, r *http
 	path := r.URL.Query().Get("path")
 	dirContents, parentDir, err := h.Service.ExploreDirectory(path)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
 		return
 	}
 
@@ -190,7 +192,7 @@ func (h *TrainingDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request
 	path := r.URL.Query().Get("path")
 	aods, err := h.Service.FindAods(path)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
 		return
 	}
 
@@ -213,7 +215,7 @@ func InitTrainingDatasetRoutes(mux *http.ServeMux, env *environment.Env, jalien 
 
 	cache := utils.NewCache(time.Duration(tjh.JalienCacheMinutes) * time.Minute)
 
-	authMw := middleware.NewAuthMw(tjh.Auth, true)
+	authMw := middleware.NewAuthMw(tjh.IAuthService, true)
 	cacheMw := middleware.NewCacheMw(cache)
 	validateHtmxMw := middleware.NewValidateHTMXMw()
 	blockHtmxMw := middleware.NewBlockHTMXMw()

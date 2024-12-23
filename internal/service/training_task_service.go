@@ -86,14 +86,24 @@ func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error)
 		return nil, err
 	}
 
-	imageFiles, err := s.TrainingTaskResult.GetByType(trainingTask.ID, models.Image)
-	if err != nil {
-		return nil, err
+	var imageFiles []models.TrainingTaskResult
+	if trainingTask.Status >= models.Completed {
+		imageFiles, err = s.TrainingTaskResult.GetByType(trainingTask.ID, models.Image)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		imageFiles = nil
 	}
 
-	onnxFiles, err := s.TrainingTaskResult.GetByType(trainingTask.ID, models.Onnx)
-	if err != nil {
-		return nil, err
+	var onnxFiles []models.TrainingTaskResult
+	if trainingTask.Status >= models.Benchmarking {
+		onnxFiles, err = s.TrainingTaskResult.GetByType(trainingTask.ID, models.Onnx)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		onnxFiles = nil
 	}
 
 	return &TrainingTaskWithResults{

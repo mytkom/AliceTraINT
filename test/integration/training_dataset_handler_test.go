@@ -22,7 +22,7 @@ func TestTrainingDatasetHandler_Index(t *testing.T) {
 
 	req, err := http.NewRequest("GET", "/training-datasets", nil)
 	assert.NoError(t, err)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
@@ -51,7 +51,7 @@ func TestTrainingDatasetHandler_List_All(t *testing.T) {
 	req, err := http.NewRequest("GET", "/training-datasets/list", nil)
 	assert.NoError(t, err)
 	HTMXReq(req)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
@@ -81,7 +81,7 @@ func TestTrainingDatasetHandler_List_UserScoped(t *testing.T) {
 	req, err := http.NewRequest("GET", "/training-datasets/list?userScoped=on", nil)
 	assert.NoError(t, err)
 	HTMXReq(req)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
@@ -110,12 +110,36 @@ func TestTrainingDatasetHandler_Show(t *testing.T) {
 
 	req, err := http.NewRequest("GET", "/training-datasets/2", nil)
 	assert.NoError(t, err)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Contains(t, rr.Body.String(), "LHC24b1b2")
+}
+
+func TestTrainingDatasetHandler_Show_NotFound(t *testing.T) {
+	ut, cleanup := setupIntegrationTest(t)
+	defer cleanup()
+
+	user := &models.User{CernPersonId: "12345", Username: "user1", Email: "1@gmail.com"}
+	assert.NoError(t, ut.User.Create(user))
+
+	datasets := []models.TrainingDataset{
+		{Name: "LHC24b1b", UserId: user.ID, AODFiles: []jalien.AODFile{}},
+	}
+	for _, dataset := range datasets {
+		assert.NoError(t, ut.TrainingDataset.Create(&dataset))
+	}
+
+	req, err := http.NewRequest("GET", "/training-datasets/2", nil)
+	assert.NoError(t, err)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
+
+	ut.Router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+	assert.Contains(t, rr.Body.String(), "TrainingDataset not found")
 }
 
 func TestTrainingDatasetHandler_New(t *testing.T) {
@@ -127,12 +151,67 @@ func TestTrainingDatasetHandler_New(t *testing.T) {
 
 	req, err := http.NewRequest("GET", "/training-datasets/new", nil)
 	assert.NoError(t, err)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Contains(t, rr.Body.String(), "Create New Training Dataset")
+}
+
+type createTrainingDatasetPayload struct {
+	Name     string
+	AODFiles []jalien.AODFile
+	UserId   uint
+}
+
+func TestTrainingDatasetHandler_Create_Failure(t *testing.T) {
+	ut, cleanup := setupIntegrationTest(t)
+	defer cleanup()
+
+	user := &models.User{CernPersonId: "12345", Username: "user1"}
+	assert.NoError(t, ut.User.Create(user))
+
+	td := models.TrainingDataset{
+		Name: "Unique Dataset Name",
+		AODFiles: []jalien.AODFile{{
+			Name:      "AO2D.root",
+			Path:      "/alice/sim/2024/LHC24b1b/0/567454/AOD/002/AO2D.root",
+			Size:      2312421213,
+			LHCPeriod: "LHC24b1b",
+			RunNumber: 567454,
+			AODNumber: 2,
+		}},
+		UserId: 1,
+	}
+	assert.NoError(t, ut.TrainingDataset.Create(&td))
+
+	tdSameName := createTrainingDatasetPayload{
+		Name: "Unique Dataset Name",
+		AODFiles: []jalien.AODFile{{
+			Name:      "AO2D.root",
+			Path:      "/alice/sim/2024/LHC24b1b/0/567456/AOD/002/AO2D.root",
+			Size:      33425234,
+			LHCPeriod: "LHC24b1b",
+			RunNumber: 567456,
+			AODNumber: 2,
+		}},
+		UserId: 1,
+	}
+	body, err := json.Marshal(tdSameName)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest("POST", "/training-datasets", bytes.NewReader(body))
+	assert.NoError(t, err)
+	HTMXReq(req)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
+
+	ut.Router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, rr.Code)
+
+	responseBody := rr.Body.String()
+	assert.Contains(t, responseBody, "Name must be unique")
 }
 
 func TestTrainingDatasetHandler_Create(t *testing.T) {
@@ -152,7 +231,7 @@ func TestTrainingDatasetHandler_Create(t *testing.T) {
 			RunNumber: 567454,
 			AODNumber: 2,
 		}},
-		UserId: 1, // Arbitrary user ID
+		UserId: 1,
 	}
 	body, err := json.Marshal(trainingDataset)
 	assert.NoError(t, err)
@@ -160,7 +239,7 @@ func TestTrainingDatasetHandler_Create(t *testing.T) {
 	req, err := http.NewRequest("POST", "/training-datasets", bytes.NewReader(body))
 	assert.NoError(t, err)
 	HTMXReq(req)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
@@ -195,7 +274,7 @@ func TestTrainingDatasetHandler_Delete(t *testing.T) {
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("/training-datasets/%d", trainingDataset.ID), nil)
 	assert.NoError(t, err)
 	HTMXReq(req)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
@@ -243,7 +322,7 @@ func TestTrainingDatasetHandler_ExploreDirectory_Success(t *testing.T) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("/training-datasets/explore-directory?path=%s", path), nil)
 	assert.NoError(t, err)
 	HTMXReq(req)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
@@ -257,7 +336,7 @@ func TestTrainingDatasetHandler_ExploreDirectory_Success(t *testing.T) {
 	assert.NotContains(t, responseBody, "other_file.ext")
 }
 
-func TestTrainingDatasetHandler_ExploreDirectory_Failure(t *testing.T) {
+func TestTrainingDatasetHandler_ExploreDirectory_InternalFailure(t *testing.T) {
 	ut, cleanup := setupIntegrationTest(t)
 	defer cleanup()
 
@@ -270,13 +349,35 @@ func TestTrainingDatasetHandler_ExploreDirectory_Failure(t *testing.T) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("/training-datasets/explore-directory?path=%s", path), nil)
 	assert.NoError(t, err)
 	HTMXReq(req)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	responseBody := rr.Body.String()
 	assert.Equal(t, "cannot obtain directory contents\n", responseBody)
+}
+
+func TestTrainingDatasetHandler_ExploreDirectory_CCDBUnreachable(t *testing.T) {
+	ut, cleanup := setupIntegrationTest(t)
+	defer cleanup()
+
+	user := &models.User{CernPersonId: "12345", Username: "user1"}
+	assert.NoError(t, ut.User.Create(user))
+
+	path := "/some/path"
+	ut.JAliEn.On("ListAndParseDirectory", path).Return(nil, NewMockTimeoutError())
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("/training-datasets/explore-directory?path=%s", path), nil)
+	assert.NoError(t, err)
+	HTMXReq(req)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
+
+	ut.Router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+	responseBody := rr.Body.String()
+	assert.Contains(t, responseBody, `"CCDB" external service is unreachable`)
 }
 
 func TestTrainingDatasetHandler_FindAods_Success(t *testing.T) {
@@ -309,7 +410,7 @@ func TestTrainingDatasetHandler_FindAods_Success(t *testing.T) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("/training-datasets/find-aods?path=%s", path), nil)
 	assert.NoError(t, err)
 	HTMXReq(req)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
@@ -321,7 +422,7 @@ func TestTrainingDatasetHandler_FindAods_Success(t *testing.T) {
 	assert.Contains(t, responseBody, "567451")
 }
 
-func TestTrainingDatasetHandler_FindAods_Failure(t *testing.T) {
+func TestTrainingDatasetHandler_FindAods_InternalFailure(t *testing.T) {
 	ut, cleanup := setupIntegrationTest(t)
 	defer cleanup()
 
@@ -334,13 +435,35 @@ func TestTrainingDatasetHandler_FindAods_Failure(t *testing.T) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("/training-datasets/find-aods?path=%s", path), nil)
 	assert.NoError(t, err)
 	HTMXReq(req)
-	rr := addSessionCookie(t, ut.Env, req, user.ID)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
 
 	ut.Router.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	responseBody := rr.Body.String()
-	assert.Equal(t, "cannot execute find command\n", responseBody)
+	assert.Equal(t, "unexpected internal server error\n", responseBody)
+}
+
+func TestTrainingDatasetHandler_FindAods_CCDBUnreachable(t *testing.T) {
+	ut, cleanup := setupIntegrationTest(t)
+	defer cleanup()
+
+	user := &models.User{CernPersonId: "12345", Username: "user1"}
+	assert.NoError(t, ut.User.Create(user))
+
+	path := "/some/path"
+	ut.JAliEn.On("FindAODFiles", path).Return(nil, NewMockTimeoutError())
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("/training-datasets/find-aods?path=%s", path), nil)
+	assert.NoError(t, err)
+	HTMXReq(req)
+	rr := addSessionCookie(t, ut.Auth, req, user.ID)
+
+	ut.Router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+	responseBody := rr.Body.String()
+	assert.Contains(t, responseBody, `"CCDB" external service is unreachable`)
 }
 
 func TestTrainingDatasetHandler_Index_Unauthorized(t *testing.T) {

@@ -7,9 +7,7 @@
       "antiproton.onnx": "simple_model_02212.onnx",
       "pion.onnx": "simple_model_211.onnx",
       "antipion.onnx": "simple_model_0211.onnx"
-    },
-    "images": {},
-    "logs": {}
+    }
   },
   "field_configs": {
     "bs": {

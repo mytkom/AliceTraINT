@@ -1,4 +1,4 @@
-package repository
+package repository_test
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
+	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/jalien"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +21,7 @@ func TestTrainingDatasetRepository_Create(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingDatasetRepo := NewTrainingDatasetRepository(db)
+	trainingDatasetRepo := repository.NewTrainingDatasetRepository(db)
 
 	trainingDataset := &models.TrainingDataset{
 		Name: "fbw",
@@ -52,7 +53,7 @@ func TestTrainingDatasetRepository_GetAll(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingDatasetRepo := NewTrainingDatasetRepository(db)
+	trainingDatasetRepo := repository.NewTrainingDatasetRepository(db)
 
 	trainingDatasets := []models.TrainingDataset{
 		{
@@ -106,7 +107,7 @@ func TestTrainingDatasetRepository_GetById(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingDatasetRepo := NewTrainingDatasetRepository(db)
+	trainingDatasetRepo := repository.NewTrainingDatasetRepository(db)
 
 	mockTrainingDataset := &models.TrainingDataset{
 		Name: "fbw2",
@@ -139,7 +140,7 @@ func TestTrainingDatasetRepository_Delete(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingDatasetRepo := NewTrainingDatasetRepository(db)
+	trainingDatasetRepo := repository.NewTrainingDatasetRepository(db)
 
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE \"training_datasets\" SET \"deleted_at\"=(.+) WHERE \"user_id\" = (.+) AND \"training_datasets\".\"id\" = (.+) AND \"training_datasets\".\"deleted_at\" IS NULL").WithArgs(AnyTime(), 1, 1).WillReturnResult(sqlmock.NewResult(1, 1))

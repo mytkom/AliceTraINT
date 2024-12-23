@@ -1,12 +1,15 @@
 package service
 
 import (
+	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/jalien"
+	"gorm.io/gorm"
 )
 
 type ITrainingDatasetService interface {
@@ -22,6 +25,9 @@ type TrainingDatasetService struct {
 	*repository.RepositoryContext
 	JAliEn IJAliEnService
 }
+
+var ErrCCDBUnreachable = NewErrExternalServiceTimeout("CCDB")
+var ErrDatasetNotFound = NewErrHandlerNotFound("TrainingDataset")
 
 func NewTrainingDatasetService(repo *repository.RepositoryContext, jalien IJAliEnService) *TrainingDatasetService {
 	return &TrainingDatasetService{
@@ -50,15 +56,55 @@ func (s *TrainingDatasetService) GetAll(loggedUserId uint, userScoped bool) ([]m
 }
 
 func (s *TrainingDatasetService) GetByID(id uint) (*models.TrainingDataset, error) {
-	return s.TrainingDataset.GetByID(id)
+	td, err := s.TrainingDataset.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrDatasetNotFound
+		} else {
+			return nil, errInternalServerError
+		}
+	}
+
+	return td, nil
 }
 
 func (s *TrainingDatasetService) Create(td *models.TrainingDataset) error {
-	return s.TrainingDataset.Create(td)
+	if len(td.AODFiles) == 0 {
+		return &ErrHandlerValidation{
+			Field: "AODFiles",
+			Msg:   errMsgMissing,
+		}
+	}
+
+	err := s.TrainingDataset.Create(td)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return &ErrHandlerValidation{
+				Field: "Name",
+				Msg:   errMsgNotUnique,
+			}
+		} else {
+			return errInternalServerError
+		}
+	}
+
+	return nil
 }
 
 func (s *TrainingDatasetService) Delete(userId uint, id uint) error {
-	return s.TrainingDataset.Delete(userId, id)
+	err := s.TrainingDataset.Delete(userId, id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrDatasetNotFound
+		} else {
+			return errInternalServerError
+		}
+	}
+
+	return nil
 }
 
 func (s *TrainingDatasetService) ExploreDirectory(path string) (*jalien.DirectoryContents, string, error) {
@@ -68,7 +114,11 @@ func (s *TrainingDatasetService) ExploreDirectory(path string) (*jalien.Director
 
 	dirContents, err := s.JAliEn.ListAndParseDirectory(path)
 	if err != nil {
-		return nil, "", err
+		if os.IsTimeout(err) {
+			return nil, "", ErrCCDBUnreachable
+		} else {
+			return nil, "", err
+		}
 	}
 
 	parentDir := "/"
@@ -83,5 +133,15 @@ func (s *TrainingDatasetService) ExploreDirectory(path string) (*jalien.Director
 }
 
 func (s *TrainingDatasetService) FindAods(path string) ([]jalien.AODFile, error) {
-	return s.JAliEn.FindAODFiles(path)
+	aodFiles, err := s.JAliEn.FindAODFiles(path)
+
+	if err != nil {
+		if os.IsTimeout(err) {
+			return nil, ErrCCDBUnreachable
+		} else {
+			return nil, errInternalServerError
+		}
+	}
+
+	return aodFiles, nil
 }

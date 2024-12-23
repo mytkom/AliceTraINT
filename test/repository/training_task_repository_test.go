@@ -1,4 +1,4 @@
-package repository
+package repository_test
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
+	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/jalien"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +21,7 @@ func TestTrainingTaskRepository_Create(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingTaskRepo := NewTrainingTaskRepository(db)
+	trainingTaskRepo := repository.NewTrainingTaskRepository(db)
 
 	trainingDataset := &models.TrainingDataset{
 		Name: "fbw",
@@ -63,7 +64,7 @@ func TestTrainingTaskRepository_GetAll(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingTaskRepo := NewTrainingTaskRepository(db)
+	trainingTaskRepo := repository.NewTrainingTaskRepository(db)
 
 	mockTrainingDataset := &models.TrainingDataset{
 		Name: "fbw2",
@@ -122,7 +123,7 @@ func TestTrainingTaskRepository_GetById(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingTaskRepo := NewTrainingTaskRepository(db)
+	trainingTaskRepo := repository.NewTrainingTaskRepository(db)
 
 	trainingTask := &models.TrainingTask{
 		Name:              "LHC24b1b undersampling",
@@ -147,7 +148,7 @@ func TestTrainingTaskRepository_Delete(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingTaskRepo := NewTrainingTaskRepository(db)
+	trainingTaskRepo := repository.NewTrainingTaskRepository(db)
 
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE \"training_tasks\" SET \"deleted_at\"=(.+) WHERE \"user_id\" = (.+) AND \"training_tasks\".\"id\" = (.+) AND \"training_tasks\".\"deleted_at\" IS NULL").WithArgs(AnyTime(), 1, 1).WillReturnResult(sqlmock.NewResult(1, 1))
@@ -161,7 +162,7 @@ func TestTrainingTaskRepository_Delete(t *testing.T) {
 func TestTrainingTaskRepository_Update(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
-	trainingTaskRepo := NewTrainingTaskRepository(db)
+	trainingTaskRepo := repository.NewTrainingTaskRepository(db)
 	trainingTask := &models.TrainingTask{
 		Name:              "LHC24b1b undersampling",
 		Status:            models.Queued,

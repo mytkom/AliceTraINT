@@ -1,10 +1,11 @@
-package repository
+package repository_test
 
 import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
+	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,7 +13,7 @@ func TestTrainingTaskResultRepository_Create(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingTaskResultRepo := NewTrainingTaskResultRepository(db)
+	trainingTaskResultRepo := repository.NewTrainingTaskResultRepository(db)
 
 	ttr := &models.TrainingTaskResult{
 		Name:           "train log",
@@ -37,7 +38,7 @@ func TestTrainingTaskResultRepository_GetAll(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingTaskRepo := NewTrainingTaskResultRepository(db)
+	trainingTaskRepo := repository.NewTrainingTaskResultRepository(db)
 
 	ttrs := []models.TrainingTaskResult{
 		{
@@ -77,7 +78,7 @@ func TestTrainingTaskResultRepository_GetByType(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingTaskRepo := NewTrainingTaskResultRepository(db)
+	trainingTaskRepo := repository.NewTrainingTaskResultRepository(db)
 
 	ttrs := []models.TrainingTaskResult{
 		{
@@ -117,7 +118,7 @@ func TestTrainingTaskResultRepository_GetById(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingTaskResultRepo := NewTrainingTaskResultRepository(db)
+	trainingTaskResultRepo := repository.NewTrainingTaskResultRepository(db)
 
 	ttr := &models.TrainingTaskResult{
 		Name:           "train log",
@@ -142,7 +143,7 @@ func TestTrainingTaskResultRepository_Delete(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	trainingTaskResultRepo := NewTrainingTaskResultRepository(db)
+	trainingTaskResultRepo := repository.NewTrainingTaskResultRepository(db)
 
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE \"training_task_results\" SET \"deleted_at\"=(.+) WHERE \"training_task_results\".\"id\" = (.+)").WithArgs(AnyTime(), 1).WillReturnResult(sqlmock.NewResult(1, 1))
