@@ -53,7 +53,7 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	trainingTasks, err := h.Service.GetAll(user.ID, utils.IsUserScoped(r))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
 	}
 
 	err = h.ExecuteTemplate(w, "training-tasks_list", TemplateData{
@@ -74,7 +74,7 @@ func (h *TrainingTaskHandler) UploadToCCDB(w http.ResponseWriter, r *http.Reques
 
 	err = h.Service.UploadOnnxResults(uint(id))
 	if err != nil {
-		http.Error(w, "invalid training task id", http.StatusInternalServerError)
+		handleServiceError(w, err)
 		return
 	}
 
@@ -99,7 +99,7 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 
 	tt, err := h.Service.GetByID(uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
 		return
 	}
 
@@ -130,7 +130,7 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 
 	ttHelpers, err := h.Service.GetHelpers(user.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
 		return
 	}
 

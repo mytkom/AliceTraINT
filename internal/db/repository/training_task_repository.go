@@ -46,7 +46,7 @@ func (r *trainingTaskRepository) GetByID(id uint) (*models.TrainingTask, error) 
 
 func (r *trainingTaskRepository) GetFirstQueued() (*models.TrainingTask, error) {
 	var trainingTask models.TrainingTask
-	if err := r.withDependencies().Where("\"status\" = ?", models.Queued).Order("\"created_at\" asc").First(&trainingTask).Error; err != nil {
+	if err := r.withDependencies().Where("\"status\" = ?", models.Queued).Order("\"training_tasks\".\"created_at\" asc").First(&trainingTask).Error; err != nil {
 		return nil, err
 	}
 
@@ -55,7 +55,7 @@ func (r *trainingTaskRepository) GetFirstQueued() (*models.TrainingTask, error) 
 
 func (r *trainingTaskRepository) GetAll() ([]models.TrainingTask, error) {
 	var trainingTasks []models.TrainingTask
-	if err := r.withDependencies().Order("\"created_at\" desc").Find(&trainingTasks).Error; err != nil {
+	if err := r.withDependencies().Order("\"training_tasks\".\"created_at\" desc").Find(&trainingTasks).Error; err != nil {
 		return nil, err
 	}
 	return trainingTasks, nil
@@ -63,7 +63,7 @@ func (r *trainingTaskRepository) GetAll() ([]models.TrainingTask, error) {
 
 func (r *trainingTaskRepository) GetAllUser(userId uint) ([]models.TrainingTask, error) {
 	var trainingTasks []models.TrainingTask
-	if err := r.withDependencies().Order("\"created_at\" desc").Find(&trainingTasks, r.db.Where(&models.TrainingTask{UserId: userId})).Error; err != nil {
+	if err := r.withDependencies().Order("\"training_tasks\".\"created_at\" desc").Find(&trainingTasks, r.db.Where(&models.TrainingTask{UserId: userId})).Error; err != nil {
 		return nil, err
 	}
 	return trainingTasks, nil

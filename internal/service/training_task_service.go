@@ -2,10 +2,10 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"log"
-	"slices"
-	"sort"
 
+	"github.com/mytkom/AliceTraINT/internal/ccdb"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
 )
@@ -114,64 +114,122 @@ func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error)
 }
 
 func (s *TrainingTaskService) UploadOnnxResults(id uint) error {
-	trainingTask, err := s.TrainingTask.GetByID(uint(id))
+	trainingTask, err := s.TrainingTask.GetByID(id)
 	if err != nil {
 		return err
 	}
 
-	runs := []uint64{}
-	for _, aod := range trainingTask.TrainingDataset.AODFiles {
-		if !slices.Contains(runs, aod.RunNumber) {
-			runs = append(runs, aod.RunNumber)
+	if trainingTask.Status < models.Completed {
+		return &ErrHandlerValidation{
+			Field: "Status",
+			Msg:   "must be completed or uploaded",
 		}
 	}
 
-	if len(runs) == 0 {
-		return errors.New("unexpected behaviour: empty training dataset")
-	}
-
-	sort.Slice(runs, func(i, j int) bool {
-		return runs[i] < runs[j]
-	})
-
-	firstRunInfo, err := s.CCDBService.GetRunInformation(runs[0])
+	smallestRun, greatestRun, err := s.findRunNumberRange(trainingTask)
 	if err != nil {
 		return err
 	}
 
-	lastRunInfo, err := s.CCDBService.GetRunInformation(runs[len(runs)-1])
+	firstRunInfo, lastRunInfo, err := s.getRunInfoRange(smallestRun, greatestRun)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("From run %d, SOR %d", firstRunInfo.RunNumber, firstRunInfo.SOR)
-	log.Printf("to run %d, EOR %d", lastRunInfo.RunNumber, lastRunInfo.SOR)
-
-	onnxFiles, err := s.TrainingTaskResult.GetByType(trainingTask.ID, models.Onnx)
+	mappedOnnxFiles, err := s.filterOnnxFiles(trainingTask.ID)
 	if err != nil {
 		return err
 	}
 
-	for _, onnxFile := range onnxFiles {
-		file, close, err := s.FileService.OpenFile(onnxFile.File.Path)
-		if err != nil {
+	for uploadName, file := range mappedOnnxFiles {
+		if err := s.uploadOnnxFile(firstRunInfo.SOR, lastRunInfo.EOR, file, uploadName); err != nil {
 			return err
-		}
-		defer close(file)
-
-		if upload_filename, ok := s.NNArch.GetUploadFilename(onnxFile.Name); ok {
-			err = s.CCDBService.UploadFile(firstRunInfo.SOR, lastRunInfo.EOR, upload_filename, file)
-			if err != nil {
-				return err
-			}
-		} else {
-			log.Printf("not expected file: %s", onnxFile.Name)
-			continue
 		}
 	}
 
 	trainingTask.Status = models.Uploaded
-	s.TrainingTask.Update(trainingTask)
+	if err := s.TrainingTask.Update(trainingTask); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *TrainingTaskService) findRunNumberRange(task *models.TrainingTask) (uint64, uint64, error) {
+	var smallestRun, greatestRun uint64
+	initialized := false
+
+	for _, aod := range task.TrainingDataset.AODFiles {
+		if !initialized || aod.RunNumber < smallestRun {
+			smallestRun = aod.RunNumber
+		}
+		if !initialized || aod.RunNumber > greatestRun {
+			greatestRun = aod.RunNumber
+		}
+		initialized = true
+	}
+
+	if !initialized {
+		return 0, 0, errors.New("unexpected behaviour: empty training dataset")
+	}
+
+	return smallestRun, greatestRun, nil
+}
+
+func (s *TrainingTaskService) getRunInfoRange(smallestRun, greatestRun uint64) (*ccdb.RunInformation, *ccdb.RunInformation, error) {
+	firstRunInfo, err := s.CCDBService.GetRunInformation(smallestRun)
+	if err != nil {
+		return nil, nil, handleCCDBError(err)
+	}
+
+	lastRunInfo, err := s.CCDBService.GetRunInformation(greatestRun)
+	if err != nil {
+		return nil, nil, handleCCDBError(err)
+	}
+
+	log.Printf("From run %d, SOR %d", firstRunInfo.RunNumber, firstRunInfo.SOR)
+	log.Printf("to run %d, EOR %d", lastRunInfo.RunNumber, lastRunInfo.EOR)
+
+	return firstRunInfo, lastRunInfo, nil
+}
+
+func (s *TrainingTaskService) filterOnnxFiles(ttId uint) (map[string]*models.TrainingTaskResult, error) {
+	expectedOnnxFilenames := s.NNArch.GetExpectedResults().Onnx
+	mappedResults := make(map[string]*models.TrainingTaskResult, len(expectedOnnxFilenames))
+	onnxFiles, err := s.TrainingTaskResult.GetByType(ttId, models.Onnx)
+	if err != nil {
+		return nil, err
+	}
+
+	for localName, expectedName := range expectedOnnxFilenames {
+		found := false
+		for _, file := range onnxFiles {
+			if file.Name == localName {
+				mappedResults[expectedName] = &file
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			log.Printf("expected file not present: %s", localName)
+			return nil, NewErrHandlerNotFound(fmt.Sprintf("TrainingTask's result file: %s", localName))
+		}
+	}
+
+	return mappedResults, nil
+}
+
+func (s *TrainingTaskService) uploadOnnxFile(sor, eor uint64, onnxFile *models.TrainingTaskResult, uploadFilename string) error {
+	f, closeFile, err := s.FileService.OpenFile(onnxFile.File.Path)
+	if err != nil {
+		return err
+	}
+	defer closeFile(f)
+
+	if err := s.CCDBService.UploadFile(sor, eor, uploadFilename, f); err != nil {
+		return handleCCDBError(err)
+	}
 
 	return nil
 }

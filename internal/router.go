@@ -16,7 +16,6 @@ import (
 func NewRouter(cfg *config.Config, repoContext *repository.RepositoryContext, authService auth.IAuthService) *http.ServeMux {
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir("static"))
-	fsData := http.FileServer(http.Dir("data"))
 
 	// templates
 	baseTemplate := utils.BaseTemplate()
@@ -28,7 +27,9 @@ func NewRouter(cfg *config.Config, repoContext *repository.RepositoryContext, au
 	ccdbService := service.NewCCDBService(env)
 	jalienService := service.NewJAliEnService()
 	nnArch := service.NewNNArchService(cfg.NNArchPath)
+	// local file storage
 	fileService := service.NewLocalFileService(cfg.DataDirPath)
+	fsData := http.FileServer(http.Dir("data"))
 
 	// routes
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))

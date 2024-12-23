@@ -19,7 +19,6 @@ type Config struct {
 	CCDBKeyPath        string
 	DataDirPath        string
 	NNArchPath         string
-	MockAuth           bool
 }
 
 type DatabaseConfig struct {
@@ -54,7 +53,6 @@ func LoadConfig() *Config {
 		CCDBKeyPath:        getEnv("CCDB_SSL_KEY_PATH", ""),
 		DataDirPath:        getEnv("ALICETRAINT_DATA_DIR_PATH", "data"),
 		NNArchPath:         getEnv("ALICETRAINT_NN_ARCH_DIR", "web/nn_architectures/proposed.json"),
-		MockAuth:           getEnvAsBool("ALICETRAINT_MOCK_AUTH", false),
 	}
 }
 

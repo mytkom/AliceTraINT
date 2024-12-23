@@ -102,7 +102,7 @@ func TestTrainingTaskRepository_GetAll(t *testing.T) {
 		taskRows = taskRows.AddRow(i+1, task.Name, task.Status, 1, 1, task.TrainingMachineId, marshalTrainingTaskConfig(t, &task))
 	}
 
-	mock.ExpectQuery("SELECT (.*) FROM \"training_tasks\" LEFT JOIN \"users\" (.*) ORDER BY \"created_at\" desc").
+	mock.ExpectQuery("SELECT (.*) FROM \"training_tasks\" LEFT JOIN \"users\" (.*) ORDER BY \"training_tasks\".\"created_at\" desc").
 		WillReturnRows(taskRows)
 
 	datasetRows := sqlmock.NewRows([]string{"id", "name", "user_id", "AODFiles"})

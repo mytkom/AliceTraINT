@@ -355,7 +355,7 @@ func TestTrainingDatasetHandler_ExploreDirectory_InternalFailure(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	responseBody := rr.Body.String()
-	assert.Equal(t, "cannot obtain directory contents\n", responseBody)
+	assert.Equal(t, "unexpected internal server error\n", responseBody)
 }
 
 func TestTrainingDatasetHandler_ExploreDirectory_CCDBUnreachable(t *testing.T) {

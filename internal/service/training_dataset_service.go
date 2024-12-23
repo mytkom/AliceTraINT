@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -26,8 +25,8 @@ type TrainingDatasetService struct {
 	JAliEn IJAliEnService
 }
 
-var ErrCCDBUnreachable = NewErrExternalServiceTimeout("CCDB")
-var ErrDatasetNotFound = NewErrHandlerNotFound("TrainingDataset")
+var errCCDBUnreachable = NewErrExternalServiceTimeout("CCDB")
+var errDatasetNotFound = NewErrHandlerNotFound("TrainingDataset")
 
 func NewTrainingDatasetService(repo *repository.RepositoryContext, jalien IJAliEnService) *TrainingDatasetService {
 	return &TrainingDatasetService{
@@ -60,7 +59,7 @@ func (s *TrainingDatasetService) GetByID(id uint) (*models.TrainingDataset, erro
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrDatasetNotFound
+			return nil, errDatasetNotFound
 		} else {
 			return nil, errInternalServerError
 		}
@@ -98,7 +97,7 @@ func (s *TrainingDatasetService) Delete(userId uint, id uint) error {
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrDatasetNotFound
+			return errDatasetNotFound
 		} else {
 			return errInternalServerError
 		}
@@ -114,11 +113,7 @@ func (s *TrainingDatasetService) ExploreDirectory(path string) (*jalien.Director
 
 	dirContents, err := s.JAliEn.ListAndParseDirectory(path)
 	if err != nil {
-		if os.IsTimeout(err) {
-			return nil, "", ErrCCDBUnreachable
-		} else {
-			return nil, "", err
-		}
+		return nil, "", handleCCDBError(err)
 	}
 
 	parentDir := "/"
@@ -136,11 +131,7 @@ func (s *TrainingDatasetService) FindAods(path string) ([]jalien.AODFile, error)
 	aodFiles, err := s.JAliEn.FindAODFiles(path)
 
 	if err != nil {
-		if os.IsTimeout(err) {
-			return nil, ErrCCDBUnreachable
-		} else {
-			return nil, errInternalServerError
-		}
+		return nil, handleCCDBError(err)
 	}
 
 	return aodFiles, nil

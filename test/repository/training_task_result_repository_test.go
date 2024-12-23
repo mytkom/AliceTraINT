@@ -63,7 +63,7 @@ func TestTrainingTaskResultRepository_GetAll(t *testing.T) {
 		taskRows = taskRows.AddRow(i+1, ttr.Name, ttr.Type, ttr.Description, ttr.FileId, ttr.TrainingTaskId)
 	}
 
-	mock.ExpectQuery(`SELECT .* FROM "training_task_results" LEFT JOIN "files" .* WHERE "training_task_id" = (.+) AND .* ORDER BY "created_at" desc`).
+	mock.ExpectQuery(`SELECT .* FROM "training_task_results" LEFT JOIN "files" .* WHERE "training_task_id" = (.+) AND .* ORDER BY "training_task_results"."created_at" desc`).
 		WillReturnRows(taskRows)
 
 	results, err := trainingTaskRepo.GetAll(1)
@@ -103,7 +103,7 @@ func TestTrainingTaskResultRepository_GetByType(t *testing.T) {
 		taskRows = taskRows.AddRow(i+1, ttr.Name, ttr.Type, ttr.Description, ttr.FileId, ttr.TrainingTaskId)
 	}
 
-	mock.ExpectQuery(`SELECT .* FROM "training_task_results" LEFT JOIN "files" .* WHERE "training_task_id" = (.+) AND "type" = (.*) AND .* ORDER BY "created_at" desc`).
+	mock.ExpectQuery(`SELECT .* FROM "training_task_results" LEFT JOIN "files" .* WHERE "training_task_id" = (.+) AND "type" = (.*) AND .* ORDER BY "training_task_results"."created_at" desc`).
 		WillReturnRows(taskRows)
 
 	results, err := trainingTaskRepo.GetByType(1, models.Log)

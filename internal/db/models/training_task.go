@@ -10,12 +10,12 @@ import (
 type TrainingTaskStatus uint
 
 const (
-	Queued TrainingTaskStatus = iota
+	Failed TrainingTaskStatus = iota
+	Queued
 	Training
 	Benchmarking
 	Completed
 	Uploaded
-	Failed
 )
 
 func (s *TrainingTaskStatus) Scan(value interface{}) error {
@@ -28,7 +28,7 @@ func (s *TrainingTaskStatus) Scan(value interface{}) error {
 }
 
 func (s TrainingTaskStatus) Value() (driver.Value, error) {
-	if s < Queued || s > Failed {
+	if s < Failed || s > Uploaded {
 		return nil, fmt.Errorf("bad status")
 	}
 
@@ -55,7 +55,7 @@ func (s TrainingTaskStatus) String() string {
 }
 
 func (s TrainingTaskStatus) IsCompleted() bool {
-	return s == Completed || s == Uploaded
+	return s >= Completed
 }
 
 func (s TrainingTaskStatus) IsUploaded() bool {

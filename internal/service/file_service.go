@@ -85,6 +85,10 @@ type MockFileService struct {
 	mock.Mock
 }
 
+func NewMockFileService() *MockFileService {
+	return &MockFileService{}
+}
+
 func (m *MockFileService) SaveFile(file multipart.File, handler *multipart.FileHeader) (*models.File, error) {
 	args := m.Called(file, handler)
 	if args.Get(0) != nil {

@@ -36,7 +36,7 @@ func (r *trainingTaskResultRepository) GetByID(id uint) (*models.TrainingTaskRes
 }
 
 func (r *trainingTaskResultRepository) getAll(taskId uint) *gorm.DB {
-	return r.db.Order("\"created_at\" desc").Where("\"training_task_id\" = ?", taskId).Joins("File")
+	return r.db.Order("\"training_task_results\".\"created_at\" desc").Where("\"training_task_id\" = ?", taskId).Joins("File")
 }
 
 func (r *trainingTaskResultRepository) GetByType(ttId uint, resultType models.TrainingTaskResultType) ([]models.TrainingTaskResult, error) {

@@ -51,7 +51,7 @@ func loadSpec(filename string) (*NNArchSpec, error) {
 
 type INNArchService interface {
 	GetFieldConfigs() NNFieldConfigs
-	GetUploadFilename(filename string) (string, bool)
+	GetExpectedResults() NNExpectedResults
 }
 
 type NNArchService struct {
@@ -74,8 +74,27 @@ func (s *NNArchService) GetFieldConfigs() NNFieldConfigs {
 	return s.FieldConfigs
 }
 
-func (s *NNArchService) GetUploadFilename(filename string) (string, bool) {
-	uploadFilename, ok := s.ExpectedResults.Onnx[filename]
+func (s *NNArchService) GetExpectedResults() NNExpectedResults {
+	return s.ExpectedResults
+}
 
-	return uploadFilename, ok
+type NNArchServiceInMemory struct {
+	*NNArchSpec
+}
+
+func NewNNArchServiceInMemory(fieldConfigs *NNFieldConfigs, expectedResults *NNExpectedResults) *NNArchServiceInMemory {
+	return &NNArchServiceInMemory{
+		NNArchSpec: &NNArchSpec{
+			FieldConfigs:    *fieldConfigs,
+			ExpectedResults: *expectedResults,
+		},
+	}
+}
+
+func (s *NNArchServiceInMemory) GetFieldConfigs() NNFieldConfigs {
+	return s.FieldConfigs
+}
+
+func (s *NNArchServiceInMemory) GetExpectedResults() NNExpectedResults {
+	return s.ExpectedResults
 }

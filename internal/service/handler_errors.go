@@ -3,7 +3,15 @@ package service
 import (
 	"errors"
 	"fmt"
+	"os"
 )
+
+func handleCCDBError(err error) error {
+	if os.IsTimeout(err) {
+		return errCCDBUnreachable
+	}
+	return errInternalServerError
+}
 
 type ErrHandlerNotFound struct {
 	Resource string

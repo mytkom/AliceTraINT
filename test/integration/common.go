@@ -29,8 +29,9 @@ func init() {
 type MockedServices struct {
 	CCDB        *service.MockCCDBService
 	JAliEn      *service.MockJAliEnService
-	FileService *service.LocalFileService
+	FileService *service.MockFileService
 	Auth        *auth.AuthServiceMock
+	NNArch      *service.NNArchServiceInMemory
 }
 
 type IntegrationTestUtils struct {
@@ -52,8 +53,22 @@ func mockRouter(db *gorm.DB, cfg *config.Config) *IntegrationTestUtils {
 	hasher := service.NewArgon2Hasher()
 	ccdbService := service.NewMockCCDBService()
 	jalienService := service.NewMockJAliEnService()
-	nnArch := service.NewNNArchService(cfg.NNArchPath)
-	fileService := service.NewLocalFileService(cfg.DataDirPath)
+	nnArch := service.NewNNArchServiceInMemory(&service.NNFieldConfigs{
+		"fieldName": service.NNConfigField{
+			FullName:     "Full field name",
+			Type:         "uint",
+			DefaultValue: uint(512),
+			Min:          uint(128),
+			Max:          uint(1024),
+			Step:         uint(1),
+			Description:  "Field description",
+		},
+	}, &service.NNExpectedResults{
+		Onnx: map[string]string{
+			"local_file.onnx": "uploaded_file.onnx",
+		},
+	})
+	fileService := service.NewMockFileService()
 
 	// handlers' routes
 	handler.InitLandingRoutes(mux, env)
@@ -70,6 +85,7 @@ func mockRouter(db *gorm.DB, cfg *config.Config) *IntegrationTestUtils {
 			JAliEn:      jalienService,
 			FileService: fileService,
 			Auth:        auth,
+			NNArch:      nnArch,
 		},
 	}
 }
