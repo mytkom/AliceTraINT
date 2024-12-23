@@ -46,6 +46,9 @@ func NewTrainingTaskService(repo *repository.RepositoryContext, ccdbService ICCD
 }
 
 func (s *TrainingTaskService) Create(tt *models.TrainingTask) error {
+	// Status must start with Queued
+	tt.Status = models.Queued
+
 	return s.TrainingTask.Create(tt)
 }
 

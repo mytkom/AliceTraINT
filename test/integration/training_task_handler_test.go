@@ -227,7 +227,7 @@ func TestTrainingTaskHandler_Create_Success(t *testing.T) {
 		UserId:            user.ID,
 		TrainingDatasetId: td.ID,
 		TrainingMachineId: nil,
-		Status:            models.Queued,
+		Status:            models.Completed, // it should be overwritten
 		Configuration:     "",
 	}
 	body, err := json.Marshal(trainingTask)
@@ -244,6 +244,11 @@ func TestTrainingTaskHandler_Create_Success(t *testing.T) {
 
 	responseBody := rr.Body.String()
 	assert.Empty(t, responseBody)
+
+	tts, err := ut.TrainingTask.GetAll()
+	assert.NoError(t, err)
+	assert.Len(t, tts, 1)
+	assert.Equal(t, models.Queued, tts[0].Status)
 }
 
 func prepareUploadToCCDB(t *testing.T, ut *IntegrationTestUtils, user *models.User, withOnnxFile bool) *models.TrainingTask {
