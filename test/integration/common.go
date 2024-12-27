@@ -32,6 +32,7 @@ type MockedServices struct {
 	FileService *service.MockFileService
 	Auth        *auth.AuthServiceMock
 	NNArch      *service.NNArchServiceInMemory
+	Hasher      *service.MockHasher
 }
 
 type IntegrationTestUtils struct {
@@ -50,7 +51,7 @@ func mockRouter(db *gorm.DB, cfg *config.Config) *IntegrationTestUtils {
 	env := environment.NewEnv(repoContext, auth, baseTemplate, cfg)
 
 	// services
-	hasher := service.NewArgon2Hasher()
+	hasher := service.NewMockHasher()
 	ccdbService := service.NewMockCCDBService()
 	jalienService := service.NewMockJAliEnService()
 	nnArch := service.NewNNArchServiceInMemory(&service.NNFieldConfigs{
@@ -86,6 +87,7 @@ func mockRouter(db *gorm.DB, cfg *config.Config) *IntegrationTestUtils {
 			FileService: fileService,
 			Auth:        auth,
 			NNArch:      nnArch,
+			Hasher:      hasher,
 		},
 	}
 }

@@ -150,7 +150,7 @@ func InitQueueRoutes(mux *http.ServeMux, env *environment.Env, fileService servi
 		QueueService: service.NewQueueService(fileService, env.RepositoryContext, hasher),
 	}
 
-	mux.Handle("POST /training_tasks/{id}/status", http.HandlerFunc(qh.UpdateStatus))
-	mux.Handle("GET /training_machines/{id}/training_task", http.HandlerFunc(qh.QueryTask))
-	mux.Handle("POST /training_tasks/{id}/training_task_results", http.HandlerFunc(qh.CreateTrainingTaskResult))
+	mux.Handle("POST /training-tasks/{id}/status", http.HandlerFunc(qh.UpdateStatus))
+	mux.Handle("GET /training-machines/{id}/training-task", http.HandlerFunc(qh.QueryTask))
+	mux.Handle("POST /training-tasks/{id}/training-task-results", http.HandlerFunc(qh.CreateTrainingTaskResult))
 }

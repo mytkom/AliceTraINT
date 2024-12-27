@@ -10,6 +10,7 @@ import (
 
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestTrainingMachineHandler_Index(t *testing.T) {
@@ -40,6 +41,8 @@ func TestTrainingMachineHandler_List(t *testing.T) {
 		Name:   "Machine 1",
 		UserId: user.ID,
 	}
+	ut.Hasher.On("GenerateKey").Return("secret", nil)
+	ut.Hasher.On("HashKey", mock.Anything).Return("secret", nil)
 	assert.NoError(t, ut.TrainingMachine.Create(trainingMachine))
 
 	req, err := http.NewRequest("GET", "/training-machines/list", nil)
@@ -106,6 +109,8 @@ func TestTrainingMachineHandler_Create(t *testing.T) {
 		Name:   "New Machine",
 		UserId: user.ID,
 	}
+	ut.Hasher.On("GenerateKey").Return("secret", nil)
+	ut.Hasher.On("HashKey", mock.Anything).Return("secret", nil)
 	body, err := json.Marshal(trainingMachine)
 	assert.NoError(t, err)
 
@@ -133,6 +138,8 @@ func TestTrainingMachineHandler_Delete(t *testing.T) {
 		Name:   "Machine to Delete",
 		UserId: user.ID,
 	}
+	ut.Hasher.On("GenerateKey").Return("secret", nil)
+	ut.Hasher.On("HashKey", mock.Anything).Return("secret", nil)
 	assert.NoError(t, ut.TrainingMachine.Create(trainingMachine))
 
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("/training-machines/%d", trainingMachine.ID), nil)

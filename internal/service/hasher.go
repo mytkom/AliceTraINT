@@ -33,6 +33,10 @@ type MockHasher struct {
 	mock.Mock
 }
 
+func NewMockHasher() *MockHasher {
+	return &MockHasher{}
+}
+
 func (m *MockHasher) GenerateKey() (string, error) {
 	args := m.Called()
 	return args.String(0), args.Error(1)
