@@ -63,6 +63,10 @@ type MockUserRepository struct {
 	mock.Mock
 }
 
+func NewMockUserRepository() *MockUserRepository {
+	return &MockUserRepository{}
+}
+
 func (m *MockUserRepository) Create(user *models.User) error {
 	args := m.Called(user)
 	return args.Error(0)

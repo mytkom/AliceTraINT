@@ -10,12 +10,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTrainingDatasetService_GetAll_Global(t *testing.T) {
-	tdRepo := &repository.MockTrainingDatasetRepository{}
+// Helper to create a new TrainingDatasetService instance
+func newTrainingDatasetService() (*repository.MockTrainingDatasetRepository, *service.MockJAliEnService, *service.TrainingDatasetService) {
+	tdRepo := repository.NewMockTrainingDatasetRepository()
 	jalienService := service.NewMockJAliEnService()
 	tdService := service.NewTrainingDatasetService(&repository.RepositoryContext{
 		TrainingDataset: tdRepo,
 	}, jalienService)
+	return tdRepo, jalienService, tdService
+}
+
+func TestTrainingDatasetService_GetAll_Global(t *testing.T) {
+	// Arrange
+	tdRepo, _, tdService := newTrainingDatasetService()
 
 	userId := uint(1)
 	tds := []models.TrainingDataset{
@@ -24,7 +31,10 @@ func TestTrainingDatasetService_GetAll_Global(t *testing.T) {
 	}
 	tdRepo.On("GetAll").Return(tds, nil)
 
+	// Act
 	datasets, err := tdService.GetAll(userId, false)
+
+	// Assert
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(datasets))
 	assert.Equal(t, tds[0].Name, datasets[0].Name)
@@ -32,11 +42,8 @@ func TestTrainingDatasetService_GetAll_Global(t *testing.T) {
 }
 
 func TestTrainingDatasetService_GetAll_UserScoped(t *testing.T) {
-	tdRepo := &repository.MockTrainingDatasetRepository{}
-	jalienService := service.NewMockJAliEnService()
-	tdService := service.NewTrainingDatasetService(&repository.RepositoryContext{
-		TrainingDataset: tdRepo,
-	}, jalienService)
+	// Arrange
+	tdRepo, _, tdService := newTrainingDatasetService()
 
 	userId := uint(1)
 	tds := []models.TrainingDataset{
@@ -45,7 +52,10 @@ func TestTrainingDatasetService_GetAll_UserScoped(t *testing.T) {
 	}
 	tdRepo.On("GetAllUser").Return(tds, nil)
 
+	// Act
 	datasets, err := tdService.GetAll(userId, true)
+
+	// Assert
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(datasets))
 	assert.Equal(t, tds[0].Name, datasets[0].Name)

@@ -13,8 +13,8 @@ import (
 const (
 	saltLength  = 16
 	memory      = 1 * 1024 * 1024 // 1 GB
-	iterations  = 2               // number of iterations
-	paralellism = 4               // number of threads
+	iterations  = 1               // number of iterations
+	paralellism = 2               // number of threads
 	keyLength   = 32              // size of the derived key
 )
 

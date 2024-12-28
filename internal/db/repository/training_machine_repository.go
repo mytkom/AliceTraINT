@@ -67,6 +67,10 @@ type MockTrainingMachineRepository struct {
 	mock.Mock
 }
 
+func NewMockTrainingMachineRepository() *MockTrainingMachineRepository {
+	return &MockTrainingMachineRepository{}
+}
+
 func (m *MockTrainingMachineRepository) Create(trainingMachine *models.TrainingMachine) error {
 	args := m.Called(trainingMachine)
 	return args.Error(0)

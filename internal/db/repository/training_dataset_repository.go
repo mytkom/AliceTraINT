@@ -62,6 +62,10 @@ type MockTrainingDatasetRepository struct {
 	mock.Mock
 }
 
+func NewMockTrainingDatasetRepository() *MockTrainingDatasetRepository {
+	return &MockTrainingDatasetRepository{}
+}
+
 func (m *MockTrainingDatasetRepository) Create(trainingDataset *models.TrainingDataset) error {
 	args := m.Called(trainingDataset)
 	return args.Error(0)
