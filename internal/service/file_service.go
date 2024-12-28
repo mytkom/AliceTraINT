@@ -29,6 +29,7 @@ func NewLocalFileService(basePath string) *LocalFileService {
 }
 
 func (l *LocalFileService) SaveFile(file multipart.File, handler *multipart.FileHeader) (*models.File, error) {
+	//nolint:errcheck
 	defer file.Close()
 
 	log.Printf("File name: %+v\n", handler.Filename)
@@ -48,6 +49,7 @@ func (l *LocalFileService) SaveFile(file multipart.File, handler *multipart.File
 	if err != nil {
 		return nil, err
 	}
+	//nolint:errcheck
 	defer tempFile.Close()
 
 	fileBytes, err := io.ReadAll(file)
@@ -77,6 +79,7 @@ func (l *LocalFileService) OpenFile(filepath string) (io.ReadCloser, func(io.Rea
 	}
 
 	return fileReader, func(r io.ReadCloser) {
+		//nolint:errcheck
 		r.Close()
 	}, nil
 }

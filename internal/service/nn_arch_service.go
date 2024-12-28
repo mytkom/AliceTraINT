@@ -33,6 +33,7 @@ func loadSpec(filename string) (*NNArchSpec, error) {
 	if err != nil {
 		return nil, err
 	}
+	//nolint:errcheck
 	defer file.Close()
 
 	var arch NNArchSpec

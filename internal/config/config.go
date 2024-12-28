@@ -78,14 +78,3 @@ func getEnvAsUint(name string, defaultVal uint) uint {
 	}
 	return defaultVal
 }
-
-func getEnvAsBool(name string, defaultVal bool) bool {
-	if valueStr, exists := os.LookupEnv(name); exists {
-		if valueStr == "true" {
-			return true
-		} else {
-			return false
-		}
-	}
-	return defaultVal
-}

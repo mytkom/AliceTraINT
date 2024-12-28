@@ -34,6 +34,7 @@ func doRemoteHeaderCall(url, uniqueAgentID string, timestamp int64) (map[string]
 	if err != nil && !isUnsupportedProtocol(err) {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
+	//nolint:errcheck
 	defer resp.Body.Close()
 
 	headers := make(map[string]string)
@@ -98,6 +99,7 @@ func uploadFile(filename, url string, fileReader io.Reader, val, valEnd uint64, 
 	if err != nil {
 		return fmt.Errorf("failed to upload file: %w", err)
 	}
+	//nolint:errcheck
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {

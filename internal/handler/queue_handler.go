@@ -119,12 +119,17 @@ func (qh *QueueHandler) CreateTrainingTaskResult(w http.ResponseWriter, r *http.
 		return
 	}
 
-	r.ParseMultipartForm(20 << 20)
+	err = r.ParseMultipartForm(20 << 20)
+	if err != nil {
+		http.Error(w, "error reading multipart input", http.StatusUnprocessableEntity)
+		return
+	}
 	file, handler, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, "error reading file", http.StatusUnprocessableEntity)
 		return
 	}
+	//nolint:errcheck
 	defer file.Close()
 
 	ttr, err := qh.QueueService.CreateTrainingTaskResult(
@@ -141,7 +146,11 @@ func (qh *QueueHandler) CreateTrainingTaskResult(w http.ResponseWriter, r *http.
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(ttr)
+	err = json.NewEncoder(w).Encode(ttr)
+	if err != nil {
+		http.Error(w, "unexpected internal server error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func InitQueueRoutes(mux *http.ServeMux, env *environment.Env, fileService service.IFileService, hasher service.Hasher) {
