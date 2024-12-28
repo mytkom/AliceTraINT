@@ -39,8 +39,10 @@
     in
     {
       devShell = pkgs.mkShell {
+        hardeningDisable = [ "fortify" ];
         buildInputs = with pkgs; [
           go_1_22
+          gcc
           docker
           postgresql
           migrate
@@ -49,10 +51,12 @@
           tailwindcss
           alienpyPkg
           makeWrapper
+          cypress
         ];
 
         shellHook = ''
           export PATH=$PWD/bin:$PATH
+          alien_ls /
         '';
       };
 

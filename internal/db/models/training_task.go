@@ -10,11 +10,12 @@ import (
 type TrainingTaskStatus uint
 
 const (
-	Queued TrainingTaskStatus = iota
+	Failed TrainingTaskStatus = iota
+	Queued
 	Training
 	Benchmarking
 	Completed
-	Failed
+	Uploaded
 )
 
 func (s *TrainingTaskStatus) Scan(value interface{}) error {
@@ -27,7 +28,7 @@ func (s *TrainingTaskStatus) Scan(value interface{}) error {
 }
 
 func (s TrainingTaskStatus) Value() (driver.Value, error) {
-	if s < Queued || s > Failed {
+	if s < Failed || s > Uploaded {
 		return nil, fmt.Errorf("bad status")
 	}
 
@@ -44,11 +45,21 @@ func (s TrainingTaskStatus) String() string {
 		return "Benchmarking"
 	case Completed:
 		return "Completed"
+	case Uploaded:
+		return "Uploaded"
 	case Failed:
 		return "Failed"
 	default:
 		return "Unknown"
 	}
+}
+
+func (s TrainingTaskStatus) IsCompleted() bool {
+	return s >= Completed
+}
+
+func (s TrainingTaskStatus) IsUploaded() bool {
+	return s == Uploaded
 }
 
 // returns tailwind color suffix and this classes should be included in tailwind's safelist
@@ -62,6 +73,8 @@ func (s TrainingTaskStatus) Color() string {
 		return "yellow-600"
 	case Completed:
 		return "green-600"
+	case Uploaded:
+		return "green-400"
 	case Failed:
 		return "red-400"
 	default:
@@ -71,13 +84,14 @@ func (s TrainingTaskStatus) Color() string {
 
 type TrainingTask struct {
 	gorm.Model
-	Name              string             `gorm:"type:varchar(255);not null;uniqueIndex"`
-	Status            TrainingTaskStatus `gorm:"type:smallint"`
-	UserId            uint
-	User              User
-	TrainingDatasetId uint
-	TrainingDataset   TrainingDataset
-	TrainingMachineId *uint
-	TrainingMachine   TrainingMachine
-	Configuration     interface{} `gorm:"serializer:json"`
+	Name                string             `gorm:"type:varchar(255);not null;uniqueIndex"`
+	Status              TrainingTaskStatus `gorm:"type:smallint"`
+	UserId              uint
+	User                User
+	TrainingDatasetId   uint
+	TrainingDataset     TrainingDataset
+	TrainingTaskResults []TrainingTaskResult
+	TrainingMachineId   *uint
+	TrainingMachine     TrainingMachine
+	Configuration       interface{} `gorm:"serializer:json"`
 }

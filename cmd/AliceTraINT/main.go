@@ -5,10 +5,12 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/mytkom/AliceTraINT/internal"
+	"github.com/mytkom/AliceTraINT/internal/auth"
 	"github.com/mytkom/AliceTraINT/internal/config"
 	"github.com/mytkom/AliceTraINT/internal/db/migrate"
+	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/middleware"
-	"github.com/mytkom/AliceTraINT/internal/router"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -21,7 +23,8 @@ func main() {
 	// Initialize GORM with PostgreSQL driver
 	dsn := cfg.Database.ConnectionString()
 	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger:         logger.Default.LogMode(logger.Info),
+		TranslateError: true,
 	})
 	if err != nil {
 		log.Fatalf("Failed to initialize GORM: %v", err)
@@ -31,13 +34,15 @@ func main() {
 	migrate.MigrateDB(gormDB)
 
 	// Setup and start the HTTP server
-	r := router.NewRouter(gormDB, cfg)
+	repoContext := repository.NewRepositoryContext(gormDB)
+	authService := auth.NewAuthService(repoContext.User)
+	r := internal.NewRouter(cfg, repoContext, authService)
 
 	// Add logging middleware
 	logMw := middleware.NewLogMw()
 	loggedR := logMw(r)
 
 	portString := fmt.Sprintf(":%s", cfg.Port)
-	fmt.Printf("Starting server on %s\n", portString)
+	log.Printf("Starting server on %s\n", portString)
 	log.Fatal(http.ListenAndServe(portString, loggedR))
 }

@@ -1,3 +1,6 @@
 .env
 bin
 gridCertificate.p12
+data
+**/__debug*
+.vscode

@@ -3,66 +3,26 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
-	"io"
-	"log"
 	"net/http"
-	"os"
 	"strconv"
 
-	"github.com/mytkom/AliceTraINT/internal/auth"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
-	"github.com/mytkom/AliceTraINT/internal/db/repository"
+	"github.com/mytkom/AliceTraINT/internal/environment"
 	"github.com/mytkom/AliceTraINT/internal/middleware"
+	"github.com/mytkom/AliceTraINT/internal/service"
 	"github.com/mytkom/AliceTraINT/internal/utils"
 )
 
-type NNArchSpec struct {
-	FullName     string      `json:"full_name"`
-	Type         string      `json:"type"`
-	DefaultValue interface{} `json:"default_value"`
-	Min          interface{} `json:"min"`
-	Max          interface{} `json:"max"`
-	Step         interface{} `json:"step"`
-	Description  string      `json:"description"`
-}
-
-func loadNNArchSpec(filename string) (map[string]NNArchSpec, error) {
-	file, err := os.Open(filename)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var config map[string]NNArchSpec
-	bytes, err := io.ReadAll(file)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = file.Close()
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(bytes, &config)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return config, nil
-}
-
 type TrainingTaskHandler struct {
-	TrainingTaskRepo    repository.TrainingTaskRepository
-	TrainingDatasetRepo repository.TrainingDatasetRepository
-	UserRepo            repository.UserRepository
-	Auth                *auth.Auth
-	Template            *template.Template
-	NNArchSpec          map[string]NNArchSpec
+	*environment.Env
+	Service service.ITrainingTaskService
+}
+
+func NewTrainingTaskHandler(env *environment.Env, ttService service.ITrainingTaskService) *TrainingTaskHandler {
+	return &TrainingTaskHandler{
+		Env:     env,
+		Service: ttService,
+	}
 }
 
 func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +30,7 @@ func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
 		Title string
 	}
 
-	err := h.Template.ExecuteTemplate(w, "training-tasks_index", TemplateData{
+	err := h.ExecuteTemplate(w, "training-tasks_index", TemplateData{
 		Title: "Training Tasks",
 	})
 
@@ -85,30 +45,18 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		TrainingTasks []models.TrainingTask
 	}
 
-	var trainingTasks []models.TrainingTask
-	var err error
-
-	if r.URL.Query().Get("userScoped") == "on" {
-		loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		trainingTasks, err = h.TrainingTaskRepo.GetAllUser(loggedUser.ID)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	} else {
-		trainingTasks, err = h.TrainingTaskRepo.GetAll()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	user, ok := middleware.GetLoggedUser(r)
+	if !ok || user == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
+		return
 	}
 
-	err = h.Template.ExecuteTemplate(w, "training-tasks_list", TemplateData{
+	trainingTasks, err := h.Service.GetAll(user.ID, utils.IsUserScoped(r))
+	if err != nil {
+		handleServiceError(w, err)
+	}
+
+	err = h.ExecuteTemplate(w, "training-tasks_list", TemplateData{
 		TrainingTasks: trainingTasks,
 	})
 	if err != nil {
@@ -116,10 +64,30 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *TrainingTaskHandler) UploadToCCDB(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		http.Error(w, "invalid training task id", http.StatusUnprocessableEntity)
+		return
+	}
+
+	err = h.Service.UploadOnnxResults(uint(id))
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+
+	utils.HTMXRefresh(w)
+	w.WriteHeader(http.StatusOK)
+}
+
 func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
 		Title        string
 		TrainingTask models.TrainingTask
+		ImageFiles   []models.TrainingTaskResult
+		OnnxFiles    []models.TrainingTaskResult
 	}
 
 	idStr := r.PathValue("id")
@@ -129,15 +97,17 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	trainingTask, err := h.TrainingTaskRepo.GetByID(uint(id))
+	tt, err := h.Service.GetByID(uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
 		return
 	}
 
-	err = h.Template.ExecuteTemplate(w, "training-tasks_show", TemplateData{
+	err = h.ExecuteTemplate(w, "training-tasks_show", TemplateData{
 		Title:        "Training Tasks",
-		TrainingTask: *trainingTask,
+		TrainingTask: *tt.TrainingTask,
+		ImageFiles:   tt.ImageFiles,
+		OnnxFiles:    tt.OnnxFiles,
 	})
 
 	if err != nil {
@@ -149,25 +119,25 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
 		Title            string
 		TrainingDatasets []models.TrainingDataset
-		NNArchSpec       map[string]NNArchSpec
+		FieldConfigs     service.NNFieldConfigs
 	}
 
-	loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+	user, ok := middleware.GetLoggedUser(r)
+	if !ok || user == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
 	}
 
-	trainingDatasets, err := h.TrainingDatasetRepo.GetAllUser(loggedUser.ID)
+	ttHelpers, err := h.Service.GetHelpers(user.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
 		return
 	}
 
-	err = h.Template.ExecuteTemplate(w, "training-tasks_new", TemplateData{
+	err = h.ExecuteTemplate(w, "training-tasks_new", TemplateData{
 		Title:            "Create New Training Task!",
-		TrainingDatasets: trainingDatasets,
-		NNArchSpec:       h.NNArchSpec,
+		TrainingDatasets: ttHelpers.TrainingDatasets,
+		FieldConfigs:     ttHelpers.FieldConfigs,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -183,14 +153,14 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+	user, ok := middleware.GetLoggedUser(r)
+	if !ok || user == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
 	}
-	trainingTask.UserId = loggedUser.ID
+	trainingTask.UserId = user.ID
 
-	err = h.TrainingTaskRepo.Create(&trainingTask)
+	err = h.Service.Create(&trainingTask)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -200,24 +170,13 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func InitTrainingTaskRoutes(mux *http.ServeMux, baseTemplate *template.Template, trainingTaskRepo repository.TrainingTaskRepository, trainingDatasetRepo repository.TrainingDatasetRepository, userRepo repository.UserRepository, auth *auth.Auth) {
+func InitTrainingTaskRoutes(mux *http.ServeMux, env *environment.Env, ccdbService service.ICCDBService, fileService service.IFileService, nnArch service.INNArchService) {
 	prefix := "training-tasks"
 
-	nnArchSpec, err := loadNNArchSpec("internal/nn_architectures/proposed.json")
-	if err != nil {
-		log.Fatal("cannot load architecture configuration specification file")
-	}
+	ttService := service.NewTrainingTaskService(env.RepositoryContext, ccdbService, fileService, nnArch)
+	tjh := NewTrainingTaskHandler(env, ttService)
 
-	tjh := &TrainingTaskHandler{
-		TrainingTaskRepo:    trainingTaskRepo,
-		TrainingDatasetRepo: trainingDatasetRepo,
-		UserRepo:            userRepo,
-		Auth:                auth,
-		Template:            baseTemplate,
-		NNArchSpec:          nnArchSpec,
-	}
-
-	authMw := middleware.NewAuthMw(auth)
+	authMw := middleware.NewAuthMw(env.IAuthService, true)
 	validateHtmxMw := middleware.NewValidateHTMXMw()
 	blockHtmxMw := middleware.NewBlockHTMXMw()
 
@@ -247,6 +206,12 @@ func InitTrainingTaskRoutes(mux *http.ServeMux, baseTemplate *template.Template,
 
 	mux.Handle(fmt.Sprintf("POST /%s", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.Create),
+		validateHtmxMw,
+		authMw,
+	))
+
+	mux.Handle(fmt.Sprintf("POST /%s/{id}/upload-to-ccdb", prefix), middleware.Chain(
+		http.HandlerFunc(tjh.UploadToCCDB),
 		validateHtmxMw,
 		authMw,
 	))

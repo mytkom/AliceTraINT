@@ -16,7 +16,7 @@ type filepathAODMatcherResult struct {
 }
 
 func newAODMatcher() *filepathAODMatcher {
-	regexpPattern := `/(?P<LHCPeriod>LHC[a-zA-Z0-9]+)/\d+/(?P<RunNumber>\d+)/AOD/(?P<AODNumber>\d+)/AO2D\.root`
+	regexpPattern := `/(?P<LHCPeriod>LHC[a-zA-Z0-9]+)/(?:\d+/)?(?P<RunNumber>\d+)/AOD/(?P<AODNumber>\d+)/AO2D\.root`
 
 	return &filepathAODMatcher{
 		regexpCompiled: regexp.MustCompile(regexpPattern),
@@ -25,6 +25,10 @@ func newAODMatcher() *filepathAODMatcher {
 
 func (m *filepathAODMatcher) MatchAO2DPath(path string) (*filepathAODMatcherResult, error) {
 	match := m.regexpCompiled.FindStringSubmatch(path)
+
+	if len(match) < 4 {
+		return nil, nil
+	}
 
 	runNumber, err := strconv.ParseUint(match[2], 10, 64)
 	if err != nil {

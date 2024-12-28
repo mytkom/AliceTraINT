@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/mytkom/AliceTraINT/internal/db/models"
+	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 )
 
@@ -26,7 +27,7 @@ func (r *trainingDatasetRepository) Create(trainingDataset *models.TrainingDatas
 }
 
 func (r *trainingDatasetRepository) allWithDependencies() *gorm.DB {
-	return r.db.Joins("User").Order("\"created_at\" desc")
+	return r.db.Joins("User").Order("\"training_datasets\".\"created_at\" desc")
 }
 
 func (r *trainingDatasetRepository) GetByID(id uint) (*models.TrainingDataset, error) {
@@ -55,4 +56,37 @@ func (r *trainingDatasetRepository) GetAllUser(userId uint) ([]models.TrainingDa
 
 func (r *trainingDatasetRepository) Delete(userId uint, id uint) error {
 	return r.db.Where("\"user_id\" = ?", userId).Delete(&models.TrainingDataset{}, id).Error
+}
+
+type MockTrainingDatasetRepository struct {
+	mock.Mock
+}
+
+func NewMockTrainingDatasetRepository() *MockTrainingDatasetRepository {
+	return &MockTrainingDatasetRepository{}
+}
+
+func (m *MockTrainingDatasetRepository) Create(trainingDataset *models.TrainingDataset) error {
+	args := m.Called(trainingDataset)
+	return args.Error(0)
+}
+
+func (m *MockTrainingDatasetRepository) GetAll() ([]models.TrainingDataset, error) {
+	args := m.Called()
+	return args.Get(0).([]models.TrainingDataset), args.Error(1)
+}
+
+func (m *MockTrainingDatasetRepository) GetAllUser(userId uint) ([]models.TrainingDataset, error) {
+	args := m.Called(userId)
+	return args.Get(0).([]models.TrainingDataset), args.Error(1)
+}
+
+func (m *MockTrainingDatasetRepository) GetByID(id uint) (*models.TrainingDataset, error) {
+	args := m.Called()
+	return args.Get(0).(*models.TrainingDataset), args.Error(1)
+}
+
+func (m *MockTrainingDatasetRepository) Delete(userId uint, id uint) error {
+	args := m.Called()
+	return args.Error(0)
 }

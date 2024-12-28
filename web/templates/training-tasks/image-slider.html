@@ -1,0 +1,74 @@
+{{ define "training-tasks_image-slider" }}
+<style>
+    /* Smooth transitions for image changes */
+    .carousel-image {
+        transition: opacity 0.5s ease-in-out;
+    }
+
+    .hidden {
+        display: none;
+    }
+</style>
+<div class="flex flex-col justify-center gap-2">
+    <div class="w-full max-h-96 overflow-y-auto rounded shadow-md">
+        <ul class="grid grid-cols-3 auto-cols-auto gap-2 flex-wrap">
+            {{ range $index, $image := . }}
+            <li class="flex gap-2 items-center cursor-pointer group" onclick="showImage({{ $index }})">
+                <img src="{{ $image.File.Path }}" alt="{{ $image.Name }}"
+                    class="w-16 h-12 object-cover border rounded-md group-hover:border-blue-500 transition">
+                <span class="text-sm font-medium group-hover:text-blue-500">
+                    {{ $image.Name }}
+                </span>
+            </li>
+            {{ end }}
+        </ul>
+    </div>
+    <div class="w-full relative">
+        <div id="carousel" class="relative w-full rounded shadow-md overflow-hidden">
+            {{ range $index, $image := . }}
+            <div
+                class="carousel-image {{ if ne $index 0 }}hidden{{ end }} w-full h-full flex items-center justify-center">
+                <img src="{{ $image.File.Path }}" alt="{{ $image.Name }}" class="object-contain h-full w-full">
+            </div>
+            {{ end }}
+        </div>
+
+        <button onclick="prevImage()"
+            class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-gray-700 text-white p-2 rounded-full hover:bg-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#FFFFFF"><path d="M560-240 320-480l240-240 56 56-184 184 184 184-56 56Z"/></svg>
+        </button>
+
+        <button onclick="nextImage()"
+            class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-gray-700 text-white p-2 rounded-full hover:bg-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#FFFFFF"><path d="M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z"/></svg>
+        </button>
+    </div>
+
+</div>
+
+<script>
+    // Carousel state
+    let currentIndex = 0;
+    const images = document.querySelectorAll('.carousel-image');
+
+    // Show image by index
+    function showImage(index) {
+        images.forEach((img, i) => {
+            img.classList.toggle('hidden', i !== index);
+        });
+        currentIndex = index;
+    }
+
+    // Show next image
+    function nextImage() {
+        const nextIndex = (currentIndex + 1) % images.length;
+        showImage(nextIndex);
+    }
+
+    // Show previous image
+    function prevImage() {
+        const prevIndex = (currentIndex - 1 + images.length) % images.length;
+        showImage(prevIndex);
+    }
+</script>
+{{ end }}

@@ -1,0 +1,131 @@
+{
+  "expected_results": {
+    "onnx": {
+      "kaon.onnx": "simple_model_321.onnx",
+      "antikaon.onnx": "simple_model_0321.onnx",
+      "proton.onnx": "simple_model_2212.onnx",
+      "antiproton.onnx": "simple_model_02212.onnx",
+      "pion.onnx": "simple_model_211.onnx",
+      "antipion.onnx": "simple_model_0211.onnx"
+    }
+  },
+  "field_configs": {
+    "bs": {
+      "full_name": "Batch Size",
+      "type": "uint",
+      "default_value": 512,
+      "min": 1,
+      "max": 1024,
+      "step": 1,
+      "description": "Number of samples processed before updating model weights."
+    },
+    "max_epochs": {
+      "full_name": "Maximum Epochs",
+      "type": "uint",
+      "default_value": 40,
+      "min": 1,
+      "max": 1000,
+      "step": 1,
+      "description": "Total number of training cycles through the dataset."
+    },
+    "dropout": {
+      "full_name": "Dropout Rate",
+      "type": "float64",
+      "default_value": 0.1,
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.01,
+      "description": "Fraction of neurons randomly deactivated to prevent overfitting."
+    },
+    "gamma": {
+      "full_name": "Gamma",
+      "type": "float64",
+      "default_value": 0.9,
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.01,
+      "description": "Learning rate decay factor applied after each epoch."
+    },
+    "patience": {
+      "full_name": "Patience",
+      "type": "uint",
+      "default_value": 5,
+      "min": 1,
+      "max": 100,
+      "step": 1,
+      "description": "Number of epochs to wait for improvement before early stopping."
+    },
+    "patience_threshold": {
+      "full_name": "Patience Threshold",
+      "type": "float64",
+      "default_value": 0.001,
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.0001,
+      "description": "Minimum improvement threshold to reset patience."
+    },
+    "embed_hidden": {
+      "full_name": "Embedding Hidden Size",
+      "type": "uint",
+      "default_value": 128,
+      "min": 1,
+      "max": 4096,
+      "step": 1,
+      "description": "Number of neurons in the embedding hidden layer."
+    },
+    "d_model": {
+      "full_name": "D Model",
+      "type": "uint",
+      "default_value": 32,
+      "min": 1,
+      "max": 4096,
+      "step": 1,
+      "description": "Dimensionality of model hidden states."
+    },
+    "ff_hidden": {
+      "full_name": "Feedforward Hidden Size",
+      "type": "uint",
+      "default_value": 128,
+      "min": 1,
+      "max": 8192,
+      "step": 1,
+      "description": "Size of hidden layer in the feedforward network."
+    },
+    "pool_hidden": {
+      "full_name": "Pooling Hidden Size",
+      "type": "uint",
+      "default_value": 64,
+      "min": 1,
+      "max": 4096,
+      "step": 1,
+      "description": "Number of neurons in the pooling hidden layer."
+    },
+    "num_heads": {
+      "full_name": "Number of Attention Heads",
+      "type": "uint",
+      "default_value": 2,
+      "min": 1,
+      "max": 16,
+      "step": 1,
+      "description": "Number of attention heads in the model."
+    },
+    "num_blocks": {
+      "full_name": "Number of Blocks",
+      "type": "uint",
+      "default_value": 2,
+      "min": 1,
+      "max": 24,
+      "step": 1,
+      "description": "Total number of blocks in the model."
+    },
+    "start_lr": {
+      "full_name": "Starting Learning Rate",
+      "type": "float64",
+      "default_value": 0.0001,
+      "min": 0.0001,
+      "max": 1.0,
+      "step": 0.00001,
+      "description": "Initial learning rate for model training."
+    }
+  }
+}

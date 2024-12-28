@@ -47,12 +47,14 @@ RUN mkdir ~/.globus
 RUN openssl pkcs12 -clcerts -nokeys -in ./gridCertificate.p12 -out ~/.globus/usercert.pem -password pass:
 RUN openssl pkcs12 -nocerts -nodes -in ./gridCertificate.p12 -out ~/.globus/userkey.pem -password pass:
 RUN chmod 0400 ~/.globus/userkey.pem
+
+WORKDIR /app
 RUN alien.py getCAcerts
 # for some reason first execution of ls is returning nil - from second and then on it works great
 RUN alien_ls /
 
 COPY --from=builder /app/.env /app/AliceTraINT .
-COPY --from=builder /app/web/templates/ ./web/templates/
+COPY --from=builder /app/web ./web
 COPY --from=builder /app/static/ ./static/
 
 EXPOSE 8088

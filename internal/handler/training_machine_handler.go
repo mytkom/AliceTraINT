@@ -3,22 +3,26 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
 
-	"github.com/mytkom/AliceTraINT/internal/auth"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
-	"github.com/mytkom/AliceTraINT/internal/db/repository"
-	"github.com/mytkom/AliceTraINT/internal/hash"
+	"github.com/mytkom/AliceTraINT/internal/environment"
 	"github.com/mytkom/AliceTraINT/internal/middleware"
+	"github.com/mytkom/AliceTraINT/internal/service"
+	"github.com/mytkom/AliceTraINT/internal/utils"
 )
 
 type TrainingMachineHandler struct {
-	TrainingMachineRepo repository.TrainingMachineRepository
-	UserRepo            repository.UserRepository
-	Auth                *auth.Auth
-	Template            *template.Template
+	*environment.Env
+	Service service.ITrainingMachineService
+}
+
+func NewTrainingMachineHandler(env *environment.Env, tmService service.ITrainingMachineService) *TrainingMachineHandler {
+	return &TrainingMachineHandler{
+		Env:     env,
+		Service: tmService,
+	}
 }
 
 func (h *TrainingMachineHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +30,7 @@ func (h *TrainingMachineHandler) Index(w http.ResponseWriter, r *http.Request) {
 		Title string
 	}
 
-	err := h.Template.ExecuteTemplate(w, "training-machines_index", TemplateData{
+	err := h.ExecuteTemplate(w, "training-machines_index", TemplateData{
 		Title: "Training Machines",
 	})
 
@@ -41,30 +45,19 @@ func (h *TrainingMachineHandler) List(w http.ResponseWriter, r *http.Request) {
 		TrainingMachines []models.TrainingMachine
 	}
 
-	var trainingMachines []models.TrainingMachine
-	var err error
-
-	if r.URL.Query().Get("userScoped") == "on" {
-		loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		trainingMachines, err = h.TrainingMachineRepo.GetAllUser(loggedUser.ID)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	} else {
-		trainingMachines, err = h.TrainingMachineRepo.GetAll()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	user, ok := middleware.GetLoggedUser(r)
+	if !ok || user == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
+		return
 	}
 
-	err = h.Template.ExecuteTemplate(w, "training-machines_list", TemplateData{
+	trainingMachines, err := h.Service.GetAll(user.ID, utils.IsUserScoped(r))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.ExecuteTemplate(w, "training-machines_list", TemplateData{
 		TrainingMachines: trainingMachines,
 	})
 	if err != nil {
@@ -85,13 +78,13 @@ func (h *TrainingMachineHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	trainingMachine, err := h.TrainingMachineRepo.GetByID(uint(id))
+	trainingMachine, err := h.Service.GetByID(uint(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = h.Template.ExecuteTemplate(w, "training-machines_show", TemplateData{
+	err = h.ExecuteTemplate(w, "training-machines_show", TemplateData{
 		Title:           "Training Machine",
 		TrainingMachine: *trainingMachine,
 	})
@@ -103,11 +96,10 @@ func (h *TrainingMachineHandler) Show(w http.ResponseWriter, r *http.Request) {
 
 func (h *TrainingMachineHandler) New(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
-		Title      string
-		NNArchSpec map[string]NNArchSpec
+		Title string
 	}
 
-	err := h.Template.ExecuteTemplate(w, "training-machines_new", TemplateData{
+	err := h.ExecuteTemplate(w, "training-machines_new", TemplateData{
 		Title: "Register New Training Machine!",
 	})
 	if err != nil {
@@ -129,32 +121,20 @@ func (h *TrainingMachineHandler) Create(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
+	user, ok := middleware.GetLoggedUser(r)
+	if !ok || user == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
+		return
+	}
+	trainingMachine.UserId = user.ID
+
+	secretKey, err := h.Service.Create(&trainingMachine)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	trainingMachine.UserId = loggedUser.ID
 
-	secretKey, err := hash.GenerateKey(32)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	trainingMachine.SecretKeyHashed, err = hash.HashKey(secretKey)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = h.TrainingMachineRepo.Create(&trainingMachine)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = h.Template.ExecuteTemplate(w, "training-machines_show-secret", TemplateData{
+	err = h.ExecuteTemplate(w, "training-machines_show-secret", TemplateData{
 		ID:        trainingMachine.ID,
 		SecretKey: secretKey,
 	})
@@ -172,13 +152,13 @@ func (h *TrainingMachineHandler) Delete(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	loggedUser, err := getAuthorizedUser(h.Auth, h.UserRepo, w, r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+	user, ok := middleware.GetLoggedUser(r)
+	if !ok || user == nil {
+		http.Error(w, "user not found in context", http.StatusUnauthorized)
 		return
 	}
 
-	err = h.TrainingMachineRepo.Delete(loggedUser.ID, uint(trainingMachineId))
+	err = h.Service.Delete(user.ID, uint(trainingMachineId))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -187,17 +167,12 @@ func (h *TrainingMachineHandler) Delete(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 }
 
-func InitTrainingMachineRoutes(mux *http.ServeMux, baseTemplate *template.Template, trainingMachineRepo repository.TrainingMachineRepository, userRepo repository.UserRepository, auth *auth.Auth) {
+func InitTrainingMachineRoutes(mux *http.ServeMux, env *environment.Env, hasher service.Hasher) {
 	prefix := "training-machines"
 
-	tmh := &TrainingMachineHandler{
-		TrainingMachineRepo: trainingMachineRepo,
-		UserRepo:            userRepo,
-		Auth:                auth,
-		Template:            baseTemplate,
-	}
-
-	authMw := middleware.NewAuthMw(auth)
+	tmService := service.NewTrainingMachineService(env.RepositoryContext, hasher)
+	tmh := NewTrainingMachineHandler(env, tmService)
+	authMw := middleware.NewAuthMw(env.IAuthService, true)
 	validateHtmxMw := middleware.NewValidateHTMXMw()
 	blockHtmxMw := middleware.NewBlockHTMXMw()
 
