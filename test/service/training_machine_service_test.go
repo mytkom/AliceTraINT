@@ -11,13 +11,18 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestTrainingMachineService_GetAll_Global(t *testing.T) {
+func newTrainingMachineService() (*service.TrainingMachineService, *repository.MockTrainingMachineRepository, *service.MockHasher) {
 	tmRepo := repository.NewMockTrainingMachineRepository()
 	hasher := service.NewMockHasher()
-	tdService := service.NewTrainingMachineService(&repository.RepositoryContext{
-		TrainingMachine: tmRepo,
-	}, hasher)
 
+	return service.NewTrainingMachineService(&repository.RepositoryContext{
+		TrainingMachine: tmRepo,
+	}, hasher), tmRepo, hasher
+}
+
+func TestTrainingMachineService_GetAll_Global(t *testing.T) {
+	// Arrange
+	tmService, tmRepo, _ := newTrainingMachineService()
 	userId := uint(1)
 	tms := []models.TrainingMachine{
 		{Name: "awm1", UserId: userId, SecretKeyHashed: "secret1", LastActivityAt: time.Now()},
@@ -25,7 +30,10 @@ func TestTrainingMachineService_GetAll_Global(t *testing.T) {
 	}
 	tmRepo.On("GetAll").Return(tms, nil)
 
-	machines, err := tdService.GetAll(userId, false)
+	// Act
+	machines, err := tmService.GetAll(userId, false)
+
+	// Assert
 	assert.NoError(t, err)
 	tmRepo.AssertCalled(t, "GetAll")
 	tmRepo.AssertNotCalled(t, "GetAllUser", mock.Anything)
@@ -35,12 +43,8 @@ func TestTrainingMachineService_GetAll_Global(t *testing.T) {
 }
 
 func TestTrainingMachineService_GetAll_UserScoped(t *testing.T) {
-	tmRepo := repository.NewMockTrainingMachineRepository()
-	hasher := service.NewMockHasher()
-	tdService := service.NewTrainingMachineService(&repository.RepositoryContext{
-		TrainingMachine: tmRepo,
-	}, hasher)
-
+	// Arrange
+	tmService, tmRepo, _ := newTrainingMachineService()
 	userId := uint(1)
 	tms := []models.TrainingMachine{
 		{Name: "awm1", UserId: userId, SecretKeyHashed: "secret1", LastActivityAt: time.Now()},
@@ -48,7 +52,10 @@ func TestTrainingMachineService_GetAll_UserScoped(t *testing.T) {
 	}
 	tmRepo.On("GetAllUser", userId).Return(tms, nil)
 
-	machines, err := tdService.GetAll(userId, true)
+	// Act
+	machines, err := tmService.GetAll(userId, true)
+
+	// Assert
 	assert.NoError(t, err)
 	tmRepo.AssertNotCalled(t, "GetAll")
 	tmRepo.AssertCalled(t, "GetAllUser", userId)
@@ -58,12 +65,8 @@ func TestTrainingMachineService_GetAll_UserScoped(t *testing.T) {
 }
 
 func TestTrainingMachineService_Create(t *testing.T) {
-	tmRepo := repository.NewMockTrainingMachineRepository()
-	hasher := service.NewMockHasher()
-	tmService := service.NewTrainingMachineService(&repository.RepositoryContext{
-		TrainingMachine: tmRepo,
-	}, hasher)
-
+	// Arrange
+	tmService, tmRepo, hasher := newTrainingMachineService()
 	userId := uint(1)
 	tm := models.TrainingMachine{
 		Name:           "awm1",
@@ -74,9 +77,11 @@ func TestTrainingMachineService_Create(t *testing.T) {
 	hasher.On("GenerateKey").Return("secret", nil)
 	hasher.On("HashKey", "secret").Return("secretHashed", nil)
 
+	// Act
 	secretKey, err := tmService.Create(&tm)
-	assert.NoError(t, err)
 
+	// Assert
+	assert.NoError(t, err)
 	hasher.AssertCalled(t, "GenerateKey")
 	hasher.AssertCalled(t, "HashKey", "secret")
 	tmRepo.AssertCalled(t, "Create", &tm)
