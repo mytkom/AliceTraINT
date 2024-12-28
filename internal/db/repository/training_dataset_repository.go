@@ -77,7 +77,7 @@ func (m *MockTrainingDatasetRepository) GetAll() ([]models.TrainingDataset, erro
 }
 
 func (m *MockTrainingDatasetRepository) GetAllUser(userId uint) ([]models.TrainingDataset, error) {
-	args := m.Called()
+	args := m.Called(userId)
 	return args.Get(0).([]models.TrainingDataset), args.Error(1)
 }
 

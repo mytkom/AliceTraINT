@@ -15,7 +15,7 @@ import (
 
 type IFileService interface {
 	SaveFile(file multipart.File, handler *multipart.FileHeader) (*models.File, error)
-	OpenFile(filepath string) (*os.File, func(*os.File), error)
+	OpenFile(filepath string) (io.ReadCloser, func(io.ReadCloser), error)
 }
 
 type LocalFileService struct {
@@ -70,13 +70,13 @@ func (l *LocalFileService) SaveFile(file multipart.File, handler *multipart.File
 	return fileModel, nil
 }
 
-func (l *LocalFileService) OpenFile(filepath string) (*os.File, func(*os.File), error) {
+func (l *LocalFileService) OpenFile(filepath string) (io.ReadCloser, func(io.ReadCloser), error) {
 	fileReader, err := os.Open(fmt.Sprintf(".%s", filepath))
 	if err != nil {
-		return nil, func(r *os.File) {}, err
+		return nil, func(r io.ReadCloser) {}, err
 	}
 
-	return fileReader, func(r *os.File) {
+	return fileReader, func(r io.ReadCloser) {
 		r.Close()
 	}, nil
 }
@@ -97,10 +97,10 @@ func (m *MockFileService) SaveFile(file multipart.File, handler *multipart.FileH
 	return nil, args.Error(1)
 }
 
-func (m *MockFileService) OpenFile(filepath string) (*os.File, func(*os.File), error) {
+func (m *MockFileService) OpenFile(filepath string) (io.ReadCloser, func(io.ReadCloser), error) {
 	args := m.Called(filepath)
 	if args.Get(0) != nil {
-		return args.Get(0).(*os.File), args.Get(1).(func(*os.File)), args.Error(2)
+		return args.Get(0).(io.ReadCloser), args.Get(1).(func(io.ReadCloser)), args.Error(2)
 	}
 	return nil, nil, args.Error(2)
 }

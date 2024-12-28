@@ -49,7 +49,7 @@ func TestTrainingDatasetService_GetAll_UserScoped(t *testing.T) {
 		{Name: "LHC24b1b", UserId: userId, AODFiles: []jalien.AODFile{}},
 		{Name: "LHC24b1b2", UserId: userId, AODFiles: []jalien.AODFile{}},
 	}
-	tdRepo.On("GetAllUser").Return(tds, nil)
+	tdRepo.On("GetAllUser", userId).Return(tds, nil)
 
 	// Act
 	datasets, err := tdService.GetAll(userId, true)
