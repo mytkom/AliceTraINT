@@ -48,7 +48,7 @@ func (h *TrainingDatasetHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, "user not found in context", http.StatusUnauthorized)
+		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
 		return
 	}
 
@@ -119,7 +119,7 @@ func (h *TrainingDatasetHandler) Create(w http.ResponseWriter, r *http.Request) 
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, "user not found in context", http.StatusUnauthorized)
+		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
 		return
 	}
 	trainingDataset.UserId = user.ID
@@ -144,7 +144,7 @@ func (h *TrainingDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) 
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, "user not found in context", http.StatusUnauthorized)
+		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
 		return
 	}
 

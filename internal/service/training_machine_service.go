@@ -1,8 +1,11 @@
 package service
 
 import (
+	"errors"
+
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
+	"gorm.io/gorm"
 )
 
 type ITrainingMachineService interface {
@@ -24,6 +27,8 @@ func NewTrainingMachineService(repo *repository.RepositoryContext, hasher Hasher
 	}
 }
 
+var errMachineNotFound = NewErrHandlerNotFound("TrainingMachine")
+
 func (s *TrainingMachineService) Create(tm *models.TrainingMachine) (string, error) {
 	secretKey, err := s.Hasher.GenerateKey()
 	if err != nil {
@@ -37,7 +42,14 @@ func (s *TrainingMachineService) Create(tm *models.TrainingMachine) (string, err
 
 	err = s.TrainingMachine.Create(tm)
 	if err != nil {
-		return "", err
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return "", &ErrHandlerValidation{
+				Field: "Name",
+				Msg:   errMsgNotUnique,
+			}
+		} else {
+			return "", errInternalServerError
+		}
 	}
 
 	return secretKey, nil
@@ -50,12 +62,12 @@ func (s *TrainingMachineService) GetAll(loggedUserId uint, userScoped bool) ([]m
 	if userScoped {
 		trainingMachines, err = s.TrainingMachine.GetAllUser(loggedUserId)
 		if err != nil {
-			return nil, err
+			return nil, errInternalServerError
 		}
 	} else {
 		trainingMachines, err = s.TrainingMachine.GetAll()
 		if err != nil {
-			return nil, err
+			return nil, errInternalServerError
 		}
 	}
 
@@ -63,9 +75,27 @@ func (s *TrainingMachineService) GetAll(loggedUserId uint, userScoped bool) ([]m
 }
 
 func (s *TrainingMachineService) GetByID(id uint) (*models.TrainingMachine, error) {
-	return s.TrainingMachine.GetByID(uint(id))
+	tm, err := s.TrainingMachine.GetByID(uint(id))
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errMachineNotFound
+		} else {
+			return nil, errInternalServerError
+		}
+	}
+
+	return tm, nil
 }
 
 func (s *TrainingMachineService) Delete(loggedUserId uint, id uint) error {
-	return s.TrainingMachine.Delete(loggedUserId, id)
+	err := s.TrainingMachine.Delete(loggedUserId, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errMachineNotFound
+		} else {
+			return errInternalServerError
+		}
+	}
+
+	return nil
 }

@@ -23,7 +23,7 @@ describe('Training Tasks Management', () => {
         cy.get('select[name="trainingDatasetId"]').select('LHC24b1b');
         cy.get('button').click();
 
-        let tmObject = cy.contains('tr', testName) 
+        let tmObject = cy.contains('tr', testName)
         tmObject.should('exist')
     });
 
@@ -45,5 +45,24 @@ describe('Training Tasks Management', () => {
             expect($input[0].checkValidity()).to.be.false;
             expect($input[0].validationMessage).to.contain('Please fill out this field.');
         });
+    });
+
+    it('validation error for duplicated name', () => {
+        cy.get('tbody tr').first().children().first().invoke('text').then(name => {
+            let alreadyExisting = name
+            cy.wrap(alreadyExisting).as('alreadyExisting')
+        })
+
+        cy.get('main a')
+            .contains('Create Training Task')
+            .click();
+
+        cy.get('@alreadyExisting').then(alreadyExisting => {
+            cy.get('input[name="name"]').type(alreadyExisting);
+        })
+        cy.get('select[name="trainingDatasetId"]').select('LHC24b1b');
+        cy.get('button').click();
+
+        cy.get('#errors').invoke('text').should('eq', 'Name must be unique\n')
     });
 });
