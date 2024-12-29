@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -16,6 +17,10 @@ type QueueHandler struct {
 	*environment.Env
 	QueueService service.IQueueService
 }
+
+const (
+	errMsgUnauthorizedMachine string = "unauthorized machine"
+)
 
 func (qh *QueueHandler) parseId(r *http.Request) (uint, error) {
 	idStr := r.PathValue("id")
@@ -39,12 +44,12 @@ func (qh *QueueHandler) trainingMachineFromPath(r *http.Request) (*models.Traini
 	}
 
 	if tt.TrainingMachineId == nil {
-		return nil, nil, fmt.Errorf("unauthorized machine")
+		return nil, nil, errors.New(errMsgUnauthorizedMachine)
 	}
 
 	tm, err := qh.QueueService.AuthorizeTrainingMachine(r.Header.Get("Secret-Id"), *tt.TrainingMachineId)
 	if err != nil {
-		return nil, nil, fmt.Errorf("unauthorized machine")
+		return nil, nil, errors.New(errMsgUnauthorizedMachine)
 	}
 
 	return tm, tt, nil
@@ -57,7 +62,7 @@ func (qh *QueueHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 
 	_, tt, err := qh.trainingMachineFromPath(r)
 	if err != nil {
-		http.Error(w, "unauthorized machine", http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
@@ -84,7 +89,7 @@ func (qh *QueueHandler) QueryTask(w http.ResponseWriter, r *http.Request) {
 
 	tm, err := qh.QueueService.AuthorizeTrainingMachine(r.Header.Get("Secret-Id"), uint(tmId))
 	if err != nil {
-		http.Error(w, "unauthorized machine", http.StatusUnauthorized)
+		http.Error(w, errMsgUnauthorizedMachine, http.StatusUnauthorized)
 		return
 	}
 
@@ -115,7 +120,7 @@ func (qh *QueueHandler) QueryTask(w http.ResponseWriter, r *http.Request) {
 func (qh *QueueHandler) CreateTrainingTaskResult(w http.ResponseWriter, r *http.Request) {
 	_, tt, err := qh.trainingMachineFromPath(r)
 	if err != nil {
-		http.Error(w, "unauthorized machine", http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 

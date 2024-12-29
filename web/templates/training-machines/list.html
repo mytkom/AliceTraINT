@@ -12,14 +12,21 @@
     </thead>
     <tbody class="font-normal">
         {{ range .TrainingMachines }}
-        <tr hx-target="this" hx-swap="outerHTML" class="border-b border-sky-200 hover:bg-sky-200 dark:border-sky-700 dark:hover:bg-sky-700">
+        <tr hx-target="this" hx-swap="outerHTML"
+            class="border-b border-sky-200 hover:bg-sky-200 dark:border-sky-700 dark:hover:bg-sky-700">
             <td class="py-3 px-4 font-bold"><a href="/training-machines/{{ .ID }}">{{ .Name }}</a></td>
             <td class="py-3 px-4">{{ .User.FirstName }} {{ .User.FamilyName}}</td>
+            {{ if .LastActivityAt.IsZero }}
+            <td class="py-3 px-4">Never Active</td>
+            {{ else }}
             <td class="py-3 px-4">{{ .LastActivityAt.Format "02 Jan 06 15:04 MST" }}</td>
+            {{ end }}
             <td class="py-3 px-4">{{ .CreatedAt.Format "02 Jan 06 15:04 MST" }}</td>
             <td class="py-3 px-4">{{ .UpdatedAt.Format "02 Jan 06 15:04 MST" }}</td>
-            <td class="py-3 px-4"><button class="bg-red-600 hover:bg-red-400 text-gray-50 rounded-lg text-lg font-bold py-1 px-2"
-            hx-delete="/training-machines/{{.ID}}" hx-confirm="Are you sure you want to remove {{ .Name }}?">Remove</button></td>
+            <td class="py-3 px-4"><button
+                    class="bg-red-600 hover:bg-red-400 text-gray-50 rounded-lg text-lg font-bold py-1 px-2"
+                    hx-delete="/training-machines/{{.ID}}"
+                    hx-confirm="Are you sure you want to remove {{ .Name }}?">Remove</button></td>
         </tr>
         {{ end }}
     </tbody>

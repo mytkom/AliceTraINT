@@ -8,6 +8,7 @@ import (
 	"github.com/mytkom/AliceTraINT/internal/ccdb"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
+	"gorm.io/gorm"
 )
 
 type TrainingTaskWithResults struct {
@@ -45,11 +46,25 @@ func NewTrainingTaskService(repo *repository.RepositoryContext, ccdbService ICCD
 	}
 }
 
+var errTaskNotFound = NewErrHandlerNotFound("TrainingTask")
+
 func (s *TrainingTaskService) Create(tt *models.TrainingTask) error {
 	// Status must start with Queued
 	tt.Status = models.Queued
 
-	return s.TrainingTask.Create(tt)
+	err := s.TrainingTask.Create(tt)
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return &ErrHandlerValidation{
+				Field: "Name",
+				Msg:   errMsgNotUnique,
+			}
+		} else {
+			return errInternalServerError
+		}
+	}
+
+	return nil
 }
 
 func (s *TrainingTaskService) GetAll(loggedUserId uint, userScoped bool) ([]models.TrainingTask, error) {
@@ -59,12 +74,12 @@ func (s *TrainingTaskService) GetAll(loggedUserId uint, userScoped bool) ([]mode
 	if userScoped {
 		trainingTasks, err = s.TrainingTask.GetAllUser(loggedUserId)
 		if err != nil {
-			return nil, err
+			return nil, errInternalServerError
 		}
 	} else {
 		trainingTasks, err = s.TrainingTask.GetAll()
 		if err != nil {
-			return nil, err
+			return nil, errInternalServerError
 		}
 	}
 
@@ -74,7 +89,7 @@ func (s *TrainingTaskService) GetAll(loggedUserId uint, userScoped bool) ([]mode
 func (s *TrainingTaskService) GetHelpers(loggedUserId uint) (*TrainingTaskHelpers, error) {
 	trainingDatasets, err := s.TrainingDataset.GetAllUser(loggedUserId)
 	if err != nil {
-		return nil, err
+		return nil, errInternalServerError
 	}
 
 	return &TrainingTaskHelpers{
@@ -86,14 +101,18 @@ func (s *TrainingTaskService) GetHelpers(loggedUserId uint) (*TrainingTaskHelper
 func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error) {
 	trainingTask, err := s.TrainingTask.GetByID(uint(id))
 	if err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errTaskNotFound
+		} else {
+			return nil, errInternalServerError
+		}
 	}
 
 	var imageFiles []models.TrainingTaskResult
 	if trainingTask.Status >= models.Completed {
 		imageFiles, err = s.TrainingTaskResult.GetByType(trainingTask.ID, models.Image)
 		if err != nil {
-			return nil, err
+			return nil, errInternalServerError
 		}
 	} else {
 		imageFiles = nil
@@ -103,7 +122,7 @@ func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error)
 	if trainingTask.Status >= models.Benchmarking {
 		onnxFiles, err = s.TrainingTaskResult.GetByType(trainingTask.ID, models.Onnx)
 		if err != nil {
-			return nil, err
+			return nil, errInternalServerError
 		}
 	} else {
 		onnxFiles = nil
@@ -119,7 +138,11 @@ func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error)
 func (s *TrainingTaskService) UploadOnnxResults(id uint) error {
 	trainingTask, err := s.TrainingTask.GetByID(id)
 	if err != nil {
-		return err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errTaskNotFound
+		} else {
+			return errInternalServerError
+		}
 	}
 
 	if trainingTask.Status < models.Completed {
@@ -152,7 +175,7 @@ func (s *TrainingTaskService) UploadOnnxResults(id uint) error {
 
 	trainingTask.Status = models.Uploaded
 	if err := s.TrainingTask.Update(trainingTask); err != nil {
-		return err
+		return errInternalServerError
 	}
 
 	return nil

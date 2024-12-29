@@ -70,4 +70,37 @@ describe('Training Dataset Management', () => {
             expect($input[0].validationMessage).to.contain('Please fill out this field.');
         });
     });
+
+    it('validation error for duplicated name', () => {
+        cy.get('#training-datasets-listing div div a div').first().invoke('text').then(name => {
+            let alreadyExisting = name
+            cy.wrap(alreadyExisting).as('alreadyExisting')
+        })
+        cy.get('main a')
+            .contains('Create Training Dataset')
+            .click();
+
+        cy.get('@alreadyExisting').then(alreadyExisting => {
+            cy.get('#train-dataset-name').type(alreadyExisting);
+        })
+
+        cy.get('#find-aods-form input').type('/alice/sim/2024/LHC24f3/0/523397');
+        cy.get('#find-aods-form button').click();
+
+        cy.get('#file-list ul').children().its('length').should('be.gt', 0);
+
+        selectFiles([
+            '#file-list li:first-child',
+            '#file-list li:first-child',
+            '#file-list li:first-child',
+            '#file-list li:first-child',
+            '#file-list li:last-child'
+        ]);
+
+        cy.get('#submit-dataset-form button[type="submit"]')
+            .contains('Submit')
+            .click();
+
+        cy.get('#errors').invoke('text').should('eq', 'Name must be unique\n')
+    });
 });

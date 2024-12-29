@@ -48,4 +48,22 @@ describe('Training Machine Management', () => {
             expect($input[0].validationMessage).to.contain('Please fill out this field.');
         });
     });
+
+    it('validation error for duplicated name', () => {
+        cy.get('tbody tr').first().children().first().invoke('text').then(name => {
+            let alreadyExisting = name
+            cy.wrap(alreadyExisting).as('alreadyExisting')
+        })
+
+        cy.get('main a')
+            .contains('Register Training Machine')
+            .click();
+
+        cy.get('@alreadyExisting').then(alreadyExisting => {
+            cy.get('input[name="name"]').type(alreadyExisting);
+        })
+        cy.get('button').click();
+
+        cy.get('#errors').invoke('text').should('eq', 'Name must be unique\n')
+    });
 });

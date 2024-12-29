@@ -47,13 +47,13 @@ func (h *TrainingMachineHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, "user not found in context", http.StatusUnauthorized)
+		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
 		return
 	}
 
 	trainingMachines, err := h.Service.GetAll(user.ID, utils.IsUserScoped(r))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
 		return
 	}
 
@@ -80,7 +80,7 @@ func (h *TrainingMachineHandler) Show(w http.ResponseWriter, r *http.Request) {
 
 	trainingMachine, err := h.Service.GetByID(uint(id))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
 		return
 	}
 
@@ -123,14 +123,14 @@ func (h *TrainingMachineHandler) Create(w http.ResponseWriter, r *http.Request) 
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, "user not found in context", http.StatusUnauthorized)
+		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
 		return
 	}
 	trainingMachine.UserId = user.ID
 
 	secretKey, err := h.Service.Create(&trainingMachine)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		handleServiceError(w, err)
 		return
 	}
 
@@ -154,13 +154,13 @@ func (h *TrainingMachineHandler) Delete(w http.ResponseWriter, r *http.Request) 
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, "user not found in context", http.StatusUnauthorized)
+		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
 		return
 	}
 
 	err = h.Service.Delete(user.ID, uint(trainingMachineId))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handleServiceError(w, err)
 		return
 	}
 
