@@ -17,7 +17,16 @@ import (
 	"gorm.io/gorm"
 )
 
-func newTrainingTaskService() (*service.TrainingTaskService, *repository.MockTrainingTaskRepository, *repository.MockTrainingDatasetRepository, *repository.MockTrainingTaskResultRepository, *service.MockCCDBService, *service.MockFileService, *service.NNArchServiceInMemory) {
+type trainingTaskServiceTestUtils struct {
+	TTRepo      *repository.MockTrainingTaskRepository
+	TDRepo      *repository.MockTrainingDatasetRepository
+	TTRRepo     *repository.MockTrainingTaskResultRepository
+	CCDBService *service.MockCCDBService
+	FileService *service.MockFileService
+	NNArch      *service.NNArchServiceInMemory
+}
+
+func newTrainingTaskService() (*service.TrainingTaskService, *trainingTaskServiceTestUtils) {
 	ttRepo := repository.NewMockTrainingTaskRepository()
 	tdRepo := repository.NewMockTrainingDatasetRepository()
 	ttrRepo := repository.NewMockTrainingTaskResultRepository()
@@ -40,15 +49,22 @@ func newTrainingTaskService() (*service.TrainingTaskService, *repository.MockTra
 	})
 
 	return service.NewTrainingTaskService(&repository.RepositoryContext{
-		TrainingTask:       ttRepo,
-		TrainingDataset:    tdRepo,
-		TrainingTaskResult: ttrRepo,
-	}, ccdbService, fileService, nnArch), ttRepo, tdRepo, ttrRepo, ccdbService, fileService, nnArch
+			TrainingTask:       ttRepo,
+			TrainingDataset:    tdRepo,
+			TrainingTaskResult: ttrRepo,
+		}, ccdbService, fileService, nnArch), &trainingTaskServiceTestUtils{
+			TTRepo:      ttRepo,
+			TDRepo:      tdRepo,
+			TTRRepo:     ttrRepo,
+			CCDBService: ccdbService,
+			FileService: fileService,
+			NNArch:      nnArch,
+		}
 }
 
 func TestTrainingTaskService_GetAll_Global(t *testing.T) {
 	// Arrange
-	ttService, ttRepo, _, _, _, _, _ := newTrainingTaskService()
+	ttService, ut := newTrainingTaskService()
 	userId := uint(1)
 	tdId := uint(1)
 	tmId := uint(1)
@@ -56,15 +72,15 @@ func TestTrainingTaskService_GetAll_Global(t *testing.T) {
 		{Name: "task1", UserId: userId, Status: models.Queued, TrainingMachineId: nil, TrainingDatasetId: tdId, Configuration: ""},
 		{Name: "task2", UserId: userId, Status: models.Benchmarking, TrainingMachineId: &tmId, TrainingDatasetId: tdId, Configuration: ""},
 	}
-	ttRepo.On("GetAll").Return(tts, nil)
+	ut.TTRepo.On("GetAll").Return(tts, nil)
 
 	// Act
 	tasks, err := ttService.GetAll(userId, false)
 
 	// Assert
 	assert.NoError(t, err)
-	ttRepo.AssertCalled(t, "GetAll")
-	ttRepo.AssertNotCalled(t, "GetAllUser", mock.Anything)
+	ut.TTRepo.AssertCalled(t, "GetAll")
+	ut.TTRepo.AssertNotCalled(t, "GetAllUser", mock.Anything)
 	assert.Equal(t, 2, len(tasks))
 	assert.Equal(t, tts[0].Name, tasks[0].Name)
 	assert.Equal(t, tts[1].Name, tasks[1].Name)
@@ -72,7 +88,7 @@ func TestTrainingTaskService_GetAll_Global(t *testing.T) {
 
 func TestTrainingTaskService_GetAll_UserScoped(t *testing.T) {
 	// Arrange
-	ttService, ttRepo, _, _, _, _, _ := newTrainingTaskService()
+	ttService, ut := newTrainingTaskService()
 	userId := uint(1)
 	tdId := uint(1)
 	tmId := uint(1)
@@ -80,15 +96,15 @@ func TestTrainingTaskService_GetAll_UserScoped(t *testing.T) {
 		{Name: "task1", UserId: userId, Status: models.Queued, TrainingMachineId: nil, TrainingDatasetId: tdId, Configuration: ""},
 		{Name: "task2", UserId: userId, Status: models.Benchmarking, TrainingMachineId: &tmId, TrainingDatasetId: tdId, Configuration: ""},
 	}
-	ttRepo.On("GetAllUser", userId).Return(tts, nil)
+	ut.TTRepo.On("GetAllUser", userId).Return(tts, nil)
 
 	// Act
 	tasks, err := ttService.GetAll(userId, true)
 
 	// Assert
 	assert.NoError(t, err)
-	ttRepo.AssertNotCalled(t, "GetAll")
-	ttRepo.AssertCalled(t, "GetAllUser", userId)
+	ut.TTRepo.AssertNotCalled(t, "GetAll")
+	ut.TTRepo.AssertCalled(t, "GetAllUser", userId)
 	assert.Equal(t, 2, len(tasks))
 	assert.Equal(t, tts[0].Name, tasks[0].Name)
 	assert.Equal(t, tts[1].Name, tasks[1].Name)
@@ -96,7 +112,7 @@ func TestTrainingTaskService_GetAll_UserScoped(t *testing.T) {
 
 func TestTrainingTaskService_Create(t *testing.T) {
 	// Arrange
-	ttService, ttRepo, _, _, _, _, _ := newTrainingTaskService()
+	ttService, ut := newTrainingTaskService()
 	userId := uint(1)
 	tdId := uint(1)
 	tt := models.TrainingTask{
@@ -106,42 +122,42 @@ func TestTrainingTaskService_Create(t *testing.T) {
 		TrainingDatasetId: tdId,
 		Configuration:     "",
 	}
-	ttRepo.On("Create", &tt).Return(nil)
+	ut.TTRepo.On("Create", &tt).Return(nil)
 
 	// Act
 	err := ttService.Create(&tt)
 
 	// Assert
 	assert.NoError(t, err)
-	ttRepo.AssertCalled(t, "Create", &tt)
+	ut.TTRepo.AssertCalled(t, "Create", &tt)
 	assert.Equal(t, models.Queued, tt.Status)
 	assert.Equal(t, (*uint)(nil), tt.TrainingMachineId)
 }
 
 func TestTrainingTaskService_GetHelpers(t *testing.T) {
 	// Arrange
-	ttService, _, tdRepo, _, _, _, nnArch := newTrainingTaskService()
+	ttService, ut := newTrainingTaskService()
 	userId := uint(1)
 	tds := []models.TrainingDataset{
 		{Name: "LHC24b1b", UserId: userId, AODFiles: []jalien.AODFile{}},
 		{Name: "LHC24b1b2", UserId: userId, AODFiles: []jalien.AODFile{}},
 	}
-	tdRepo.On("GetAllUser", userId).Return(tds, nil)
+	ut.TDRepo.On("GetAllUser", userId).Return(tds, nil)
 
 	// Act
 	helpers, err := ttService.GetHelpers(userId)
 
 	// Assert
 	assert.NoError(t, err)
-	tdRepo.AssertCalled(t, "GetAllUser", userId)
+	ut.TDRepo.AssertCalled(t, "GetAllUser", userId)
 	assert.Equal(t, tds[0].Name, helpers.TrainingDatasets[0].Name)
 	assert.Equal(t, tds[1].Name, helpers.TrainingDatasets[1].Name)
-	assert.True(t, reflect.DeepEqual(helpers.FieldConfigs, nnArch.FieldConfigs))
+	assert.True(t, reflect.DeepEqual(helpers.FieldConfigs, ut.NNArch.FieldConfigs))
 }
 
 func TestTrainingTaskService_GetByID_Queued(t *testing.T) {
 	// Arrange
-	ttService, ttRepo, ttrRepo, _, _, _, _ := newTrainingTaskService()
+	ttService, ut := newTrainingTaskService()
 	userId := uint(1)
 	tdId := uint(1)
 	ttId := uint(1)
@@ -152,18 +168,18 @@ func TestTrainingTaskService_GetByID_Queued(t *testing.T) {
 		TrainingDatasetId: tdId,
 		Configuration:     "",
 	}
-	ttRepo.On("GetByID", ttId).Return(&tt, nil)
-	ttRepo.On("GetByType", ttId, models.Onnx).Return([]models.TrainingTaskResult{}, nil)
-	ttRepo.On("GetByType", ttId, models.Image).Return([]models.TrainingTaskResult{}, nil)
+	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
+	ut.TTRepo.On("GetByType", ttId, models.Onnx).Return([]models.TrainingTaskResult{}, nil)
+	ut.TTRepo.On("GetByType", ttId, models.Image).Return([]models.TrainingTaskResult{}, nil)
 
 	// Act
 	ttWithRes, err := ttService.GetByID(ttId)
 
 	// Assert
 	assert.NoError(t, err)
-	ttRepo.AssertCalled(t, "GetByID", ttId)
-	ttrRepo.AssertNotCalled(t, "GetByType", ttId, models.Onnx)
-	ttrRepo.AssertNotCalled(t, "GetByType", ttId, models.Image)
+	ut.TTRepo.AssertCalled(t, "GetByID", ttId)
+	ut.TTRRepo.AssertNotCalled(t, "GetByType", ttId, models.Onnx)
+	ut.TTRRepo.AssertNotCalled(t, "GetByType", ttId, models.Image)
 	assert.Equal(t, tt.Status, ttWithRes.TrainingTask.Status)
 	assert.Equal(t, []models.TrainingTaskResult(nil), ttWithRes.OnnxFiles)
 	assert.Equal(t, []models.TrainingTaskResult(nil), ttWithRes.ImageFiles)
@@ -171,7 +187,7 @@ func TestTrainingTaskService_GetByID_Queued(t *testing.T) {
 
 func TestTrainingTaskService_GetByID_Training(t *testing.T) {
 	// Arrange
-	ttService, ttRepo, ttrRepo, _, _, _, _ := newTrainingTaskService()
+	ttService, ut := newTrainingTaskService()
 	userId := uint(1)
 	tdId := uint(1)
 	ttId := uint(1)
@@ -182,18 +198,18 @@ func TestTrainingTaskService_GetByID_Training(t *testing.T) {
 		TrainingDatasetId: tdId,
 		Configuration:     "",
 	}
-	ttRepo.On("GetByID", ttId).Return(&tt, nil)
-	ttRepo.On("GetByType", ttId, models.Onnx).Return([]models.TrainingTaskResult{}, nil)
-	ttRepo.On("GetByType", ttId, models.Image).Return([]models.TrainingTaskResult{}, nil)
+	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
+	ut.TTRepo.On("GetByType", ttId, models.Onnx).Return([]models.TrainingTaskResult{}, nil)
+	ut.TTRepo.On("GetByType", ttId, models.Image).Return([]models.TrainingTaskResult{}, nil)
 
 	// Act
 	ttWithRes, err := ttService.GetByID(ttId)
 
 	// Assert
 	assert.NoError(t, err)
-	ttRepo.AssertCalled(t, "GetByID", ttId)
-	ttrRepo.AssertNotCalled(t, "GetByType", ttId, models.Onnx)
-	ttrRepo.AssertNotCalled(t, "GetByType", ttId, models.Image)
+	ut.TTRepo.AssertCalled(t, "GetByID", ttId)
+	ut.TTRRepo.AssertNotCalled(t, "GetByType", ttId, models.Onnx)
+	ut.TTRRepo.AssertNotCalled(t, "GetByType", ttId, models.Image)
 	assert.Equal(t, tt.Status, ttWithRes.TrainingTask.Status)
 	assert.Equal(t, []models.TrainingTaskResult(nil), ttWithRes.OnnxFiles)
 	assert.Equal(t, []models.TrainingTaskResult(nil), ttWithRes.ImageFiles)
@@ -201,7 +217,7 @@ func TestTrainingTaskService_GetByID_Training(t *testing.T) {
 
 func TestTrainingTaskService_GetByID_Benchmarking(t *testing.T) {
 	// Arrange
-	ttService, ttRepo, _, ttrRepo, _, _, _ := newTrainingTaskService()
+	ttService, ut := newTrainingTaskService()
 	userId := uint(1)
 	tdId := uint(1)
 	ttId := uint(1)
@@ -218,18 +234,18 @@ func TestTrainingTaskService_GetByID_Benchmarking(t *testing.T) {
 			Name: "file.onnx", Path: "./file.onnx", Size: 12312,
 		}, TrainingTaskId: ttId},
 	}
-	ttRepo.On("GetByID", ttId).Return(&tt, nil)
-	ttrRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
-	ttrRepo.On("GetByType", ttId, models.Image).Return([]models.TrainingTaskResult{}, nil)
+	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Image).Return([]models.TrainingTaskResult{}, nil)
 
 	// Act
 	ttWithRes, err := ttService.GetByID(ttId)
 
 	// Assert
 	assert.NoError(t, err)
-	ttRepo.AssertCalled(t, "GetByID", ttId)
-	ttrRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
-	ttrRepo.AssertNotCalled(t, "GetByType", ttId, models.Image)
+	ut.TTRepo.AssertCalled(t, "GetByID", ttId)
+	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
+	ut.TTRRepo.AssertNotCalled(t, "GetByType", ttId, models.Image)
 	assert.Equal(t, tt.Status, ttWithRes.TrainingTask.Status)
 	assert.True(t, reflect.DeepEqual(onnxFiles, ttWithRes.OnnxFiles))
 	assert.Equal(t, []models.TrainingTaskResult(nil), ttWithRes.ImageFiles)
@@ -237,7 +253,7 @@ func TestTrainingTaskService_GetByID_Benchmarking(t *testing.T) {
 
 func TestTrainingTaskService_GetByID_Completed(t *testing.T) {
 	// Arrange
-	ttService, ttRepo, _, ttrRepo, _, _, _ := newTrainingTaskService()
+	ttService, ut := newTrainingTaskService()
 	userId := uint(1)
 	tdId := uint(1)
 	ttId := uint(1)
@@ -259,18 +275,18 @@ func TestTrainingTaskService_GetByID_Completed(t *testing.T) {
 			Name: "file.png", Path: "./file.png", Size: 12312231,
 		}, TrainingTaskId: ttId},
 	}
-	ttRepo.On("GetByID", ttId).Return(&tt, nil)
-	ttrRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
-	ttrRepo.On("GetByType", ttId, models.Image).Return(imageFiles, nil)
+	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Image).Return(imageFiles, nil)
 
 	// Act
 	ttWithRes, err := ttService.GetByID(ttId)
 
 	// Assert
 	assert.NoError(t, err)
-	ttRepo.AssertCalled(t, "GetByID", ttId)
-	ttrRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
-	ttrRepo.AssertCalled(t, "GetByType", ttId, models.Image)
+	ut.TTRepo.AssertCalled(t, "GetByID", ttId)
+	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
+	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Image)
 	assert.Equal(t, tt.Status, ttWithRes.TrainingTask.Status)
 	assert.True(t, reflect.DeepEqual(onnxFiles, ttWithRes.OnnxFiles))
 	assert.True(t, reflect.DeepEqual(imageFiles, ttWithRes.ImageFiles))
@@ -278,7 +294,7 @@ func TestTrainingTaskService_GetByID_Completed(t *testing.T) {
 
 func TestTrainingTaskService_GetByID_Uploaded(t *testing.T) {
 	// Arrange
-	ttService, ttRepo, _, ttrRepo, _, _, _ := newTrainingTaskService()
+	ttService, ut := newTrainingTaskService()
 	userId := uint(1)
 	tdId := uint(1)
 	ttId := uint(1)
@@ -300,18 +316,18 @@ func TestTrainingTaskService_GetByID_Uploaded(t *testing.T) {
 			Name: "file.png", Path: "./file.png", Size: 12312231,
 		}, TrainingTaskId: ttId},
 	}
-	ttRepo.On("GetByID", ttId).Return(&tt, nil)
-	ttrRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
-	ttrRepo.On("GetByType", ttId, models.Image).Return(imageFiles, nil)
+	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Image).Return(imageFiles, nil)
 
 	// Act
 	ttWithRes, err := ttService.GetByID(ttId)
 
 	// Assert
 	assert.NoError(t, err)
-	ttRepo.AssertCalled(t, "GetByID", ttId)
-	ttrRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
-	ttrRepo.AssertCalled(t, "GetByType", ttId, models.Image)
+	ut.TTRepo.AssertCalled(t, "GetByID", ttId)
+	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
+	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Image)
 	assert.Equal(t, tt.Status, ttWithRes.TrainingTask.Status)
 	assert.True(t, reflect.DeepEqual(onnxFiles, ttWithRes.OnnxFiles))
 	assert.True(t, reflect.DeepEqual(imageFiles, ttWithRes.ImageFiles))
@@ -324,7 +340,7 @@ func (m mockReadCloser) Close() error               { return nil }
 
 func TestTrainingTaskService_UploadToCCDB_Success(t *testing.T) {
 	// Arrange
-	ttService, ttRepo, _, ttrRepo, ccdbService, fileService, _ := newTrainingTaskService()
+	ttService, ut := newTrainingTaskService()
 	userId := uint(1)
 	tdId := uint(1)
 	ttId := uint(1)
@@ -350,42 +366,42 @@ func TestTrainingTaskService_UploadToCCDB_Success(t *testing.T) {
 			Name: "local_file_temp.onnx", Path: "./local_file_temp.onnx", Size: 12312,
 		}, TrainingTaskId: ttId},
 	}
-	ttRepo.On("GetByID", ttId).Return(&tt, nil)
-	ttRepo.On("Update", &tt).Return(nil)
-	ttrRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
+	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
+	ut.TTRepo.On("Update", &tt).Return(nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
 	file := &mockReadCloser{}
-	fileService.On("OpenFile", "./local_file_temp.onnx").Return(file, func(r io.ReadCloser) { r.Close() }, nil)
+	ut.FileService.On("OpenFile", "./local_file_temp.onnx").Return(file, func(r io.ReadCloser) { r.Close() }, nil)
 	now := time.Now().UnixMilli()
-	ccdbService.On("GetRunInformation", uint64(321321)).Return(&ccdb.RunInformation{
+	ut.CCDBService.On("GetRunInformation", uint64(321321)).Return(&ccdb.RunInformation{
 		RunNumber: 321321,
 		SOR:       uint64(now - 10000),
 		EOR:       uint64(now - 9000),
 	}, nil)
-	ccdbService.On("GetRunInformation", uint64(321338)).Return(&ccdb.RunInformation{
+	ut.CCDBService.On("GetRunInformation", uint64(321338)).Return(&ccdb.RunInformation{
 		RunNumber: 321338,
 		SOR:       uint64(now + 7000),
 		EOR:       uint64(now + 10000),
 	}, nil)
-	ccdbService.On("UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file).Return(nil)
+	ut.CCDBService.On("UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file).Return(nil)
 
 	// Act
 	err := ttService.UploadOnnxResults(ttId)
 
 	// Assert
 	assert.NoError(t, err)
-	ttRepo.AssertCalled(t, "GetByID", ttId)
-	ttRepo.AssertCalled(t, "Update", &tt)
+	ut.TTRepo.AssertCalled(t, "GetByID", ttId)
+	ut.TTRepo.AssertCalled(t, "Update", &tt)
 	assert.Equal(t, models.Uploaded, tt.Status)
-	ttrRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
-	fileService.AssertCalled(t, "OpenFile", "./local_file_temp.onnx")
-	ccdbService.AssertCalled(t, "GetRunInformation", uint64(321321))
-	ccdbService.AssertCalled(t, "GetRunInformation", uint64(321338))
-	ccdbService.AssertCalled(t, "UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file)
+	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
+	ut.FileService.AssertCalled(t, "OpenFile", "./local_file_temp.onnx")
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321321))
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321338))
+	ut.CCDBService.AssertCalled(t, "UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file)
 }
 
 func TestTrainingTaskService_UploadToCCDB_MissingExpectedFile(t *testing.T) {
 	// Arrange
-	ttService, ttRepo, _, ttrRepo, ccdbService, fileService, _ := newTrainingTaskService()
+	ttService, ut := newTrainingTaskService()
 	userId := uint(1)
 	tdId := uint(1)
 	ttId := uint(1)
@@ -411,23 +427,23 @@ func TestTrainingTaskService_UploadToCCDB_MissingExpectedFile(t *testing.T) {
 			Name: "local_file_temp.onnx", Path: "./local_file_temp.onnx", Size: 12312,
 		}, TrainingTaskId: ttId},
 	}
-	ttRepo.On("GetByID", ttId).Return(&tt, nil)
-	ttRepo.On("Update", &tt).Return(nil)
-	ttrRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
+	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
+	ut.TTRepo.On("Update", &tt).Return(nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
 	file := &mockReadCloser{}
-	fileService.On("OpenFile", "./local_file_temp.onnx").Return(file, func(r io.ReadCloser) { r.Close() }, nil)
+	ut.FileService.On("OpenFile", "./local_file_temp.onnx").Return(file, func(r io.ReadCloser) { r.Close() }, nil)
 	now := time.Now().UnixMilli()
-	ccdbService.On("GetRunInformation", uint64(321321)).Return(&ccdb.RunInformation{
+	ut.CCDBService.On("GetRunInformation", uint64(321321)).Return(&ccdb.RunInformation{
 		RunNumber: 321321,
 		SOR:       uint64(now - 10000),
 		EOR:       uint64(now - 9000),
 	}, nil)
-	ccdbService.On("GetRunInformation", uint64(321338)).Return(&ccdb.RunInformation{
+	ut.CCDBService.On("GetRunInformation", uint64(321338)).Return(&ccdb.RunInformation{
 		RunNumber: 321338,
 		SOR:       uint64(now + 7000),
 		EOR:       uint64(now + 10000),
 	}, nil)
-	ccdbService.On("UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file).Return(nil)
+	ut.CCDBService.On("UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file).Return(nil)
 
 	// Act
 	err := ttService.UploadOnnxResults(ttId)
@@ -435,18 +451,18 @@ func TestTrainingTaskService_UploadToCCDB_MissingExpectedFile(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "TrainingTask's result file: local_file.onnx not found")
-	ttRepo.AssertCalled(t, "GetByID", ttId)
-	ttRepo.AssertNotCalled(t, "Update", &tt)
-	ttrRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
-	fileService.AssertNotCalled(t, "OpenFile", "./local_file_temp.onnx")
-	ccdbService.AssertCalled(t, "GetRunInformation", uint64(321321))
-	ccdbService.AssertCalled(t, "GetRunInformation", uint64(321338))
-	ccdbService.AssertNotCalled(t, "UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file)
+	ut.TTRepo.AssertCalled(t, "GetByID", ttId)
+	ut.TTRepo.AssertNotCalled(t, "Update", &tt)
+	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
+	ut.FileService.AssertNotCalled(t, "OpenFile", "./local_file_temp.onnx")
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321321))
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321338))
+	ut.CCDBService.AssertNotCalled(t, "UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file)
 }
 
 func TestTrainingTaskService_UploadToCCDB_ErrorReadingFile(t *testing.T) {
 	// Arrange
-	ttService, ttRepo, _, ttrRepo, ccdbService, fileService, _ := newTrainingTaskService()
+	ttService, ut := newTrainingTaskService()
 	userId := uint(1)
 	tdId := uint(1)
 	ttId := uint(1)
@@ -472,23 +488,23 @@ func TestTrainingTaskService_UploadToCCDB_ErrorReadingFile(t *testing.T) {
 			Name: "local_file_temp.onnx", Path: "./local_file_temp.onnx", Size: 12312,
 		}, TrainingTaskId: ttId},
 	}
-	ttRepo.On("GetByID", ttId).Return(&tt, nil)
-	ttRepo.On("Update", &tt).Return(nil)
-	ttrRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
+	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
+	ut.TTRepo.On("Update", &tt).Return(nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
 	file := &mockReadCloser{}
-	fileService.On("OpenFile", "./local_file_temp.onnx").Return(nil, nil, errors.New("error reading file"))
+	ut.FileService.On("OpenFile", "./local_file_temp.onnx").Return(nil, nil, errors.New("error reading file"))
 	now := time.Now().UnixMilli()
-	ccdbService.On("GetRunInformation", uint64(321321)).Return(&ccdb.RunInformation{
+	ut.CCDBService.On("GetRunInformation", uint64(321321)).Return(&ccdb.RunInformation{
 		RunNumber: 321321,
 		SOR:       uint64(now - 10000),
 		EOR:       uint64(now - 9000),
 	}, nil)
-	ccdbService.On("GetRunInformation", uint64(321338)).Return(&ccdb.RunInformation{
+	ut.CCDBService.On("GetRunInformation", uint64(321338)).Return(&ccdb.RunInformation{
 		RunNumber: 321338,
 		SOR:       uint64(now + 7000),
 		EOR:       uint64(now + 10000),
 	}, nil)
-	ccdbService.On("UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file).Return(nil)
+	ut.CCDBService.On("UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file).Return(nil)
 
 	// Act
 	err := ttService.UploadOnnxResults(ttId)
@@ -496,11 +512,11 @@ func TestTrainingTaskService_UploadToCCDB_ErrorReadingFile(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error reading file")
-	ttRepo.AssertCalled(t, "GetByID", ttId)
-	ttRepo.AssertNotCalled(t, "Update", &tt)
-	ttrRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
-	fileService.AssertCalled(t, "OpenFile", "./local_file_temp.onnx")
-	ccdbService.AssertCalled(t, "GetRunInformation", uint64(321321))
-	ccdbService.AssertCalled(t, "GetRunInformation", uint64(321338))
-	ccdbService.AssertNotCalled(t, "UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file)
+	ut.TTRepo.AssertCalled(t, "GetByID", ttId)
+	ut.TTRepo.AssertNotCalled(t, "Update", &tt)
+	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
+	ut.FileService.AssertCalled(t, "OpenFile", "./local_file_temp.onnx")
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321321))
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321338))
+	ut.CCDBService.AssertNotCalled(t, "UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file)
 }
