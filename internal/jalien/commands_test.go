@@ -29,7 +29,7 @@ func TestParseLongFormat(t *testing.T) {
 		},
 		{
 			name:  "Valid directory line",
-			input: "drwxr-xr-x user group 4096 Feb 15 08:00 somedir",
+			input: "drwxr-xr-x user group 4096 Feb 15 08:00 somedir/",
 			want: &longFormatParsed{
 				Permissions: "drwxr-xr-x",
 				Owner:       "user",
@@ -38,7 +38,7 @@ func TestParseLongFormat(t *testing.T) {
 				Month:       "Feb",
 				Day:         "15",
 				Time:        "08:00",
-				Name:        "somedir",
+				Name:        "somedir/",
 				IsDir:       true,
 			},
 			wantErr: false,

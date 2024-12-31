@@ -176,7 +176,7 @@ func ListAndParseDirectory(path string) (*DirectoryContents, error) {
 
 		if lineParsed.IsDir {
 			dirContents.Subdirs = append(dirContents.Subdirs, Dir{
-				Name: lineParsed.Name,
+				Name: strings.TrimSuffix(lineParsed.Name, "/"),
 				Path: linePath,
 			})
 		} else if lineParsed.Name == aodFilename {

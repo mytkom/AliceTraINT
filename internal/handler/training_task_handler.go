@@ -172,10 +172,10 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func InitTrainingTaskRoutes(mux *http.ServeMux, env *environment.Env, ccdbService service.ICCDBService, fileService service.IFileService, nnArch service.INNArchService) {
+func InitTrainingTaskRoutes(mux *http.ServeMux, env *environment.Env, ccdbService service.ICCDBService, jalienService service.IJAliEnService, fileService service.IFileService, nnArch service.INNArchService) {
 	prefix := "training-tasks"
 
-	ttService := service.NewTrainingTaskService(env.RepositoryContext, ccdbService, fileService, nnArch)
+	ttService := service.NewTrainingTaskService(env.RepositoryContext, ccdbService, jalienService, fileService, nnArch)
 	tjh := NewTrainingTaskHandler(env, ttService)
 
 	authMw := middleware.NewAuthMw(env.IAuthService, true)

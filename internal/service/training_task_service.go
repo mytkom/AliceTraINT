@@ -4,10 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
+	"slices"
+	"strconv"
 
 	"github.com/mytkom/AliceTraINT/internal/ccdb"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
+	"github.com/mytkom/AliceTraINT/internal/jalien"
 	"gorm.io/gorm"
 )
 
@@ -32,17 +36,21 @@ type ITrainingTaskService interface {
 
 type TrainingTaskService struct {
 	*repository.RepositoryContext
-	CCDBService ICCDBService
-	FileService IFileService
-	NNArch      INNArchService
+	CCDBService   ICCDBService
+	JAliEnService IJAliEnService
+	FileService   IFileService
+	NNArch        INNArchService
+	PeriodRegex   *regexp.Regexp
 }
 
-func NewTrainingTaskService(repo *repository.RepositoryContext, ccdbService ICCDBService, fileService IFileService, nnArch INNArchService) *TrainingTaskService {
+func NewTrainingTaskService(repo *repository.RepositoryContext, ccdbService ICCDBService, jalienService IJAliEnService, fileService IFileService, nnArch INNArchService) *TrainingTaskService {
 	return &TrainingTaskService{
 		RepositoryContext: repo,
 		CCDBService:       ccdbService,
+		JAliEnService:     jalienService,
 		FileService:       fileService,
 		NNArch:            nnArch,
+		PeriodRegex:       regexp.MustCompile(`(/alice/sim/\d{4}/LHC[a-z0-9A-Z\_].+(/\d+)?)/\d+/AOD/\d+`),
 	}
 }
 
@@ -152,14 +160,41 @@ func (s *TrainingTaskService) UploadOnnxResults(id uint) error {
 		}
 	}
 
-	smallestRun, greatestRun, err := s.findRunNumberRange(trainingTask)
+	lhcPeriods, err := s.getLHCPeriods(trainingTask)
 	if err != nil {
 		return err
 	}
 
-	firstRunInfo, lastRunInfo, err := s.getRunInfoRange(smallestRun, greatestRun)
-	if err != nil {
-		return err
+	var minSOR, maxEOR uint64
+	initialized := false
+
+	for i, period := range lhcPeriods {
+		log.Printf("%d: Name=\"%s\" DirPath=\"%s\"", i, period.Name, period.DirPath)
+
+		dirContents, err := s.JAliEnService.ListAndParseDirectory(period.DirPath)
+		if err != nil {
+			return err
+		}
+
+		smallestRun, greatestRun, err := s.findRunNumberRange(dirContents.Subdirs)
+		if err != nil {
+			return err
+		}
+
+		firstRunInfo, lastRunInfo, err := s.getRunInfoRange(smallestRun, greatestRun)
+		if err != nil {
+			return err
+		}
+
+		if !initialized || firstRunInfo.SOR < minSOR {
+			minSOR = firstRunInfo.SOR
+		}
+
+		if !initialized || lastRunInfo.EOR > maxEOR {
+			maxEOR = lastRunInfo.EOR
+		}
+
+		initialized = true
 	}
 
 	mappedOnnxFiles, err := s.filterOnnxFiles(trainingTask.ID)
@@ -168,7 +203,7 @@ func (s *TrainingTaskService) UploadOnnxResults(id uint) error {
 	}
 
 	for uploadName, file := range mappedOnnxFiles {
-		if err := s.uploadOnnxFile(firstRunInfo.SOR, lastRunInfo.EOR, file, uploadName); err != nil {
+		if err := s.uploadOnnxFile(minSOR, maxEOR, file, uploadName); err != nil {
 			return err
 		}
 	}
@@ -181,16 +216,65 @@ func (s *TrainingTaskService) UploadOnnxResults(id uint) error {
 	return nil
 }
 
-func (s *TrainingTaskService) findRunNumberRange(task *models.TrainingTask) (uint64, uint64, error) {
-	var smallestRun, greatestRun uint64
+type lhcPeriod struct {
+	Name    string
+	DirPath string
+}
+
+func (s *TrainingTaskService) periodPathFromAODPath(aodPath string) (string, error) {
+	matches := s.PeriodRegex.FindStringSubmatch(aodPath)
+
+	if len(matches) != 3 {
+		return "", errors.New("unexpected AOD path format, cannot correctly match")
+	}
+
+	return matches[1], nil
+}
+
+func (s *TrainingTaskService) getLHCPeriods(task *models.TrainingTask) ([]lhcPeriod, error) {
+	var periods []lhcPeriod
 	initialized := false
 
 	for _, aod := range task.TrainingDataset.AODFiles {
-		if !initialized || aod.RunNumber < smallestRun {
-			smallestRun = aod.RunNumber
+		if !slices.ContainsFunc(periods, func(p lhcPeriod) bool {
+			return p.Name == aod.LHCPeriod
+		}) {
+			periodPath, err := s.periodPathFromAODPath(aod.Path)
+			if err != nil {
+				return nil, err
+			}
+
+			periods = append(periods, lhcPeriod{
+				Name:    aod.LHCPeriod,
+				DirPath: periodPath,
+			})
 		}
-		if !initialized || aod.RunNumber > greatestRun {
-			greatestRun = aod.RunNumber
+		initialized = true
+	}
+
+	if !initialized {
+		return nil, errors.New("unexpected behaviour: empty training dataset")
+	}
+
+	return periods, nil
+}
+
+func (s *TrainingTaskService) findRunNumberRange(subdirs []jalien.Dir) (uint64, uint64, error) {
+	var smallestRun, greatestRun uint64
+	initialized := false
+
+	for _, dir := range subdirs {
+		runNumber, err := strconv.ParseUint(dir.Name, 10, 64)
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
+
+		if !initialized || runNumber < smallestRun {
+			smallestRun = runNumber
+		}
+		if !initialized || runNumber > greatestRun {
+			greatestRun = runNumber
 		}
 		initialized = true
 	}
