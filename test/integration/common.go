@@ -74,7 +74,7 @@ func mockRouter(db *gorm.DB, cfg *config.Config) *IntegrationTestUtils {
 	// handlers' routes
 	handler.InitLandingRoutes(mux, env)
 	handler.InitTrainingDatasetRoutes(mux, env, jalienService)
-	handler.InitTrainingTaskRoutes(mux, env, ccdbService, fileService, nnArch)
+	handler.InitTrainingTaskRoutes(mux, env, ccdbService, jalienService, fileService, nnArch)
 	handler.InitTrainingMachineRoutes(mux, env, hasher)
 	handler.InitQueueRoutes(mux, env, fileService, hasher)
 

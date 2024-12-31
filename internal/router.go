@@ -40,7 +40,7 @@ func NewRouter(cfg *config.Config, repoContext *repository.RepositoryContext, au
 	// handlers' routes
 	handler.InitLandingRoutes(mux, env)
 	handler.InitTrainingDatasetRoutes(mux, env, jalienService)
-	handler.InitTrainingTaskRoutes(mux, env, ccdbService, fileService, nnArch)
+	handler.InitTrainingTaskRoutes(mux, env, ccdbService, jalienService, fileService, nnArch)
 	handler.InitTrainingMachineRoutes(mux, env, hasher)
 	handler.InitQueueRoutes(mux, env, fileService, hasher)
 

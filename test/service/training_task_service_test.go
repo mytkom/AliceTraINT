@@ -18,18 +18,20 @@ import (
 )
 
 type trainingTaskServiceTestUtils struct {
-	TTRepo      *repository.MockTrainingTaskRepository
-	TDRepo      *repository.MockTrainingDatasetRepository
-	TTRRepo     *repository.MockTrainingTaskResultRepository
-	CCDBService *service.MockCCDBService
-	FileService *service.MockFileService
-	NNArch      *service.NNArchServiceInMemory
+	TTRepo        *repository.MockTrainingTaskRepository
+	TDRepo        *repository.MockTrainingDatasetRepository
+	TTRRepo       *repository.MockTrainingTaskResultRepository
+	CCDBService   *service.MockCCDBService
+	JAliEnService *service.MockJAliEnService
+	FileService   *service.MockFileService
+	NNArch        *service.NNArchServiceInMemory
 }
 
 func newTrainingTaskService() (*service.TrainingTaskService, *trainingTaskServiceTestUtils) {
 	ttRepo := repository.NewMockTrainingTaskRepository()
 	tdRepo := repository.NewMockTrainingDatasetRepository()
 	ttrRepo := repository.NewMockTrainingTaskResultRepository()
+	jalienService := service.NewMockJAliEnService()
 	ccdbService := service.NewMockCCDBService()
 	fileService := service.NewMockFileService()
 	nnArch := service.NewNNArchServiceInMemory(&service.NNFieldConfigs{
@@ -52,13 +54,14 @@ func newTrainingTaskService() (*service.TrainingTaskService, *trainingTaskServic
 			TrainingTask:       ttRepo,
 			TrainingDataset:    tdRepo,
 			TrainingTaskResult: ttrRepo,
-		}, ccdbService, fileService, nnArch), &trainingTaskServiceTestUtils{
-			TTRepo:      ttRepo,
-			TDRepo:      tdRepo,
-			TTRRepo:     ttrRepo,
-			CCDBService: ccdbService,
-			FileService: fileService,
-			NNArch:      nnArch,
+		}, ccdbService, jalienService, fileService, nnArch), &trainingTaskServiceTestUtils{
+			TTRepo:        ttRepo,
+			TDRepo:        tdRepo,
+			TTRRepo:       ttrRepo,
+			CCDBService:   ccdbService,
+			JAliEnService: jalienService,
+			FileService:   fileService,
+			NNArch:        nnArch,
 		}
 }
 
@@ -338,7 +341,7 @@ type mockReadCloser struct{}
 func (m mockReadCloser) Read(p []byte) (int, error) { return 0, nil }
 func (m mockReadCloser) Close() error               { return nil }
 
-func TestTrainingTaskService_UploadToCCDB_Success(t *testing.T) {
+func TestTrainingTaskService_UploadToCCDB_OnePeriod(t *testing.T) {
 	// Arrange
 	ttService, ut := newTrainingTaskService()
 	userId := uint(1)
@@ -354,9 +357,9 @@ func TestTrainingTaskService_UploadToCCDB_Success(t *testing.T) {
 			Model:  gorm.Model{ID: tdId},
 			UserId: userId,
 			AODFiles: []jalien.AODFile{
-				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/AOD/002/321321", RunNumber: 321321, LHCPeriod: "LHC24f3", AODNumber: 2},
-				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/AOD/002/321326", RunNumber: 321326, LHCPeriod: "LHC24f3", AODNumber: 2},
-				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/AOD/002/321338", RunNumber: 321338, LHCPeriod: "LHC24f3", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/321321/AOD/002", RunNumber: 321321, LHCPeriod: "LHC24f3", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/321326/AOD/002", RunNumber: 321326, LHCPeriod: "LHC24f3", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/321338/AOD/002", RunNumber: 321338, LHCPeriod: "LHC24f3", AODNumber: 2},
 			},
 		},
 		Configuration: "",
@@ -371,14 +374,25 @@ func TestTrainingTaskService_UploadToCCDB_Success(t *testing.T) {
 	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
 	file := &mockReadCloser{}
 	ut.FileService.On("OpenFile", "./local_file_temp.onnx").Return(file, func(r io.ReadCloser) { r.Close() }, nil)
+	ut.JAliEnService.On("ListAndParseDirectory", "/alice/sim/2024/LHC24f3/0").Return(&jalien.DirectoryContents{
+		Subdirs: []jalien.Dir{
+			{Name: "321000", Path: "/alice/sim/2024/LHC24f3/0/321000"},
+			{Name: "321100", Path: "/alice/sim/2024/LHC24f3/0/321100"},
+			{Name: "321321", Path: "/alice/sim/2024/LHC24f3/0/321321"},
+			{Name: "321326", Path: "/alice/sim/2024/LHC24f3/0/321326"},
+			{Name: "321338", Path: "/alice/sim/2024/LHC24f3/0/321338"},
+			{Name: "321400", Path: "/alice/sim/2024/LHC24f3/0/321400"},
+			{Name: "321500", Path: "/alice/sim/2024/LHC24f3/0/321500"},
+		},
+	}, nil)
 	now := time.Now().UnixMilli()
-	ut.CCDBService.On("GetRunInformation", uint64(321321)).Return(&ccdb.RunInformation{
-		RunNumber: 321321,
+	ut.CCDBService.On("GetRunInformation", uint64(321000)).Return(&ccdb.RunInformation{
+		RunNumber: 321000,
 		SOR:       uint64(now - 10000),
 		EOR:       uint64(now - 9000),
 	}, nil)
-	ut.CCDBService.On("GetRunInformation", uint64(321338)).Return(&ccdb.RunInformation{
-		RunNumber: 321338,
+	ut.CCDBService.On("GetRunInformation", uint64(321500)).Return(&ccdb.RunInformation{
+		RunNumber: 321500,
 		SOR:       uint64(now + 7000),
 		EOR:       uint64(now + 10000),
 	}, nil)
@@ -394,9 +408,147 @@ func TestTrainingTaskService_UploadToCCDB_Success(t *testing.T) {
 	assert.Equal(t, models.Uploaded, tt.Status)
 	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
 	ut.FileService.AssertCalled(t, "OpenFile", "./local_file_temp.onnx")
-	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321321))
-	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321338))
+	ut.JAliEnService.AssertCalled(t, "ListAndParseDirectory", "/alice/sim/2024/LHC24f3/0")
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321000))
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321500))
 	ut.CCDBService.AssertCalled(t, "UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file)
+}
+
+// 3 different periods in one dataset
+// expected: take min SOR and max EOR from all periods' runs
+func TestTrainingTaskService_UploadToCCDB_ManyPeriods(t *testing.T) {
+	// Arrange
+	ttService, ut := newTrainingTaskService()
+	userId := uint(1)
+	tdId := uint(1)
+	ttId := uint(1)
+	tt := models.TrainingTask{
+		Model:             gorm.Model{ID: ttId},
+		Name:              "task2",
+		UserId:            userId,
+		Status:            models.Completed,
+		TrainingDatasetId: tdId,
+		TrainingDataset: models.TrainingDataset{
+			Model:  gorm.Model{ID: tdId},
+			UserId: userId,
+			AODFiles: []jalien.AODFile{
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24b1b/0/320000/AOD/002", RunNumber: 320000, LHCPeriod: "LHC24b1b", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24b1b/0/320100/AOD/002", RunNumber: 320100, LHCPeriod: "LHC24b1b", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24b1b/0/320200/AOD/002", RunNumber: 320200, LHCPeriod: "LHC24b1b", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/321321/AOD/002", RunNumber: 321321, LHCPeriod: "LHC24f3", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/321326/AOD/002", RunNumber: 321326, LHCPeriod: "LHC24f3", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/321338/AOD/002", RunNumber: 321338, LHCPeriod: "LHC24f3", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24c1/322000/AOD/002", RunNumber: 322000, LHCPeriod: "LHC24c1", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24c1/322100/AOD/002", RunNumber: 322100, LHCPeriod: "LHC24c1", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24c1/322200/AOD/002", RunNumber: 322200, LHCPeriod: "LHC24c1", AODNumber: 2},
+			},
+		},
+		Configuration: "",
+	}
+	onnxFiles := []models.TrainingTaskResult{
+		{Name: "local_file.onnx", Type: models.Onnx, Description: "example", FileId: 1, File: models.File{
+			Name: "local_file_temp.onnx", Path: "./local_file_temp.onnx", Size: 12312,
+		}, TrainingTaskId: ttId},
+	}
+
+	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
+	ut.TTRepo.On("Update", &tt).Return(nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
+
+	file := &mockReadCloser{}
+	ut.FileService.On("OpenFile", "./local_file_temp.onnx").Return(file, func(r io.ReadCloser) { r.Close() }, nil)
+
+	// Mock JAliEn and CCDB with timestamp information
+	now := time.Now().UnixMilli()
+	// LHC24b1b
+	ut.JAliEnService.On("ListAndParseDirectory", "/alice/sim/2024/LHC24b1b/0").Return(&jalien.DirectoryContents{
+		Subdirs: []jalien.Dir{
+			{Name: "319900", Path: "/alice/sim/2024/LHC24b1b/0/319900"}, // min run number LHC24b1b
+			{Name: "320000", Path: "/alice/sim/2024/LHC24b1b/0/320000"},
+			{Name: "320100", Path: "/alice/sim/2024/LHC24b1b/0/320100"},
+			{Name: "320200", Path: "/alice/sim/2024/LHC24b1b/0/320200"},
+			{Name: "320300", Path: "/alice/sim/2024/LHC24b1b/0/320300"}, // max run number LHC24b1b
+		},
+	}, nil)
+	ut.CCDBService.On("GetRunInformation", uint64(319900)).Return(&ccdb.RunInformation{
+		RunNumber: 319900,
+		SOR:       uint64(now - 20000),
+		EOR:       uint64(now - 19000),
+	}, nil)
+	ut.CCDBService.On("GetRunInformation", uint64(320300)).Return(&ccdb.RunInformation{
+		RunNumber: 320300,
+		SOR:       uint64(now - 12000),
+		EOR:       uint64(now - 11000),
+	}, nil)
+	// LHC24f3
+	ut.JAliEnService.On("ListAndParseDirectory", "/alice/sim/2024/LHC24f3/0").Return(&jalien.DirectoryContents{
+		Subdirs: []jalien.Dir{
+			{Name: "321000", Path: "/alice/sim/2024/LHC24f3/0/321000"}, // min run number LHC24f3
+			{Name: "321321", Path: "/alice/sim/2024/LHC24f3/0/321321"},
+			{Name: "321326", Path: "/alice/sim/2024/LHC24f3/0/321326"},
+			{Name: "321338", Path: "/alice/sim/2024/LHC24f3/0/321338"},
+			{Name: "321500", Path: "/alice/sim/2024/LHC24f3/0/321500"}, // max run number LHC24f3
+		},
+	}, nil)
+	ut.CCDBService.On("GetRunInformation", uint64(321000)).Return(&ccdb.RunInformation{
+		RunNumber: 321000,
+		SOR:       uint64(now - 10000),
+		EOR:       uint64(now - 9000),
+	}, nil)
+	ut.CCDBService.On("GetRunInformation", uint64(321500)).Return(&ccdb.RunInformation{
+		RunNumber: 321500,
+		SOR:       uint64(now - 2000),
+		EOR:       uint64(now - 1000),
+	}, nil)
+	// LHC24c1
+	// 	simulate 2023 datasets (without numbered subdir in period dir)
+	ut.JAliEnService.On("ListAndParseDirectory", "/alice/sim/2024/LHC24c1").Return(&jalien.DirectoryContents{
+		Subdirs: []jalien.Dir{
+			{Name: "321900", Path: "/alice/sim/2024/LHC24c1/321900"}, // min run number LHC24c1
+			{Name: "322000", Path: "/alice/sim/2024/LHC24c1/322000"},
+			{Name: "322100", Path: "/alice/sim/2024/LHC24c1/322100"},
+			{Name: "322200", Path: "/alice/sim/2024/LHC24c1/322200"},
+			{Name: "322300", Path: "/alice/sim/2024/LHC24c1/322300"}, // max run number LHC24c1
+		},
+	}, nil)
+	ut.CCDBService.On("GetRunInformation", uint64(321900)).Return(&ccdb.RunInformation{
+		RunNumber: 321900,
+		SOR:       uint64(now),
+		EOR:       uint64(now + 1000),
+	}, nil)
+	ut.CCDBService.On("GetRunInformation", uint64(322300)).Return(&ccdb.RunInformation{
+		RunNumber: 322300,
+		SOR:       uint64(now + 9000),
+		EOR:       uint64(now + 10000),
+	}, nil)
+
+	// TODO b1b and c1
+	ut.CCDBService.On("UploadFile", uint64(now-20000), uint64(now+10000), "uploaded_file.onnx", file).Return(nil)
+
+	// Act
+	err := ttService.UploadOnnxResults(ttId)
+
+	// Assert
+	assert.NoError(t, err)
+	ut.TTRepo.AssertCalled(t, "GetByID", ttId)
+	ut.TTRepo.AssertCalled(t, "Update", &tt)
+	assert.Equal(t, models.Uploaded, tt.Status)
+	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
+	ut.FileService.AssertCalled(t, "OpenFile", "./local_file_temp.onnx")
+	// LHC24b1b info
+	ut.JAliEnService.AssertCalled(t, "ListAndParseDirectory", "/alice/sim/2024/LHC24b1b/0")
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(319900))
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(320300))
+	// LHC24f3 info
+	ut.JAliEnService.AssertCalled(t, "ListAndParseDirectory", "/alice/sim/2024/LHC24f3/0")
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321000))
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321500))
+	// LHC24c1 info
+	ut.JAliEnService.AssertCalled(t, "ListAndParseDirectory", "/alice/sim/2024/LHC24c1")
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321900))
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(322300))
+	// Upload
+	ut.CCDBService.AssertCalled(t, "UploadFile", uint64(now-20000), uint64(now+10000), "uploaded_file.onnx", file)
 }
 
 func TestTrainingTaskService_UploadToCCDB_MissingExpectedFile(t *testing.T) {
@@ -415,9 +567,9 @@ func TestTrainingTaskService_UploadToCCDB_MissingExpectedFile(t *testing.T) {
 			Model:  gorm.Model{ID: tdId},
 			UserId: userId,
 			AODFiles: []jalien.AODFile{
-				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/AOD/002/321321", RunNumber: 321321, LHCPeriod: "LHC24f3", AODNumber: 2},
-				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/AOD/002/321326", RunNumber: 321326, LHCPeriod: "LHC24f3", AODNumber: 2},
-				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/AOD/002/321338", RunNumber: 321338, LHCPeriod: "LHC24f3", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/321321/AOD/002", RunNumber: 321321, LHCPeriod: "LHC24f3", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/321326/AOD/002", RunNumber: 321326, LHCPeriod: "LHC24f3", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/321338/AOD/002", RunNumber: 321338, LHCPeriod: "LHC24f3", AODNumber: 2},
 			},
 		},
 		Configuration: "",
@@ -432,14 +584,25 @@ func TestTrainingTaskService_UploadToCCDB_MissingExpectedFile(t *testing.T) {
 	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
 	file := &mockReadCloser{}
 	ut.FileService.On("OpenFile", "./local_file_temp.onnx").Return(file, func(r io.ReadCloser) { r.Close() }, nil)
+	ut.JAliEnService.On("ListAndParseDirectory", "/alice/sim/2024/LHC24f3/0").Return(&jalien.DirectoryContents{
+		Subdirs: []jalien.Dir{
+			{Name: "321000", Path: "/alice/sim/2024/LHC24f3/0/321000"},
+			{Name: "321100", Path: "/alice/sim/2024/LHC24f3/0/321100"},
+			{Name: "321321", Path: "/alice/sim/2024/LHC24f3/0/321321"},
+			{Name: "321326", Path: "/alice/sim/2024/LHC24f3/0/321326"},
+			{Name: "321338", Path: "/alice/sim/2024/LHC24f3/0/321338"},
+			{Name: "321400", Path: "/alice/sim/2024/LHC24f3/0/321400"},
+			{Name: "321500", Path: "/alice/sim/2024/LHC24f3/0/321500"},
+		},
+	}, nil)
 	now := time.Now().UnixMilli()
-	ut.CCDBService.On("GetRunInformation", uint64(321321)).Return(&ccdb.RunInformation{
-		RunNumber: 321321,
+	ut.CCDBService.On("GetRunInformation", uint64(321000)).Return(&ccdb.RunInformation{
+		RunNumber: 321000,
 		SOR:       uint64(now - 10000),
 		EOR:       uint64(now - 9000),
 	}, nil)
-	ut.CCDBService.On("GetRunInformation", uint64(321338)).Return(&ccdb.RunInformation{
-		RunNumber: 321338,
+	ut.CCDBService.On("GetRunInformation", uint64(321500)).Return(&ccdb.RunInformation{
+		RunNumber: 321500,
 		SOR:       uint64(now + 7000),
 		EOR:       uint64(now + 10000),
 	}, nil)
@@ -455,8 +618,9 @@ func TestTrainingTaskService_UploadToCCDB_MissingExpectedFile(t *testing.T) {
 	ut.TTRepo.AssertNotCalled(t, "Update", &tt)
 	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
 	ut.FileService.AssertNotCalled(t, "OpenFile", "./local_file_temp.onnx")
-	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321321))
-	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321338))
+	ut.JAliEnService.AssertCalled(t, "ListAndParseDirectory", "/alice/sim/2024/LHC24f3/0")
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321000))
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321500))
 	ut.CCDBService.AssertNotCalled(t, "UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file)
 }
 
@@ -476,9 +640,9 @@ func TestTrainingTaskService_UploadToCCDB_ErrorReadingFile(t *testing.T) {
 			Model:  gorm.Model{ID: tdId},
 			UserId: userId,
 			AODFiles: []jalien.AODFile{
-				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/AOD/002/321321", RunNumber: 321321, LHCPeriod: "LHC24f3", AODNumber: 2},
-				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/AOD/002/321326", RunNumber: 321326, LHCPeriod: "LHC24f3", AODNumber: 2},
-				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/AOD/002/321338", RunNumber: 321338, LHCPeriod: "LHC24f3", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/321321/AOD/002", RunNumber: 321321, LHCPeriod: "LHC24f3", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/321326/AOD/002", RunNumber: 321326, LHCPeriod: "LHC24f3", AODNumber: 2},
+				{Name: "AO2D.root", Path: "/alice/sim/2024/LHC24f3/0/321338/AOD/002", RunNumber: 321338, LHCPeriod: "LHC24f3", AODNumber: 2},
 			},
 		},
 		Configuration: "",
@@ -493,14 +657,25 @@ func TestTrainingTaskService_UploadToCCDB_ErrorReadingFile(t *testing.T) {
 	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
 	file := &mockReadCloser{}
 	ut.FileService.On("OpenFile", "./local_file_temp.onnx").Return(nil, nil, errors.New("error reading file"))
+	ut.JAliEnService.On("ListAndParseDirectory", "/alice/sim/2024/LHC24f3/0").Return(&jalien.DirectoryContents{
+		Subdirs: []jalien.Dir{
+			{Name: "321000", Path: "/alice/sim/2024/LHC24f3/0/321000"},
+			{Name: "321100", Path: "/alice/sim/2024/LHC24f3/0/321100"},
+			{Name: "321321", Path: "/alice/sim/2024/LHC24f3/0/321321"},
+			{Name: "321326", Path: "/alice/sim/2024/LHC24f3/0/321326"},
+			{Name: "321338", Path: "/alice/sim/2024/LHC24f3/0/321338"},
+			{Name: "321400", Path: "/alice/sim/2024/LHC24f3/0/321400"},
+			{Name: "321500", Path: "/alice/sim/2024/LHC24f3/0/321500"},
+		},
+	}, nil)
 	now := time.Now().UnixMilli()
-	ut.CCDBService.On("GetRunInformation", uint64(321321)).Return(&ccdb.RunInformation{
-		RunNumber: 321321,
+	ut.CCDBService.On("GetRunInformation", uint64(321000)).Return(&ccdb.RunInformation{
+		RunNumber: 321000,
 		SOR:       uint64(now - 10000),
 		EOR:       uint64(now - 9000),
 	}, nil)
-	ut.CCDBService.On("GetRunInformation", uint64(321338)).Return(&ccdb.RunInformation{
-		RunNumber: 321338,
+	ut.CCDBService.On("GetRunInformation", uint64(321500)).Return(&ccdb.RunInformation{
+		RunNumber: 321500,
 		SOR:       uint64(now + 7000),
 		EOR:       uint64(now + 10000),
 	}, nil)
@@ -516,7 +691,8 @@ func TestTrainingTaskService_UploadToCCDB_ErrorReadingFile(t *testing.T) {
 	ut.TTRepo.AssertNotCalled(t, "Update", &tt)
 	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
 	ut.FileService.AssertCalled(t, "OpenFile", "./local_file_temp.onnx")
-	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321321))
-	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321338))
+	ut.JAliEnService.AssertCalled(t, "ListAndParseDirectory", "/alice/sim/2024/LHC24f3/0")
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321000))
+	ut.CCDBService.AssertCalled(t, "GetRunInformation", uint64(321500))
 	ut.CCDBService.AssertNotCalled(t, "UploadFile", uint64(now-10000), uint64(now+10000), "uploaded_file.onnx", file)
 }

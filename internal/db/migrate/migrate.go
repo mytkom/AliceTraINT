@@ -33,18 +33,87 @@ func SeedDB(db *gorm.DB) error {
 		return err
 	}
 
-	aods := []jalien.AODFile{{
-		Name:      "AO2D.root",
-		Path:      "/alice/sim/2024/LHC24b1b/0/567454/AOD/002/AO2D.root",
-		Size:      2312421213,
-		LHCPeriod: "LHC24b1b",
-		RunNumber: 567454,
-		AODNumber: 2,
-	}}
+	c1Aods := []jalien.AODFile{
+		{
+			Name:      "AO2D.root",
+			Path:      "/alice/sim/2023/LHC23c1/302004/AOD/010/AO2D.root",
+			Size:      3266476446,
+			LHCPeriod: "LHC23c1",
+			RunNumber: 302004,
+			AODNumber: 10,
+		},
+		{
+			Name:      "AO2D.root",
+			Path:      "/alice/sim/2023/LHC23c1/302004/AOD/011/AO2D.root",
+			Size:      3239114872,
+			LHCPeriod: "LHC23c1",
+			RunNumber: 302004,
+			AODNumber: 11,
+		},
+		{
+			Name:      "AO2D.root",
+			Path:      "/alice/sim/2023/LHC23c1/302004/AOD/013/AO2D.root",
+			Size:      3260265579,
+			LHCPeriod: "LHC23c1",
+			RunNumber: 302004,
+			AODNumber: 13,
+		},
+	}
+
+	mixedPeriodsAods := []jalien.AODFile{
+		{
+			Name:      "AO2D.root",
+			Path:      "/alice/sim/2023/LHC23c1/302004/AOD/010/AO2D.root",
+			Size:      3266476446,
+			LHCPeriod: "LHC23c1",
+			RunNumber: 302004,
+			AODNumber: 10,
+		},
+		{
+			Name:      "AO2D.root",
+			Path:      "/alice/sim/2023/LHC23c1/302004/AOD/011/AO2D.root",
+			Size:      3239114872,
+			LHCPeriod: "LHC23c1",
+			RunNumber: 302004,
+			AODNumber: 11,
+		},
+		{
+			Name:      "AO2D.root",
+			Path:      "/alice/sim/2023/LHC23c1/302004/AOD/013/AO2D.root",
+			Size:      3260265579,
+			LHCPeriod: "LHC23c1",
+			RunNumber: 302004,
+			AODNumber: 13,
+		},
+		{
+			Name:      "AO2D.root",
+			Path:      "/alice/sim/2023/LHC23e1/302002/AOD/013/AO2D.root",
+			Size:      35403114,
+			LHCPeriod: "LHC23e1",
+			RunNumber: 302002,
+			AODNumber: 13,
+		},
+		{
+			Name:      "AO2D.root",
+			Path:      "/alice/sim/2023/LHC23e1/302002/AOD/024/AO2D.root",
+			Size:      97906832,
+			LHCPeriod: "LHC23e1",
+			RunNumber: 302002,
+			AODNumber: 24,
+		},
+		{
+			Name:      "AO2D.root",
+			Path:      "/alice/sim/2023/LHC23e1/302002/AOD/030/AO2D.root",
+			Size:      175726295,
+			LHCPeriod: "LHC23e1",
+			RunNumber: 302002,
+			AODNumber: 30,
+		},
+	}
 
 	trainingDatasets := []models.TrainingDataset{
-		{Name: "LHC24b1b", AODFiles: aods, UserId: users[0].ID},
-		{Name: "LHC24b1b2", AODFiles: aods, UserId: users[1].ID},
+		{Name: "Mixed periods 2023", AODFiles: mixedPeriodsAods, UserId: users[0].ID},
+		{Name: "LHC23c1", AODFiles: c1Aods, UserId: users[1].ID},
 	}
 
 	if err := db.Save(trainingDatasets).Error; err != nil {
