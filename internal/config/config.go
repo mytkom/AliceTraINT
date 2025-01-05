@@ -22,12 +22,13 @@ type Config struct {
 }
 
 type DatabaseConfig struct {
-	Host     string
-	Port     uint
-	User     string
-	Password string
-	DBName   string
-	SSLMode  string
+	Host            string
+	Port            uint
+	User            string
+	Password        string
+	DBName          string
+	SSLMode         string
+	SSLRootCertPath string
 }
 
 func LoadConfig() *Config {
@@ -38,12 +39,13 @@ func LoadConfig() *Config {
 
 	return &Config{
 		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnvAsUint("DB_PORT", 5432),
-			User:     getEnv("DB_USER", "user"),
-			Password: getEnv("DB_PASSWORD", "password"),
-			DBName:   getEnv("DB_NAME", "AliceTraINT_db"),
-			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+			Host:            getEnv("DB_HOST", "localhost"),
+			Port:            getEnvAsUint("DB_PORT", 5432),
+			User:            getEnv("DB_USER", "user"),
+			Password:        getEnv("DB_PASSWORD", "password"),
+			DBName:          getEnv("DB_NAME", "AliceTraINT_db"),
+			SSLMode:         getEnv("DB_SSLMODE", "disable"),
+			SSLRootCertPath: getEnv("DB_SSL_CERT_PATH", ""),
 		},
 		Port:               getEnv("ALICETRAINT_PORT", "8088"),
 		JalienCacheMinutes: getEnvAsUint("ALICETRAINT_JALIEN_CACHE_MINUTES", 60),
@@ -57,10 +59,17 @@ func LoadConfig() *Config {
 }
 
 func (dbConfig *DatabaseConfig) ConnectionString() string {
-	return fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		dbConfig.Host, dbConfig.Port, dbConfig.User, dbConfig.Password, dbConfig.DBName, dbConfig.SSLMode,
-	)
+	if dbConfig.SSLMode == "disabled" {
+		return fmt.Sprintf(
+			"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+			dbConfig.Host, dbConfig.Port, dbConfig.User, dbConfig.Password, dbConfig.DBName, dbConfig.SSLMode,
+		)
+	} else {
+		return fmt.Sprintf(
+			"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s sslrootcert=%s",
+			dbConfig.Host, dbConfig.Port, dbConfig.User, dbConfig.Password, dbConfig.DBName, dbConfig.SSLMode, dbConfig.SSLRootCertPath,
+		)
+	}
 }
 
 func getEnv(key, defaultValue string) string {

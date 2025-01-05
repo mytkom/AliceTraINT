@@ -47,7 +47,7 @@
                             max="{{$spec.Max}}" step="{{$spec.Step}}" required>
                         {{else if eq $spec.Type "bool"}}
                         <input class="w-8 h-8 rounded-full text-gray-800" type="checkbox" id="{{$field}}"
-                            name="configuration.{{$field}}">
+                            name="configuration.{{$field}}" value="true">
                         {{else}}
                         <input class="w-40 text-lg rounded-lg text-gray-800" type="text" id="{{$field}}"
                             name="configuration.{{$field}}" value="{{$spec.DefaultValue}}" required>

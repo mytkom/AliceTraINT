@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/mytkom/AliceTraINT/internal/db/models"
+	"github.com/mytkom/AliceTraINT/internal/hash"
 	"github.com/mytkom/AliceTraINT/internal/jalien"
 	"gorm.io/gorm"
 )
@@ -87,25 +88,25 @@ func SeedDB(db *gorm.DB) error {
 		},
 		{
 			Name:      "AO2D.root",
-			Path:      "/alice/sim/2023/LHC23e1/302002/AOD/013/AO2D.root",
+			Path:      "/alice/sim/2023/LHC23d4/302005/AOD/013/AO2D.root",
 			Size:      35403114,
-			LHCPeriod: "LHC23e1",
+			LHCPeriod: "LHC23d4",
 			RunNumber: 302002,
 			AODNumber: 13,
 		},
 		{
 			Name:      "AO2D.root",
-			Path:      "/alice/sim/2023/LHC23e1/302002/AOD/024/AO2D.root",
+			Path:      "/alice/sim/2023/LHC23d4/302005/AOD/024/AO2D.root",
 			Size:      97906832,
-			LHCPeriod: "LHC23e1",
+			LHCPeriod: "LHC23d4",
 			RunNumber: 302002,
 			AODNumber: 24,
 		},
 		{
 			Name:      "AO2D.root",
-			Path:      "/alice/sim/2023/LHC23e1/302002/AOD/030/AO2D.root",
+			Path:      "/alice/sim/2023/LHC23d4/302005/AOD/030/AO2D.root",
 			Size:      175726295,
-			LHCPeriod: "LHC23e1",
+			LHCPeriod: "LHC23d4",
 			RunNumber: 302002,
 			AODNumber: 30,
 		},
@@ -120,9 +121,13 @@ func SeedDB(db *gorm.DB) error {
 		return err
 	}
 
+	secretHashed, err := hash.HashKey("secretkey_secretkey_secretkey_sk")
+	if err != nil {
+		return err
+	}
 	trainingMachines := []models.TrainingMachine{
-		{Name: "tm1", LastActivityAt: time.Now(), SecretKeyHashed: "salt:secret", UserId: users[0].ID},
-		{Name: "tm2", LastActivityAt: time.Now(), SecretKeyHashed: "salt:secret2", UserId: users[1].ID},
+		{Name: "tm1", LastActivityAt: time.Now(), SecretKeyHashed: secretHashed, UserId: users[0].ID},
+		{Name: "tm2", LastActivityAt: time.Now(), SecretKeyHashed: secretHashed, UserId: users[1].ID},
 	}
 
 	if err := db.Save(trainingMachines).Error; err != nil {
