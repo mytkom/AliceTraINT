@@ -195,6 +195,7 @@ func TestTrainingTaskService_GetByID_Training(t *testing.T) {
 	tdId := uint(1)
 	ttId := uint(1)
 	tt := models.TrainingTask{
+		Model:             gorm.Model{ID: ttId},
 		Name:              "task2",
 		UserId:            userId,
 		Status:            models.Training,
@@ -202,8 +203,8 @@ func TestTrainingTaskService_GetByID_Training(t *testing.T) {
 		Configuration:     "",
 	}
 	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
-	ut.TTRepo.On("GetByType", ttId, models.Onnx).Return([]models.TrainingTaskResult{}, nil)
-	ut.TTRepo.On("GetByType", ttId, models.Image).Return([]models.TrainingTaskResult{}, nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return([]models.TrainingTaskResult{}, nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Image).Return([]models.TrainingTaskResult{}, nil)
 
 	// Act
 	ttWithRes, err := ttService.GetByID(ttId)
@@ -212,10 +213,10 @@ func TestTrainingTaskService_GetByID_Training(t *testing.T) {
 	assert.NoError(t, err)
 	ut.TTRepo.AssertCalled(t, "GetByID", ttId)
 	ut.TTRRepo.AssertNotCalled(t, "GetByType", ttId, models.Onnx)
-	ut.TTRRepo.AssertNotCalled(t, "GetByType", ttId, models.Image)
+	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Image)
 	assert.Equal(t, tt.Status, ttWithRes.TrainingTask.Status)
 	assert.Equal(t, []models.TrainingTaskResult(nil), ttWithRes.OnnxFiles)
-	assert.Equal(t, []models.TrainingTaskResult(nil), ttWithRes.ImageFiles)
+	assert.Equal(t, []models.TrainingTaskResult{}, ttWithRes.ImageFiles)
 }
 
 func TestTrainingTaskService_GetByID_Benchmarking(t *testing.T) {
@@ -248,10 +249,10 @@ func TestTrainingTaskService_GetByID_Benchmarking(t *testing.T) {
 	assert.NoError(t, err)
 	ut.TTRepo.AssertCalled(t, "GetByID", ttId)
 	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Onnx)
-	ut.TTRRepo.AssertNotCalled(t, "GetByType", ttId, models.Image)
+	ut.TTRRepo.AssertCalled(t, "GetByType", ttId, models.Image)
 	assert.Equal(t, tt.Status, ttWithRes.TrainingTask.Status)
 	assert.True(t, reflect.DeepEqual(onnxFiles, ttWithRes.OnnxFiles))
-	assert.Equal(t, []models.TrainingTaskResult(nil), ttWithRes.ImageFiles)
+	assert.Equal(t, []models.TrainingTaskResult{}, ttWithRes.ImageFiles)
 }
 
 func TestTrainingTaskService_GetByID_Completed(t *testing.T) {

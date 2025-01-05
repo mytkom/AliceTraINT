@@ -4,3 +4,4 @@ gridCertificate.p12
 data
 **/__debug*
 .vscode
+docker-for-azure/activate

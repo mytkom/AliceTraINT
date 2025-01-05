@@ -117,7 +117,7 @@ func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error)
 	}
 
 	var imageFiles []models.TrainingTaskResult
-	if trainingTask.Status >= models.Completed {
+	if trainingTask.Status >= models.Training {
 		imageFiles, err = s.TrainingTaskResult.GetByType(trainingTask.ID, models.Image)
 		if err != nil {
 			return nil, errInternalServerError

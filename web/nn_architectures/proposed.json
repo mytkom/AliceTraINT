@@ -10,6 +10,12 @@
     }
   },
   "field_configs": {
+    "undersample": {
+      "full_name": "Undersample Training Dataset",
+      "type": "bool",
+      "default_value": false,
+      "description": "Undersample training dataset, in result count of tracks of every missing detectors combination would be equal."
+    },
     "bs": {
       "full_name": "Batch Size",
       "type": "uint",

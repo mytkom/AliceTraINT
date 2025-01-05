@@ -109,12 +109,11 @@ func (qh *QueueHandler) QueryTask(w http.ResponseWriter, r *http.Request) {
 		Configuration: tt.Configuration,
 	}
 
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "cannot encode response", http.StatusInternalServerError)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func (qh *QueueHandler) CreateTrainingTaskResult(w http.ResponseWriter, r *http.Request) {
