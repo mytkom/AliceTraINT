@@ -205,6 +205,7 @@ func TestTrainingTaskService_GetByID_Training(t *testing.T) {
 	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
 	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return([]models.TrainingTaskResult{}, nil)
 	ut.TTRRepo.On("GetByType", ttId, models.Image).Return([]models.TrainingTaskResult{}, nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Log).Return([]models.TrainingTaskResult{}, nil)
 
 	// Act
 	ttWithRes, err := ttService.GetByID(ttId)
@@ -217,6 +218,7 @@ func TestTrainingTaskService_GetByID_Training(t *testing.T) {
 	assert.Equal(t, tt.Status, ttWithRes.TrainingTask.Status)
 	assert.Equal(t, []models.TrainingTaskResult(nil), ttWithRes.OnnxFiles)
 	assert.Equal(t, []models.TrainingTaskResult{}, ttWithRes.ImageFiles)
+	assert.Equal(t, []models.TrainingTaskResult{}, ttWithRes.LogFiles)
 }
 
 func TestTrainingTaskService_GetByID_Benchmarking(t *testing.T) {
@@ -238,9 +240,15 @@ func TestTrainingTaskService_GetByID_Benchmarking(t *testing.T) {
 			Name: "file.onnx", Path: "./file.onnx", Size: 12312,
 		}, TrainingTaskId: ttId},
 	}
+	logFiles := []models.TrainingTaskResult{
+		{Name: "Log result file", Type: models.Log, Description: "example", FileId: 1, File: models.File{
+			Name: "file.log", Path: "./file.log", Size: 12312,
+		}, TrainingTaskId: ttId},
+	}
 	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
 	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
 	ut.TTRRepo.On("GetByType", ttId, models.Image).Return([]models.TrainingTaskResult{}, nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Log).Return(logFiles, nil)
 
 	// Act
 	ttWithRes, err := ttService.GetByID(ttId)
@@ -253,6 +261,7 @@ func TestTrainingTaskService_GetByID_Benchmarking(t *testing.T) {
 	assert.Equal(t, tt.Status, ttWithRes.TrainingTask.Status)
 	assert.True(t, reflect.DeepEqual(onnxFiles, ttWithRes.OnnxFiles))
 	assert.Equal(t, []models.TrainingTaskResult{}, ttWithRes.ImageFiles)
+	assert.True(t, reflect.DeepEqual(logFiles, ttWithRes.LogFiles))
 }
 
 func TestTrainingTaskService_GetByID_Completed(t *testing.T) {
@@ -274,6 +283,11 @@ func TestTrainingTaskService_GetByID_Completed(t *testing.T) {
 			Name: "file.onnx", Path: "./file.onnx", Size: 12312,
 		}, TrainingTaskId: ttId},
 	}
+	logFiles := []models.TrainingTaskResult{
+		{Name: "Log result file", Type: models.Log, Description: "example", FileId: 1, File: models.File{
+			Name: "file.log", Path: "./file.log", Size: 12312,
+		}, TrainingTaskId: ttId},
+	}
 	imageFiles := []models.TrainingTaskResult{
 		{Name: "Image result file", Type: models.Image, Description: "image", FileId: 2, File: models.File{
 			Name: "file.png", Path: "./file.png", Size: 12312231,
@@ -282,6 +296,7 @@ func TestTrainingTaskService_GetByID_Completed(t *testing.T) {
 	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
 	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
 	ut.TTRRepo.On("GetByType", ttId, models.Image).Return(imageFiles, nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Log).Return(logFiles, nil)
 
 	// Act
 	ttWithRes, err := ttService.GetByID(ttId)
@@ -294,6 +309,7 @@ func TestTrainingTaskService_GetByID_Completed(t *testing.T) {
 	assert.Equal(t, tt.Status, ttWithRes.TrainingTask.Status)
 	assert.True(t, reflect.DeepEqual(onnxFiles, ttWithRes.OnnxFiles))
 	assert.True(t, reflect.DeepEqual(imageFiles, ttWithRes.ImageFiles))
+	assert.True(t, reflect.DeepEqual(logFiles, ttWithRes.LogFiles))
 }
 
 func TestTrainingTaskService_GetByID_Uploaded(t *testing.T) {
@@ -315,6 +331,11 @@ func TestTrainingTaskService_GetByID_Uploaded(t *testing.T) {
 			Name: "file.onnx", Path: "./file.onnx", Size: 12312,
 		}, TrainingTaskId: ttId},
 	}
+	logFiles := []models.TrainingTaskResult{
+		{Name: "Log result file", Type: models.Log, Description: "example", FileId: 1, File: models.File{
+			Name: "file.log", Path: "./file.log", Size: 12312,
+		}, TrainingTaskId: ttId},
+	}
 	imageFiles := []models.TrainingTaskResult{
 		{Name: "Image result file", Type: models.Image, Description: "image", FileId: 2, File: models.File{
 			Name: "file.png", Path: "./file.png", Size: 12312231,
@@ -323,6 +344,7 @@ func TestTrainingTaskService_GetByID_Uploaded(t *testing.T) {
 	ut.TTRepo.On("GetByID", ttId).Return(&tt, nil)
 	ut.TTRRepo.On("GetByType", ttId, models.Onnx).Return(onnxFiles, nil)
 	ut.TTRRepo.On("GetByType", ttId, models.Image).Return(imageFiles, nil)
+	ut.TTRRepo.On("GetByType", ttId, models.Log).Return(logFiles, nil)
 
 	// Act
 	ttWithRes, err := ttService.GetByID(ttId)
@@ -335,6 +357,7 @@ func TestTrainingTaskService_GetByID_Uploaded(t *testing.T) {
 	assert.Equal(t, tt.Status, ttWithRes.TrainingTask.Status)
 	assert.True(t, reflect.DeepEqual(onnxFiles, ttWithRes.OnnxFiles))
 	assert.True(t, reflect.DeepEqual(imageFiles, ttWithRes.ImageFiles))
+	assert.True(t, reflect.DeepEqual(logFiles, ttWithRes.LogFiles))
 }
 
 type mockReadCloser struct{}

@@ -90,6 +90,7 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 		TrainingTask models.TrainingTask
 		ImageFiles   []models.TrainingTaskResult
 		OnnxFiles    []models.TrainingTaskResult
+		LogFiles     []models.TrainingTaskResult
 	}
 
 	idStr := r.PathValue("id")
@@ -110,6 +111,7 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 		TrainingTask: *tt.TrainingTask,
 		ImageFiles:   tt.ImageFiles,
 		OnnxFiles:    tt.OnnxFiles,
+		LogFiles:     tt.LogFiles,
 	})
 
 	if err != nil {

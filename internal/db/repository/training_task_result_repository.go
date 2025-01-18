@@ -28,11 +28,11 @@ func (r *trainingTaskResultRepository) Create(ttr *models.TrainingTaskResult) er
 }
 
 func (r *trainingTaskResultRepository) GetByID(id uint) (*models.TrainingTaskResult, error) {
-	var trainingTask models.TrainingTaskResult
-	if err := r.db.First(&trainingTask, id).Error; err != nil {
+	var ttr models.TrainingTaskResult
+	if err := r.db.Table("training_task_results").Joins("File").First(&ttr, id).Error; err != nil {
 		return nil, err
 	}
-	return &trainingTask, nil
+	return &ttr, nil
 }
 
 func (r *trainingTaskResultRepository) getAll(taskId uint) *gorm.DB {

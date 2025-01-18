@@ -12,10 +12,10 @@ import (
 
 const (
 	saltLength  = 16
-	memory      = 1 * 1024 * 1024 // 1 GB
-	iterations  = 1               // number of iterations
-	paralellism = 2               // number of threads
-	keyLength   = 32              // size of the derived key
+	memory      = 1 * 1024 * 64 // 64 MB
+	iterations  = 1             // number of iterations
+	paralellism = 2             // number of threads
+	keyLength   = 32            // size of the derived key
 )
 
 func GenerateKey(keyLength uint) (string, error) {

@@ -10,9 +10,9 @@
             hx-delete="/training-datasets/{{.ID}}"
             hx-confirm="Are you sure you want to remove {{ .Name }}?">Remove</button>
     </div>
-    <div class="flex flex-row flex-wrap gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
         {{ range .AODFiles }}
-        <div class="file flex items-center gap-4 p-2 rounded-md bg-sky-200 dark:bg-sky-600" data-path="{{ .Path }}">
+        <div class="file flex justify-between items-center gap-4 p-2 rounded-md bg-sky-200 dark:bg-sky-600" data-path="{{ .Path }}">
             <div class="flex justify-start gap-2 items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                     stroke="currentColor" class="size-4 lg:size-6">

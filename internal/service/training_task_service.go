@@ -19,6 +19,7 @@ type TrainingTaskWithResults struct {
 	TrainingTask *models.TrainingTask
 	ImageFiles   []models.TrainingTaskResult
 	OnnxFiles    []models.TrainingTaskResult
+	LogFiles     []models.TrainingTaskResult
 }
 
 type TrainingTaskHelpers struct {
@@ -122,8 +123,6 @@ func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error)
 		if err != nil {
 			return nil, errInternalServerError
 		}
-	} else {
-		imageFiles = nil
 	}
 
 	var onnxFiles []models.TrainingTaskResult
@@ -132,14 +131,21 @@ func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error)
 		if err != nil {
 			return nil, errInternalServerError
 		}
-	} else {
-		onnxFiles = nil
+	}
+
+	var logFiles []models.TrainingTaskResult
+	if trainingTask.Status != models.Queued {
+		logFiles, err = s.TrainingTaskResult.GetByType(trainingTask.ID, models.Log)
+		if err != nil {
+			return nil, errInternalServerError
+		}
 	}
 
 	return &TrainingTaskWithResults{
 		TrainingTask: trainingTask,
 		ImageFiles:   imageFiles,
 		OnnxFiles:    onnxFiles,
+		LogFiles:     logFiles,
 	}, nil
 }
 

@@ -15,10 +15,10 @@
     {{ end }}
     {{ if .OnnxFiles }}
     <h1 class="text-xl font-bold">ONNX Files</h1>
-    <div class="grid grid-cols-7 gap-2">
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {{ range .OnnxFiles }}
-        <div class="flex flex-col gap-2 items-center">
-            <div class="font-semibold">
+        <div class="flex flex-col gap-2 items-center rounded-lg p-3 bg-sky-200 dark:bg-sky-600">
+            <div class="font-semibold text-lg">
                 {{ .Name }}
             </div>
             <a href="{{ .File.Path }}" download class="bg-sky-800 px-4 py-2 text-white rounded-lg hover:bg-sky-700">
@@ -27,17 +27,39 @@
         </div>
         {{ end }}
         {{ if .TrainingTask.Status.IsCompleted }}
-        <button class="bg-sky-800 hover:bg-sky-700 text-gray-50 rounded-lg text-lg font-bold py-1 px-2"
+        <button class="bg-sky-800 hover:bg-sky-700 text-gray-50 rounded-lg text-lg font-bold py-1 px-2 col-start-2 md:col-start-4 lg:col-start-auto"
             hx-post="/training-tasks/{{ .TrainingTask.ID }}/upload-to-ccdb" hx-swap="none"
-            hx-confirm="Are you sure you want to upload {{ .TrainingTask.Name }}?">{{ if .TrainingTask.Status.IsUploaded }}Reupload{{ else }}Upload{{ end }} to CCDB</button>
+            hx-confirm="Are you sure you want to upload {{ .TrainingTask.Name }}?">{{ if .TrainingTask.Status.IsUploaded
+            }}Reupload{{ else }}Upload{{ end }} to CCDB</button>
         {{ end }}
     </div>
     {{ end }}
+
+    {{ if .LogFiles }}
+    <h1 class="text-xl font-bold">Log Files</h1>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        {{ range .LogFiles }}
+        <div class="flex flex-col gap-3 justify-between items-start rounded-lg p-3 bg-sky-200 dark:bg-sky-600">
+            <div class="text-lg">{{ .Name }}</div>
+            <div>{{ .Description }}</div>
+            <div class="flex gap-2 self-end">
+                <a href="{{ .File.Path }}" target="_blank" class="bg-sky-800 px-4 py-2 text-white rounded-lg hover:bg-sky-700">
+                    Show
+                </a>
+                <a href="{{ .File.Path }}" download class="bg-sky-800 px-4 py-2 text-white rounded-lg hover:bg-sky-700">
+                    Download
+                </a>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+    {{ end }}
+
     <h2 class="text-xl text-right">Training dataset - {{ .TrainingTask.TrainingDataset.Name }}</h2>
     <div class="flex flex-wrap gap-3">
-        <div class="flex flex-wrap gap-3 text-sm">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
             {{ range .TrainingTask.TrainingDataset.AODFiles }}
-            <div class="file flex items-center gap-4 p-2 rounded-md bg-sky-200 dark:bg-sky-600" data-path="{{ .Path }}">
+            <div class="file flex justify-between items-center gap-4 p-2 rounded-md bg-sky-200 dark:bg-sky-600" data-path="{{ .Path }}">
                 <div class="flex justify-start gap-2 items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                         stroke="currentColor" class="size-4 lg:size-6">
