@@ -11,7 +11,7 @@
 </style>
 <div class="flex flex-col justify-center gap-2">
     <div class="w-full max-h-96 overflow-y-auto rounded shadow-md">
-        <ul class="grid grid-cols-3 auto-cols-auto gap-2 flex-wrap">
+        <ul class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 auto-cols-auto gap-3 flex-wrap">
             {{ range $index, $image := . }}
             <li class="flex gap-2 items-center cursor-pointer group" onclick="showImage({{ $index }})">
                 <img src="{{ $image.File.Path }}" alt="{{ $image.Name }}"

@@ -130,7 +130,7 @@ func TestTrainingTaskResultRepository_GetById(t *testing.T) {
 
 	rows := sqlmock.NewRows([]string{"id", "name", "type", "description", "file_id", "training_task_id"})
 	rows = rows.AddRow(1, ttr.Name, ttr.Type, ttr.Description, ttr.FileId, ttr.TrainingTaskId)
-	mock.ExpectQuery("SELECT (.*) FROM \"training_task_results\" WHERE \"training_task_results\".\"id\" = (.+) LIMIT (.+)").
+	mock.ExpectQuery("SELECT (.*) FROM \"training_task_results\" LEFT JOIN \"files\" (.+) WHERE \"training_task_results\".\"id\" = (.+) LIMIT (.+)").
 		WillReturnRows(rows)
 
 	result, err := trainingTaskResultRepo.GetByID(1)
