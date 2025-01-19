@@ -84,11 +84,11 @@ func (s TrainingTaskStatus) Color() string {
 
 type TrainingTask struct {
 	gorm.Model
-	Name                string             `gorm:"type:varchar(255);not null;uniqueIndex"`
+	Name                string             `gorm:"type:varchar(255);not null;uniqueIndex:idx_unique_name_for_dataset;index"`
 	Status              TrainingTaskStatus `gorm:"type:smallint"`
 	UserId              uint
 	User                User
-	TrainingDatasetId   uint
+	TrainingDatasetId   uint `gorm:"uniqueIndex:idx_unique_name_for_dataset;not null"`
 	TrainingDataset     TrainingDataset
 	TrainingTaskResults []TrainingTaskResult
 	TrainingMachineId   *uint

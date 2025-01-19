@@ -77,12 +77,16 @@
             {{ end }}
         </div>
     </div>
-    <div class="grid grid-cols-2 justify-stretch items-center gap-4 text-lg">
+    <div class="grid grid-cols-2 justify-stretch items-start gap-4 text-lg">
         <h2 class="text-right">Created by:</h2>
         <h3>{{ .TrainingTask.User.FirstName }} {{ .TrainingTask.User.FamilyName }} ({{ .TrainingTask.User.Username }})
         </h3>
-
-
+        <h2 class="text-right">Configuration:</h2>
+        <div>
+        {{ range $key, $value := .TrainingTask.Configuration }}
+            <h3>{{ $key }}: {{ $value }}</h3>
+        {{ end }}
+        </div>
         <h2 class="text-right">Created at:</h2>
         <h3>{{ .TrainingTask.CreatedAt.Format "02 Jan 06 15:04 MST" }}</h3>
         <h2 class="text-right">Last update at:</h2>
