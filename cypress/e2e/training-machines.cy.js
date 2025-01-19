@@ -20,8 +20,8 @@ describe('Training Machine Management', () => {
 
         const testName = generateUniqueName('tm');
         cy.get('input[name="name"]').type(testName);
-        cy.get('button').click();
-        cy.get('button').click();
+        cy.get('button[type="submit"]').click();
+        cy.get('#done-button').click();
 
         let tmObject = cy.contains('tr', testName) 
         tmObject.should('exist')
@@ -62,7 +62,7 @@ describe('Training Machine Management', () => {
         cy.get('@alreadyExisting').then(alreadyExisting => {
             cy.get('input[name="name"]').type(alreadyExisting);
         })
-        cy.get('button').click();
+        cy.get('button[type="submit"]').click();
 
         cy.get('#errors').invoke('text').should('eq', 'Name must be unique\n')
     });
