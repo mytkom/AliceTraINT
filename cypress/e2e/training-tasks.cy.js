@@ -21,7 +21,7 @@ describe('Training Tasks Management', () => {
         const testName = generateUniqueName('tm');
         cy.get('input[name="name"]').type(testName);
         cy.get('select[name="trainingDatasetId"]').select('1');
-        cy.get('button').click();
+        cy.get('button[type="submit"]').click();
 
         let tmObject = cy.contains('tr', testName)
         tmObject.should('exist')
@@ -61,7 +61,7 @@ describe('Training Tasks Management', () => {
             cy.get('input[name="name"]').type(alreadyExisting);
         })
         cy.get('select[name="trainingDatasetId"]').select('1');
-        cy.get('button').click();
+        cy.get('button[type="submit"]').click();
 
         cy.get('#errors').invoke('text').should('eq', 'Name must be unique\n')
     });
