@@ -2,13 +2,13 @@
 {{ template "header" . }}
 <div class="flex flex-col gap-4 my-4 items-center">
     <h2 class="text-2xl">{{ .TrainingDataset.Name }}</h2>
-    <div class="grid grid-cols-2 justify-stretch items-center gap-4 text-lg">
-        <h2 class="text-right">Created by:</h2>
+    <div class="grid grid-cols-1 lg:grid-cols-2 justify-stretch items-start gap-4 text-lg">
+        <h2 class="lg:text-right">Created by:</h2>
         <h3>{{ .TrainingDataset.User.FirstName }} {{ .TrainingDataset.User.FamilyName }} ({{ .TrainingDataset.User.Username }}) </h3>
-        <h2 class="text-right">Files:</h2>
-        <div class="flex flex-col gap-3 text-sm">
+        <h2 class="lg:text-right">Files:</h2>
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 text-sm">
                 {{ range .TrainingDataset.AODFiles }}
-                <div class="file flex items-center gap-4 p-2 rounded-md bg-sky-200 dark:bg-sky-600"
+                <div class="file flex justify-between items-center gap-4 p-2 rounded-md bg-sky-200 dark:bg-sky-600"
                     data-path="{{ .Path }}">
                     <div class="flex justify-start gap-2 items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -26,9 +26,9 @@
                 </div>
                 {{ end }}
         </div>
-        <h2 class="text-right">Created at:</h2>
+        <h2 class="lg:text-right">Created at:</h2>
         <h3>{{ .TrainingDataset.CreatedAt.Format "02 Jan 06 15:04 MST" }}</h3>
-        <h2 class="text-right">Last update at:</h2>
+        <h2 class="lg:text-right">Last update at:</h2>
         <h3>{{ .TrainingDataset.UpdatedAt.Format "02 Jan 06 15:04 MST" }}</h3>
     </div>
 </div>

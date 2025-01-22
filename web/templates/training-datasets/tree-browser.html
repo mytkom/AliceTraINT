@@ -1,7 +1,7 @@
 {{ define "training-datasets_tree-browser" }}
 <div class="flex flex-col max-h-96 flex-grow">
   <div
-    class="flex sticky top-0 bg-white dark:bg-sky-700 gap-3 justify-end md:justify-between flex-wrap items-center border-b-2 border-dotted p-3">
+    class="flex sticky top-0 bg-white dark:bg-sky-700 gap-3 justify-between items-center border-b-2 border-dotted p-3">
     {{ if ne .Path "/" }}
     <button
       class="p-2 rounded-md bg-sky-200 dark:bg-sky-600 hover:bg-sky-100 dark:hover:bg-sky-700 hover:cursor-pointer"
@@ -13,7 +13,7 @@
       </svg>
     </button>
     {{ end }}
-    <p>{{ .Path }}</p>
+    <p class="truncate flex-shrink">{{ .Path }}</p>
     {{ if ne .Path "/" }}
     <button class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2" hx-get="find-aods"
       hx-vals='{"path":"{{ .Path }}"}' hx-target="#file-list" hx-trigger="click" hx-indicator="#file-list-overlay">Find
@@ -24,18 +24,18 @@
       {{ if not .Subdirs }}
           <p class="p-5">No more subdirs, maybe you want to find AODs in this directory. If so use right-upper corner button.</p>
       {{ else }}
-        <ul class="flex flex-col gap-2 px-5 py-2">
+        <ul class="flex flex-col gap-2 px-2 lg:px-5 py-2">
         {{ range .Subdirs }}
           <li>
             <button
               class="flex w-full justify-start gap-2 items-center p-2 rounded-md bg-sky-200 dark:bg-sky-600 hover:bg-sky-100 dark:hover:bg-sky-700 hover:cursor-pointer"
               hx-get="explore-directory" hx-vals='{"path":"{{ .Path }}"}' hx-target="#file-tree" hx-trigger="click consume">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                stroke="currentColor" class="size-4 lg:size-6">
+                stroke="currentColor" class="size-4 lg:size-6 flex-shrink-0">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
               </svg>
-              {{ .Name }}
+              <p class="truncate">{{ .Name }}</p>
             </button>
           </li>
         {{ end }}
