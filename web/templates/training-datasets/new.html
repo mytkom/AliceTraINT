@@ -16,10 +16,10 @@
         class="relative lg:w-1/2 w-full border-dotted rounded-md shadow-md dark:shadow-none overflow-hidden bg-sky-50 dark:bg-sky-800">
         <div class="flex flex-col max-h-96 min-h-96">
             <form id="find-aods-form"
-                class="flex flex-wrap content-stretch bg-white dark:bg-sky-700 justify-end gap-4 items-center border-b-2 border-dotted p-3"
+                class="flex content-stretch bg-white dark:bg-sky-700 justify-end gap-4 items-center border-b-2 border-dotted p-3"
                 hx-get="find-aods" hx-target="#file-list" hx-swap="innerHTML" hx-indicator="#file-list-overlay">
-                <label for="path">Path in Grid:</label>
-                <input class="bg-white border-sky-900 text-gray-800 rounded-lg flex-grow text-sm py-1 px-2 max-w-1/2"
+                <label for="path">Path:</label>
+                <input class="bg-white border-sky-900 text-gray-800 rounded-lg flex-grow text-sm py-1 px-2 max-w-1/2 flex-shrink"
                     placeholder="ex. /alice/sim/2024/LHC24f3/0/523397" type="text" id="path" name="path" required>
                 <button class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2"
                     type="submit">Find AO2Ds</button>
@@ -45,15 +45,15 @@
           hx-post="/training-datasets"
           hx-vals="js:{...getSelectedFiles()}"
           hx-ext="json-enc"
-          class="grid grid-cols-2 auto-rows-auto gap-3">
-        <div class="text-lg text-red-600 col-span-2 text-center w-full" id="errors"></div>
-        <label class="justify-self-end text-lg self-center" for="train-dataset-name">Training dataset name:</label>
+          class="grid grid-cols-1 lg:grid-cols-2 items-start auto-rows-auto gap-3 w-full p-2">
+        <div class="text-lg text-red-600 col-span-1 lg:col-span-2 text-center w-full" id="errors"></div>
+        <label class="justify-self-start lg:justify-self-end text-lg self-center" for="train-dataset-name">Training dataset name:</label>
         <input type="text" class="bg-white border-sky-900 text-gray-800 rounded-lg text-lg py-1 px-2"
             name="name" id="train-dataset-name" required />
-        <h2 class="justify-self-end text-lg self-center">Selected files:</h2>
-        <ul class="grid grid-cols-1 lg:grid-cols-2 gap-2" id="selected-files"></ul>
+        <h2 class="justify-self-start lg:justify-self-end text-lg self-center">Selected files:</h2>
+        <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2" id="selected-files"></ul>
         <button
-            class="col-span-2 justify-self-end bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2 text-lg"
+            class="col-span-1 lg:col-span-2 justify-self-end bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2 text-lg"
             type="submit">Submit</button>
     </form>
 </div>
