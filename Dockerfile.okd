@@ -55,7 +55,6 @@ ENV X509_CERT_DIR=/root/.globus/certificates
 # for some reason first execution of ls is returning nil - from second and on it works as expected
 RUN alien_ls /
 
-COPY --from=builder /app/.env /app/AliceTraINT ./
 COPY --from=builder /app/web ./web
 COPY --from=builder /app/static/ ./static/
 
