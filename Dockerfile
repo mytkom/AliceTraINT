@@ -42,6 +42,7 @@ RUN pip install alienpy
 
 WORKDIR /root/
 
+RUN echo "Copying certificate to root directory"
 COPY gridCertificate.p12 .
 RUN mkdir ~/.globus
 RUN openssl pkcs12 -clcerts -nokeys -in ./gridCertificate.p12 -out ~/.globus/usercert.pem -password pass:
@@ -52,6 +53,7 @@ ENV CCDB_SSL_KEY_PATH=/root/.globus/userkey.pem
 
 WORKDIR /app
 RUN alien.py getCAcerts
+ENV X509_CERT_DIR=/root/.globus/certificates
 # for some reason first execution of ls is returning nil - from second and on it works as expected
 RUN alien_ls /
 
