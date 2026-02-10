@@ -67,19 +67,18 @@ RUN python3 -m pip install alienpy
 
 WORKDIR /root/
 
-COPY gridCertificate.p12 .
-ARG CERT_PATH=./gridCertificate.p12
+ARG CERT_PATH=/tmp/certs/gridCertificate.p12
 RUN mkdir -p ~/.globus && \
     openssl pkcs12 -clcerts -nokeys -in $CERT_PATH -out ~/.globus/usercert.pem -password pass: && \
     openssl pkcs12 -nocerts -nodes -in $CERT_PATH -out ~/.globus/userkey.pem -password pass: && \
     chmod 0400 ~/.globus/userkey.pem
 
-ENV CCDB_SSL_CERT_PATH=/root/.globus/usercert.pem
-ENV CCDB_SSL_KEY_PATH=/root/.globus/userkey.pem
+ENV CCDB_SSL_CERT_PATH=~/.globus/usercert.pem
+ENV CCDB_SSL_KEY_PATH=~/.globus/userkey.pem
 
 # Download Grid CAs
 RUN alien.py getCAcerts
-ENV X509_CERT_DIR=/root/.globus/certificates
+ENV X509_CERT_DIR=~/.globus/certificates
 
 WORKDIR /app
 
