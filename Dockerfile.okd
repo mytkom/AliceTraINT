@@ -1,64 +1,99 @@
-# Dockerfile for AliceTraINT
+# ========================
+# Stage 1: Build Go backend
+# ========================
 FROM golang:1.22-alpine AS builder
 
+# Dependencies for Go + Tailwind
 RUN apk add --no-cache git build-base curl make
 
 WORKDIR /app
 
+# Copy Go modules
 COPY go.mod go.sum ./
-
 RUN go mod download
 
-# install tailwind CLI
+# Install Tailwind CLI
 ENV TAILWIND_VERSION=v3.4.10
-RUN curl -L "https://github.com/tailwindlabs/tailwindcss/releases/download/$TAILWIND_VERSION/tailwindcss-linux-x64" -o /usr/local/bin/tailwindcss
-RUN chmod +x /usr/local/bin/tailwindcss
+RUN curl -L "https://github.com/tailwindlabs/tailwindcss/releases/download/$TAILWIND_VERSION/tailwindcss-linux-x64" \
+    -o /usr/local/bin/tailwindcss && \
+    chmod +x /usr/local/bin/tailwindcss
 
+# Copy all source
 COPY . .
 
-# generate css using tailwind CLI
+# Generate CSS
 RUN make css
 
+# Build the Go binary
 RUN CGO_ENABLED=0 GOOS=linux go build -o AliceTraINT ./cmd/AliceTraINT
 
-FROM python:3.12-alpine
+# Use OpenShift-friendly base image to avoid read-only FS issues
+FROM registry.access.redhat.com/ubi9 AS runtime
 
-RUN apk add --no-cache ca-certificates \
-                                cmake  \
-                                make   \
-                                g++    \
-                                zlib-dev \
-                                libuuid  \
-                                util-linux-dev \
-                                openssl \
-                                libcrypto3 \
-                                openssl-dev \
-                                openssl-libs-static \
-                                musl-dev \
-                                linux-headers \
-                                git \
-                                rsync
-RUN pip install alienpy
+# Install EPEL repository
+RUN rpm -ivh https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+
+# Install all required packages
+RUN dnf install -y \
+        ca-certificates \
+        cmake \
+        make \
+        gcc \
+        gcc-c++ \
+        zlib-devel \
+        libuuid \
+        libuuid-devel \
+        util-linux \
+        libxml2-devel \
+        systemd-devel \
+        krb5-devel \
+        openssl \
+        openssl-devel \
+        python3 \
+        python3-pip \
+        python3-devel \
+        ncurses-devel \
+        tinyxml-devel \
+        python3-isal \
+        isa-l-devel \
+        git \
+        rsync \
+    && dnf clean all
+# Install readline-devel from AlmaLinux
+RUN rpm -ivh https://repo.almalinux.org/almalinux/9/AppStream/x86_64/os/Packages/readline-devel-8.1-4.el9.x86_64.rpm
+
+# Install Python dependencies
+RUN python3 -m pip install alienpy
 
 WORKDIR /root/
 
-RUN mkdir ~/.globus
-RUN openssl pkcs12 -clcerts -nokeys -in /tmp/certs/gridCertificate.p12 -out ~/.globus/usercert.pem -password pass:
-RUN openssl pkcs12 -nocerts -nodes -in /tmp/certs/gridCertificate.p12 -out ~/.globus/userkey.pem -password pass:
-RUN chmod 0400 ~/.globus/userkey.pem
+COPY gridCertificate.p12 .
+ARG CERT_PATH=./gridCertificate.p12
+RUN mkdir -p ~/.globus && \
+    openssl pkcs12 -clcerts -nokeys -in $CERT_PATH -out ~/.globus/usercert.pem -password pass: && \
+    openssl pkcs12 -nocerts -nodes -in $CERT_PATH -out ~/.globus/userkey.pem -password pass: && \
+    chmod 0400 ~/.globus/userkey.pem
+
 ENV CCDB_SSL_CERT_PATH=/root/.globus/usercert.pem
 ENV CCDB_SSL_KEY_PATH=/root/.globus/userkey.pem
 
-WORKDIR /app
+# Download Grid CAs
 RUN alien.py getCAcerts
 ENV X509_CERT_DIR=/root/.globus/certificates
-# for some reason first execution of ls is returning nil - from second and on it works as expected
-RUN alien_ls /
 
+WORKDIR /app
+
+# Go binary from builder
+COPY --from=builder /app/AliceTraINT ./
+
+# Frontend / static files
 COPY --from=builder /app/web ./web
-COPY --from=builder /app/static/ ./static/
+COPY --from=builder /app/static ./static
 
+# Expose port
 EXPOSE 8088
 
+# ========================
+# CMD
+# ========================
 CMD ["./AliceTraINT"]
-
