@@ -27,10 +27,11 @@ RUN make css
 RUN CGO_ENABLED=0 GOOS=linux go build -o AliceTraINT ./cmd/AliceTraINT
 
 # Generate certificates
+ENV CERT_PATH=/tmp/certs/gridCertificate.p12
 RUN apk add --no-cache openssl
 RUN mkdir -p ~/.globus
-RUN openssl pkcs12 -clcerts -nokeys -in ./gridCertificate.p12 -out ./usercert.pem -password pass:
-RUN openssl pkcs12 -nocerts -nodes -in ./gridCertificate.p12 -out ./userkey.pem -password pass:
+RUN openssl pkcs12 -clcerts -nokeys -in $CERT_PATH -out ./usercert.pem -password pass:
+RUN openssl pkcs12 -nocerts -nodes -in $CERT_PATH -out ./userkey.pem -password pass:
 RUN chmod 0400 ./userkey.pem
 
 # Use OpenShift-friendly base image to avoid read-only FS issues
