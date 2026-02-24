@@ -1,11 +1,9 @@
-# ========================
-# Stage 1: Build Go backend
-# ========================
 FROM golang:1.22-alpine AS builder
 
 # Dependencies for Go + Tailwind
 RUN apk add --no-cache git build-base curl make
 
+USER root
 WORKDIR /app
 
 # Copy Go modules
@@ -24,70 +22,104 @@ COPY . .
 # Generate CSS
 RUN make css
 
+
 # Build the Go binary
 RUN CGO_ENABLED=0 GOOS=linux go build -o AliceTraINT ./cmd/AliceTraINT
+
+# Generate certificates
+RUN apk add --no-cache openssl
+RUN mkdir -p ~/.globus
+RUN openssl pkcs12 -clcerts -nokeys -in ./gridCertificate.p12 -out ./usercert.pem -password pass:
+RUN openssl pkcs12 -nocerts -nodes -in ./gridCertificate.p12 -out ./userkey.pem -password pass:
+RUN chmod 0400 ./userkey.pem
 
 # Use OpenShift-friendly base image to avoid read-only FS issues
 FROM registry.access.redhat.com/ubi9 AS runtime
 
-# Install EPEL repository
-RUN rpm -ivh https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+USER 1001
 
-# Install all required packages
-RUN dnf install -y \
-        ca-certificates \
-        cmake \
-        make \
-        gcc \
-        gcc-c++ \
-        zlib-devel \
-        libuuid \
-        libuuid-devel \
-        util-linux \
-        libxml2-devel \
-        systemd-devel \
-        krb5-devel \
-        openssl \
-        openssl-devel \
-        python3 \
-        python3-pip \
-        python3-devel \
-        ncurses-devel \
-        tinyxml-devel \
-        python3-isal \
-        isa-l-devel \
-        git \
-        rsync \
-    && dnf clean all
-# Install readline-devel from AlmaLinux
-RUN rpm -ivh https://repo.almalinux.org/almalinux/9/AppStream/x86_64/os/Packages/readline-devel-8.1-4.el9.x86_64.rpm
-
-# Install Python dependencies
-RUN python3 -m pip install alienpy
-
-WORKDIR /root/
-
-ARG CERT_PATH=/tmp/certs/gridCertificate.p12
-RUN mkdir -p ~/.globus && \
-    openssl pkcs12 -clcerts -nokeys -in $CERT_PATH -out ~/.globus/usercert.pem -password pass: && \
-    openssl pkcs12 -nocerts -nodes -in $CERT_PATH -out ~/.globus/userkey.pem -password pass: && \
-    chmod 0400 ~/.globus/userkey.pem
-
-ENV CCDB_SSL_CERT_PATH=~/.globus/usercert.pem
-ENV CCDB_SSL_KEY_PATH=~/.globus/userkey.pem
-
-# Download Grid CAs
-RUN alien.py getCAcerts
-ENV X509_CERT_DIR=~/.globus/certificates
-
+# RUN ls /etc/hosts -lhaF
 WORKDIR /app
+# RUN chmod -R 777 .
+
+# Install EPEL repository
+# RUN rpm -ivh https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+# 
+# # Install all required packages
+# RUN dnf install -y \
+#         ca-certificates \
+#         cmake \
+#         make \
+#         gcc \
+#         gcc-c++ \
+#         zlib-devel \
+#         libuuid \
+#         libuuid-devel \
+#         util-linux \
+#         libxml2-devel \
+#         systemd-devel \
+#         krb5-devel \
+#         openssl \
+#         openssl-devel \
+#         python3 \
+#         python3-pip \
+#         python3-devel \
+#         ncurses-devel \
+#         tinyxml-devel \
+#         python3-isal \
+#         isa-l-devel \
+#         git \
+#         rsync \
+#     && dnf clean all
+# # Install readline-devel from AlmaLinux
+# RUN rpm -ivh https://repo.almalinux.org/almalinux/9/AppStream/x86_64/os/Packages/readline-devel-8.1-4.el9.x86_64.rpm
+# 
+# USER 1001
+# RUN ls /etc/hosts -la
+# 
+# # Install Python dependencies
+# RUN python3 -m pip install alienpy
+# 
+# COPY gridCertificate.p12 .
+# ARG CERT_PATH=./gridCertificate.p12
+# ENV X509_USER_CERT=/app/.globus/usercert.pem
+# ENV X509_USER_KEY=/app/.globus/userkey.pem
+# ENV X509_CERT_DIR=/app/.globus
+# RUN mkdir -p /app/.globus && \
+#     openssl pkcs12 -clcerts -nokeys -in $CERT_PATH -out $X509_USER_CERT -password pass: && \
+#     openssl pkcs12 -nocerts -nodes -in $CERT_PATH -out $X509_USER_KEY -password pass: && \
+#     chmod 0400 $X509_USER_KEY
+# 
+# ENV CCDB_SSL_CERT_PATH=$X509_USER_CERT
+# ENV CCDB_SSL_KEY_PATH=$X509_USER_KEY
+# 
+# # Download Grid CAs
+# 
+# RUN alien.py getCAcerts
+
+USER root
 
 # Go binary from builder
+# chmod for regular users permissions for copied files
 COPY --from=builder /app/AliceTraINT ./
+COPY --from=builder /app/.env ./
+
+# Copy certificates
+COPY --from=builder /app/usercert.pem ./usercert.pem
+COPY --from=builder /app/userkey.pem ./userkey.pem
+RUN chmod 0400 ./userkey.pem
+ENV CCDB_SSL_CERT_PATH=./usercert.pem
+ENV CCDB_SSL_KEY_PATH=./userkey.pem
 
 # Frontend / static files
 COPY --from=builder /app/web ./web
 COPY --from=builder /app/static ./static
+
+RUN mkdir -p . && \
+    chgrp -R 0 . && \
+    chmod -R g=u .
+
+USER 1001
 
 # Expose port
 EXPOSE 8088
