@@ -102,7 +102,7 @@ USER root
 # Go binary from builder
 # chmod for regular users permissions for copied files
 COPY --from=builder /app/AliceTraINT ./
-COPY --from=builder /app/.env ./
+# COPY --from=builder /app/.env ./
 
 # Copy certificates
 COPY --from=builder /app/usercert.pem ./usercert.pem
