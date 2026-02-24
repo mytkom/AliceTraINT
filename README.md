@@ -44,7 +44,7 @@ AliceTraINT is a full-stack web application built using Go (Golang) with Postgre
 
 2. **Access the Application**
 
-   Once the containers are up, access the application at `http://localhost:8080`.
+   Once the containers are up, access the application at `http://localhost:8088`.
 
 ### Local Development
 
@@ -63,7 +63,7 @@ AliceTraINT is a full-stack web application built using Go (Golang) with Postgre
    CERN_REALM_URL=https://example.cern.ch/auth/realms/your-realm
    CERN_CLIENT_ID=your-client-id
    CERN_CLIENT_SECRET=your-client-secret
-   CERN_REDIRECT_URL=http://localhost:8080/callback
+   CERN_REDIRECT_URL=http://localhost:8088/callback
    ```
 
    Replace the placeholder values with your actual CERN SSO details.
