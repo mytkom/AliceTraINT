@@ -24,10 +24,9 @@ COPY ./cmd ./cmd
 COPY ./internal ./internal
 COPY ./static ./static
 COPY ./web ./web
-COPY ./*.p12 .
 COPY ./.env* .
 COPY ./tailwind* .
-COPY ./Makefile .
+COPY ./Makefile ./*.p12 .
 RUN touch .env
 
 
