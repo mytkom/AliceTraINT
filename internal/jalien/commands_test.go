@@ -4,63 +4,43 @@ import (
 	"testing"
 )
 
-func TestParseLongFormat(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    *longFormatParsed
-		wantErr bool
-	}{
-		{
-			name:  "Valid file line",
-			input: "-rw-r--r-- user group 12345 Jan 01 12:34 somefile.txt",
-			want: &longFormatParsed{
-				Permissions: "-rw-r--r--",
-				Owner:       "user",
-				Group:       "group",
-				Size:        12345,
-				Month:       "Jan",
-				Day:         "01",
-				Time:        "12:34",
-				Name:        "somefile.txt",
-				IsDir:       false,
-			},
-			wantErr: false,
-		},
-		{
-			name:  "Valid directory line",
-			input: "drwxr-xr-x user group 4096 Feb 15 08:00 somedir/",
-			want: &longFormatParsed{
-				Permissions: "drwxr-xr-x",
-				Owner:       "user",
-				Group:       "group",
-				Size:        4096,
-				Month:       "Feb",
-				Day:         "15",
-				Time:        "08:00",
-				Name:        "somedir/",
-				IsDir:       true,
-			},
-			wantErr: false,
-		},
-		{
-			name:    "Invalid line format",
-			input:   "-rw-r--r-- user group 12345",
-			want:    nil,
-			wantErr: true,
-		},
+func TestGetStringField(t *testing.T) {
+	m := map[string]any{
+		"s":   "value",
+		"n":   float64(42),
+		"nil": nil,
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseLongFormat(tt.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("parseLongFormat() error = %v, wantErr %t", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr && *got != *tt.want {
-				t.Errorf("parseLongFormat() = %v, want %v", got, tt.want)
-			}
-		})
+	if got := getStringField(m, "s"); got != "value" {
+		t.Fatalf("getStringField(s) = %q, want %q", got, "value")
+	}
+
+	if got := getStringField(m, "n"); got != "42" {
+		t.Fatalf("getStringField(n) = %q, want %q", got, "42")
+	}
+
+	if got := getStringField(m, "missing"); got != "" {
+		t.Fatalf("getStringField(missing) = %q, want empty", got)
+	}
+}
+
+func TestGetUint64Field(t *testing.T) {
+	m := map[string]any{
+		"float": float64(123),
+		"str":   "456",
+	}
+
+	got, err := getUint64Field(m, "float")
+	if err != nil || got != 123 {
+		t.Fatalf("getUint64Field(float) = (%d,%v), want (123,nil)", got, err)
+	}
+
+	got, err = getUint64Field(m, "str")
+	if err != nil || got != 456 {
+		t.Fatalf("getUint64Field(str) = (%d,%v), want (456,nil)", got, err)
+	}
+
+	if _, err = getUint64Field(m, "missing"); err == nil {
+		t.Fatalf("getUint64Field(missing) expected error, got nil")
 	}
 }

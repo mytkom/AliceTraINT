@@ -38,11 +38,12 @@ func main() {
 	authService := auth.NewAuthService(repoContext.User)
 	r := internal.NewRouter(cfg, repoContext, authService)
 
-	// Add logging middleware
+	// Add middleware: recovery (panics) and logging.
+	recoverMw := middleware.NewRecoverMw()
 	logMw := middleware.NewLogMw()
-	loggedR := logMw(r)
+	handler := middleware.Chain(r, recoverMw, logMw)
 
 	portString := fmt.Sprintf(":%s", cfg.Port)
 	log.Printf("Starting server on %s\n", portString)
-	log.Fatal(http.ListenAndServe(portString, loggedR))
+	log.Fatal(http.ListenAndServe(portString, handler))
 }

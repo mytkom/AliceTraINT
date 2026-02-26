@@ -1,6 +1,9 @@
 package service
 
 import (
+	"log"
+
+	"github.com/mytkom/AliceTraINT/internal/environment"
 	"github.com/mytkom/AliceTraINT/internal/jalien"
 	"github.com/stretchr/testify/mock"
 )
@@ -10,18 +13,29 @@ type IJAliEnService interface {
 	ListAndParseDirectory(path string) (*jalien.DirectoryContents, error)
 }
 
-type JAliEnService struct{}
+type JAliEnService struct {
+	client *jalien.Client
+}
 
-func NewJAliEnService() *JAliEnService {
-	return &JAliEnService{}
+func NewJAliEnService(env *environment.Env) *JAliEnService {
+	cfg := env.Config
+
+	client, err := jalien.NewClient(cfg.JalienHost, cfg.JalienPort, cfg.CertPath, cfg.KeyPath, cfg.JalienCertCADir)
+	if err != nil {
+		log.Fatalf("cannot create JAliEnService: %s", err.Error())
+	}
+
+	return &JAliEnService{
+		client: client,
+	}
 }
 
 func (s *JAliEnService) FindAODFiles(path string) ([]jalien.AODFile, error) {
-	return jalien.FindAODFiles(path)
+	return s.client.FindAODFiles(path)
 }
 
 func (s *JAliEnService) ListAndParseDirectory(path string) (*jalien.DirectoryContents, error) {
-	return jalien.ListAndParseDirectory(path)
+	return s.client.ListAndParseDirectory(path)
 }
 
 type MockJAliEnService struct {

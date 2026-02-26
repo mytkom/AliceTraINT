@@ -270,11 +270,14 @@ func (s *TrainingTaskService) findRunNumberRange(subdirs []jalien.Dir) (uint64, 
 	initialized := false
 
 	for _, dir := range subdirs {
+		log.Printf("Dir: %+v", dir)
+
 		runNumber, err := strconv.ParseUint(dir.Name, 10, 64)
 		if err != nil {
 			log.Println(err.Error())
 			continue
 		}
+		log.Printf("RunNumber: %+v", runNumber)
 
 		if !initialized || runNumber < smallestRun {
 			smallestRun = runNumber
@@ -284,6 +287,10 @@ func (s *TrainingTaskService) findRunNumberRange(subdirs []jalien.Dir) (uint64, 
 		}
 		initialized = true
 	}
+
+	log.Printf("SmallestRun: %+v", smallestRun)
+	log.Printf("GreatestRun: %+v", greatestRun)
+	log.Printf("Initialized: %+v", initialized)
 
 	if !initialized {
 		return 0, 0, errors.New("unexpected behaviour: empty training dataset")

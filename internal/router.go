@@ -25,7 +25,7 @@ func NewRouter(cfg *config.Config, repoContext *repository.RepositoryContext, au
 	// services
 	hasher := service.NewArgon2Hasher()
 	ccdbService := service.NewCCDBService(env)
-	jalienService := service.NewJAliEnService()
+	jalienService := service.NewJAliEnService(env)
 	nnArch := service.NewNNArchService(cfg.NNArchPath)
 	// local file storage
 	fileService := service.NewLocalFileService(cfg.DataDirPath)

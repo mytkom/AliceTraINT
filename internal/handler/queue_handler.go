@@ -62,18 +62,19 @@ func (qh *QueueHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 
 	_, tt, err := qh.trainingMachineFromPath(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		// Unauthorized machine or invalid task – surface message but log details.
+		writeError(w, r, http.StatusUnauthorized, err.Error(), err)
 		return
 	}
 
 	var bodyDecoded Body
 	if err := json.NewDecoder(r.Body).Decode(&bodyDecoded); err != nil {
-		http.Error(w, "bad status format", http.StatusUnprocessableEntity)
+		writeError(w, r, http.StatusUnprocessableEntity, "bad status format", err)
 		return
 	}
 
 	if err := qh.QueueService.UpdateTrainingTaskStatus(tt.ID, bodyDecoded.Status); err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		writeError(w, r, http.StatusUnprocessableEntity, "cannot update training task status", err)
 		return
 	}
 
@@ -83,19 +84,19 @@ func (qh *QueueHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 func (qh *QueueHandler) QueryTask(w http.ResponseWriter, r *http.Request) {
 	tmId, err := qh.parseId(r)
 	if err != nil {
-		http.Error(w, "bad training machine id", http.StatusBadRequest)
+		writeError(w, r, http.StatusBadRequest, "bad training machine id", err)
 		return
 	}
 
 	tm, err := qh.QueueService.AuthorizeTrainingMachine(r.Header.Get("Secret-Id"), uint(tmId))
 	if err != nil {
-		http.Error(w, errMsgUnauthorizedMachine, http.StatusUnauthorized)
+		writeError(w, r, http.StatusUnauthorized, errMsgUnauthorizedMachine, err)
 		return
 	}
 
 	tt, err := qh.QueueService.AssignTaskToMachine(tm.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		writeError(w, r, http.StatusNotFound, "no training task available", err)
 		return
 	}
 
@@ -111,7 +112,7 @@ func (qh *QueueHandler) QueryTask(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "cannot encode response", http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "cannot encode response", err)
 		return
 	}
 }
@@ -119,18 +120,18 @@ func (qh *QueueHandler) QueryTask(w http.ResponseWriter, r *http.Request) {
 func (qh *QueueHandler) CreateTrainingTaskResult(w http.ResponseWriter, r *http.Request) {
 	_, tt, err := qh.trainingMachineFromPath(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		writeError(w, r, http.StatusUnauthorized, err.Error(), err)
 		return
 	}
 
 	err = r.ParseMultipartForm(20 << 20)
 	if err != nil {
-		http.Error(w, "error reading multipart input", http.StatusUnprocessableEntity)
+		writeError(w, r, http.StatusUnprocessableEntity, "error reading multipart input", err)
 		return
 	}
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "error reading file", http.StatusUnprocessableEntity)
+		writeError(w, r, http.StatusUnprocessableEntity, "error reading file", err)
 		return
 	}
 	//nolint:errcheck
@@ -145,14 +146,14 @@ func (qh *QueueHandler) CreateTrainingTaskResult(w http.ResponseWriter, r *http.
 		r.Form.Get("file-type"),
 	)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		writeError(w, r, http.StatusUnprocessableEntity, "cannot create training task result", err)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(ttr)
 	if err != nil {
-		http.Error(w, "unexpected internal server error", http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 }

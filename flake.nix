@@ -10,32 +10,6 @@
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs { inherit system; };
-
-      alienpyPkg = pkgs.python312Packages.buildPythonPackage rec {
-        pname = "alienpy";
-        version = "1.6.1"; # Replace with the version you need
-
-        src = pkgs.fetchPypi {
-          inherit pname version;
-          sha256 = "yRf9qCEpzwGgmis4kUHzqbdTzqbcCwbuwoEd7xcyOUQ="; # Replace with the actual hash
-        };
-
-        propagatedBuildInputs = with pkgs.python312Packages; [
-          requests
-          websockets
-          rich
-          async_stagger
-          cryptography
-          pyopenssl
-          xrootd
-        ];
-
-        meta = with pkgs.lib; {
-          description = "AlienPy is a Python package to interact with the ALICE Grid.";
-          license = licenses.mit;
-          homepage = "https://pypi.org/project/alienpy/";
-        };
-      };
     in
     {
       devShell = pkgs.mkShell {
@@ -49,14 +23,12 @@
           golangci-lint
           sqlc
           tailwindcss
-          alienpyPkg
           makeWrapper
           cypress
         ];
 
         shellHook = ''
           export PATH=$PWD/bin:$PATH
-          alien_ls /
         '';
       };
 

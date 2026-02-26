@@ -589,3 +589,5 @@ mvdan.cc/gofumpt v0.7.0 h1:bg91ttqXmi9y2xawvkuMXyvAA/1ZGJqYAEGjXuP0JXU=
 mvdan.cc/gofumpt v0.7.0/go.mod h1:txVFJy/Sc/mvaycET54pV8SW8gWxTlUuGHVEcncmNUo=
 mvdan.cc/unparam v0.0.0-20240528143540-8a5130ca722f h1:lMpcwN6GxNbWtbpI1+xzFLSW8XzX0u72NttUGVFjO3U=
 mvdan.cc/unparam v0.0.0-20240528143540-8a5130ca722f/go.mod h1:RSLa7mKKCNeTTMHBw5Hsy2rfJmd6O2ivt9Dw9ZqCQpQ=
+nhooyr.io/websocket v1.8.10 h1:mv4p+MnGrLDcPlBoWsvPP7XCzTYMXP9F9eIGoKbgx7Q=
+nhooyr.io/websocket v1.8.10/go.mod h1:rN9OFWIUwuxg4fR5tELlYC04bXYowCP9GX47ivo2l+c=

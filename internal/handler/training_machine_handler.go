@@ -35,7 +35,7 @@ func (h *TrainingMachineHandler) Index(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 }
@@ -47,13 +47,13 @@ func (h *TrainingMachineHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
+		writeError(w, r, http.StatusUnauthorized, errMsgUserUnauthorized, nil)
 		return
 	}
 
 	trainingMachines, err := h.Service.GetAll(user.ID, utils.IsUserScoped(r))
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
@@ -61,7 +61,7 @@ func (h *TrainingMachineHandler) List(w http.ResponseWriter, r *http.Request) {
 		TrainingMachines: trainingMachines,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 	}
 }
 
@@ -74,13 +74,13 @@ func (h *TrainingMachineHandler) Show(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		http.Error(w, "invalid training machine id", http.StatusUnprocessableEntity)
+		writeError(w, r, http.StatusUnprocessableEntity, "invalid training machine id", err)
 		return
 	}
 
 	trainingMachine, err := h.Service.GetByID(uint(id))
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func (h *TrainingMachineHandler) Show(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 	}
 }
 
@@ -103,7 +103,7 @@ func (h *TrainingMachineHandler) New(w http.ResponseWriter, r *http.Request) {
 		Title: "Register New Training Machine!",
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 }
@@ -117,20 +117,20 @@ func (h *TrainingMachineHandler) Create(w http.ResponseWriter, r *http.Request) 
 	var trainingMachine models.TrainingMachine
 	err := json.NewDecoder(r.Body).Decode(&trainingMachine)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusBadRequest, "invalid request payload", err)
 		return
 	}
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
+		writeError(w, r, http.StatusUnauthorized, errMsgUserUnauthorized, nil)
 		return
 	}
 	trainingMachine.UserId = user.ID
 
 	secretKey, err := h.Service.Create(&trainingMachine)
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
@@ -139,7 +139,7 @@ func (h *TrainingMachineHandler) Create(w http.ResponseWriter, r *http.Request) 
 		SecretKey: secretKey,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 }
@@ -148,19 +148,19 @@ func (h *TrainingMachineHandler) Delete(w http.ResponseWriter, r *http.Request) 
 	trainingMachineId, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusBadRequest, "invalid training machine id", err)
 		return
 	}
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
+		writeError(w, r, http.StatusUnauthorized, errMsgUserUnauthorized, nil)
 		return
 	}
 
 	err = h.Service.Delete(user.ID, uint(trainingMachineId))
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 

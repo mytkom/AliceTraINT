@@ -23,7 +23,7 @@ type CCDBService struct {
 }
 
 func NewCCDBService(env *environment.Env) *CCDBService {
-	cert, err := tls.LoadX509KeyPair(env.CCDBCertPath, env.CCDBKeyPath)
+	cert, err := tls.LoadX509KeyPair(env.CertPath, env.KeyPath)
 	if err != nil {
 		log.Fatalf("cannot create CCDBService: %s", err.Error())
 	}

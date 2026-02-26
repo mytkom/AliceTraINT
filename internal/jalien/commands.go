@@ -1,81 +1,14 @@
 package jalien
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
-
-func List(path string, longFormat bool) ([]byte, error) {
-	var cmd *exec.Cmd
-	if longFormat {
-		cmd = exec.Command("alien_ls", "-l", path)
-	} else {
-		cmd = exec.Command("alien_ls", path)
-	}
-
-	output, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
-
-	return output, nil
-}
-
-func Find(path string, searchPattern string, longFormat bool) ([]byte, error) {
-	var cmd *exec.Cmd
-	if longFormat {
-		cmd = exec.Command("alien_find", "-w", path, searchPattern)
-	} else {
-		cmd = exec.Command("alien_find", path, searchPattern)
-	}
-
-	output, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
-
-	return output, nil
-}
-
-type longFormatParsed struct {
-	Permissions string
-	Owner       string
-	Group       string
-	Size        uint64
-	Month       string
-	Day         string
-	Time        string
-	Name        string
-	IsDir       bool
-}
-
-func parseLongFormat(line string) (*longFormatParsed, error) {
-	parts := strings.Fields(line)
-	if len(parts) < 8 {
-		return nil, fmt.Errorf("line does not have enough parts")
-	}
-	isDir := line[0] == 'd'
-
-	size, err := strconv.ParseUint(parts[3], 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	return &longFormatParsed{
-		Permissions: parts[0],
-		Owner:       parts[1],
-		Group:       parts[2],
-		Size:        size,
-		Month:       parts[4],
-		Day:         parts[5],
-		Time:        parts[6],
-		Name:        strings.Join(parts[7:], " "),
-		IsDir:       isDir,
-	}, nil
-}
 
 type AODFile struct {
 	Name      string
@@ -88,44 +21,139 @@ type AODFile struct {
 
 var aodFilename = "AO2D.root"
 
-func FindAODFiles(path string) ([]AODFile, error) {
-	out, err := Find(path, aodFilename, true)
+// getStringField retrieves a string field from a JAliEn result map.
+func getStringField(m map[string]any, key string) string {
+	if m == nil {
+		return ""
+	}
+	if v, ok := m[key]; ok {
+		switch val := v.(type) {
+		case string:
+			return val
+		case fmt.Stringer:
+			return val.String()
+		case float64:
+			// JSON numbers are float64; but for IDs or sizes we should not call this helper.
+			return strconv.FormatFloat(val, 'f', -1, 64)
+		default:
+			return fmt.Sprintf("%v", val)
+		}
+	}
+	return ""
+}
+
+// getUint64Field attempts to extract an uint64 from a JAliEn result map.
+func getUint64Field(m map[string]any, key string) (uint64, error) {
+	if m == nil {
+		return 0, fmt.Errorf("missing field %q", key)
+	}
+	v, ok := m[key]
+	if !ok {
+		return 0, fmt.Errorf("missing field %q", key)
+	}
+
+	switch val := v.(type) {
+	case float64:
+		if val < 0 {
+			return 0, fmt.Errorf("negative value for %q", key)
+		}
+		return uint64(val), nil
+	case string:
+		if val == "" {
+			return 0, fmt.Errorf("empty string for %q", key)
+		}
+		n, err := strconv.ParseUint(val, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("invalid uint value %q for %s: %w", val, key, err)
+		}
+		return n, nil
+	default:
+		return 0, fmt.Errorf("unsupported type %T for %q", v, key)
+	}
+}
+
+// listDirectory returns the raw JAliEn ls results for a directory.
+func (c *Client) listDirectory(ctx context.Context, path string) ([]map[string]any, error) {
+	if path == "" {
+		path = "/"
+	}
+
+	// Use -nomsg to avoid server-side formatted messages; we only care about JSON.
+	opts := []string{"-nomsg", "-a", "-F", "-l", path}
+
+	resp, err := c.send(ctx, "ls", opts)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Results, nil
+}
+
+// findFiles returns raw JAliEn find results for a directory and pattern.
+func (c *Client) findFiles(ctx context.Context, dir, pattern string) ([]map[string]any, error) {
+	if dir == "" {
+		dir = "/"
+	}
+	if pattern == "" {
+		return nil, errors.New("jalien: empty search pattern")
+	}
+
+	opts := []string{"-nomsg", "-f", "-a", "-s", dir, pattern}
+
+	resp, err := c.send(ctx, "find", opts)
 	if err != nil {
 		return nil, err
 	}
 
-	lines := strings.Split(string(out), "\n")
+	return resp.Results, nil
+}
+
+// FindAODFiles finds AO2D.root files under the specified path using the
+// provided JAliEn client.
+func (client *Client) FindAODFiles(path string) ([]AODFile, error) {
+	minimal_path_reg := regexp.MustCompile(`^/alice/sim/.+/.+|/alice/data/.+/.+`)
+	if !minimal_path_reg.MatchString(path) {
+		return nil, errors.New("path must start with `/alice/sim/` or `/alice/data/` and has at least one more level")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	rawResults, err := client.findFiles(ctx, path, aodFilename)
+	if err != nil {
+		return nil, err
+	}
+
 	matcher := newAODMatcher()
-	aods := make([]AODFile, 0, len(lines))
+	aods := make([]AODFile, 0, len(rawResults))
 
-	for _, line := range lines {
-		if line == "" || strings.TrimSpace(line) == "" {
-			continue
+	for _, r := range rawResults {
+		// Skip directories if type information is present.
+		if t := getStringField(r, "type"); t != "" {
+			if strings.ToLower(t) != "f" {
+				continue
+			}
 		}
 
-		lineParsed, err := parseLongFormat(line)
-		if err != nil {
-			return nil, err
-		}
+		aodPath := getStringField(r, "lfn")
 
-		if lineParsed.IsDir {
-			return nil, errors.New("alien_find returned dir, but it shouldn't")
-		}
-
-		// find returns full path in parsed Name variable
-		aodPath := lineParsed.Name
 		pathVariables, err := matcher.MatchAO2DPath(aodPath)
 		if err != nil {
-			return nil, err
+			print("Skipping file: %s, error: %s", aodPath, err.Error())
+			continue
 		}
 		if pathVariables == nil {
 			continue
 		}
 
+		size, err := getUint64Field(r, "size")
+		if err != nil {
+			return nil, err
+		}
+
 		aods = append(aods, AODFile{
 			Name:      aodFilename,
 			Path:      aodPath,
-			Size:      lineParsed.Size,
+			Size:      size,
 			LHCPeriod: pathVariables.LHCPeriod,
 			RunNumber: pathVariables.RunNumber,
 			AODNumber: pathVariables.AODNumber,
@@ -152,52 +180,83 @@ type DirectoryContents struct {
 	Subdirs    []Dir
 }
 
-func ListAndParseDirectory(path string) (*DirectoryContents, error) {
-	out, err := List(path, true)
+// ListAndParseDirectory lists the contents of a directory using the provided
+// JAliEn client and parses them into DirectoryContents.
+func (client *Client) ListAndParseDirectory(path string) (*DirectoryContents, error) {
+	// Ensure path has a trailing slash for consistent path handling below.
+	if path == "" {
+		path = "/"
+	}
+	if !strings.HasSuffix(path, "/") {
+		path += "/"
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	entries, err := client.listDirectory(ctx, path)
 	if err != nil {
 		return nil, err
 	}
 
-	lines := strings.Split(string(out), "\n")
 	matcher := newAODMatcher()
 	dirContents := &DirectoryContents{}
 
-	for _, line := range lines {
-		if line == "" {
-			continue
+	for _, e := range entries {
+		name := getStringField(e, "name")
+		entryPath := getStringField(e, "path")
+		entryPath = strings.TrimSuffix(entryPath, "/")
+
+		// Normalize to always use trailing slash for directories, as before.
+		isDir := false
+		if t := getStringField(e, "permissions"); t != "" {
+			if strings.HasPrefix(strings.ToLower(t), "d") || strings.Contains(strings.ToLower(t), "dir") {
+				isDir = true
+			}
 		}
 
-		lineParsed, err := parseLongFormat(line)
-		if err != nil {
+		size, err := getUint64Field(e, "size")
+		if err != nil && !isDir {
 			return nil, err
 		}
 
-		linePath := path + lineParsed.Name
-
-		if lineParsed.IsDir {
+		if isDir {
 			dirContents.Subdirs = append(dirContents.Subdirs, Dir{
-				Name: strings.TrimSuffix(lineParsed.Name, "/"),
-				Path: linePath,
+				Name: strings.TrimSuffix(name, "/"),
+				Path: entryPath,
 			})
-		} else if lineParsed.Name == aodFilename {
-			pathVariables, err := matcher.MatchAO2DPath(linePath)
+			continue
+		}
+
+		if strings.TrimSuffix(name, "/") == aodFilename {
+			pathVariables, err := matcher.MatchAO2DPath(entryPath)
 			if err != nil {
-				return nil, err
+				print("Skipping file: %s, error: %s", entryPath, err.Error())
+				continue
+			}
+			if pathVariables == nil {
+				// Not in the expected AO2D layout, treat as regular file.
+				dirContents.OtherFiles = append(dirContents.OtherFiles, File{
+					Name: strings.TrimSuffix(name, "/"),
+					Path: entryPath,
+					Size: size,
+				})
+				continue
 			}
 
 			dirContents.AODFiles = append(dirContents.AODFiles, AODFile{
-				Name:      lineParsed.Name,
-				Path:      linePath,
-				Size:      lineParsed.Size,
+				Name:      strings.TrimSuffix(name, "/"),
+				Path:      entryPath,
+				Size:      size,
 				LHCPeriod: pathVariables.LHCPeriod,
 				RunNumber: pathVariables.RunNumber,
 				AODNumber: pathVariables.AODNumber,
 			})
 		} else {
 			dirContents.OtherFiles = append(dirContents.OtherFiles, File{
-				Name: lineParsed.Name,
-				Path: linePath,
-				Size: lineParsed.Size,
+				Name: strings.TrimSuffix(name, "/"),
+				Path: entryPath,
+				Size: size,
 			})
 		}
 	}

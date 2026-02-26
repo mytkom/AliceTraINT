@@ -336,7 +336,7 @@ func TestTrainingDatasetHandler_ExploreDirectory_Success(t *testing.T) {
 	assert.NotContains(t, responseBody, "other_file.ext")
 }
 
-func TestTrainingDatasetHandler_ExploreDirectory_InternalFailure(t *testing.T) {
+func TestTrainingDatasetHandler_ExploreDirectory_JAlienError(t *testing.T) {
 	ut, cleanup := setupIntegrationTest(t)
 	defer cleanup()
 
@@ -353,12 +353,12 @@ func TestTrainingDatasetHandler_ExploreDirectory_InternalFailure(t *testing.T) {
 
 	ut.Router.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 	responseBody := rr.Body.String()
-	assert.Equal(t, "unexpected internal server error\n", responseBody)
+	assert.Contains(t, responseBody, `"JAlien" external service is unreachable`)
 }
 
-func TestTrainingDatasetHandler_ExploreDirectory_CCDBUnreachable(t *testing.T) {
+func TestTrainingDatasetHandler_ExploreDirectory_JAlienUnreachable(t *testing.T) {
 	ut, cleanup := setupIntegrationTest(t)
 	defer cleanup()
 
@@ -377,7 +377,7 @@ func TestTrainingDatasetHandler_ExploreDirectory_CCDBUnreachable(t *testing.T) {
 
 	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 	responseBody := rr.Body.String()
-	assert.Contains(t, responseBody, `"CCDB" external service is unreachable`)
+	assert.Contains(t, responseBody, `"JAlien" external service is unreachable`)
 }
 
 func TestTrainingDatasetHandler_FindAods_Success(t *testing.T) {
@@ -422,7 +422,7 @@ func TestTrainingDatasetHandler_FindAods_Success(t *testing.T) {
 	assert.Contains(t, responseBody, "567451")
 }
 
-func TestTrainingDatasetHandler_FindAods_InternalFailure(t *testing.T) {
+func TestTrainingDatasetHandler_FindAods_JAlienError(t *testing.T) {
 	ut, cleanup := setupIntegrationTest(t)
 	defer cleanup()
 
@@ -439,12 +439,12 @@ func TestTrainingDatasetHandler_FindAods_InternalFailure(t *testing.T) {
 
 	ut.Router.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 	responseBody := rr.Body.String()
-	assert.Equal(t, "unexpected internal server error\n", responseBody)
+	assert.Contains(t, responseBody, `"JAlien" external service is unreachable`)
 }
 
-func TestTrainingDatasetHandler_FindAods_CCDBUnreachable(t *testing.T) {
+func TestTrainingDatasetHandler_FindAods_JAlienUnreachable(t *testing.T) {
 	ut, cleanup := setupIntegrationTest(t)
 	defer cleanup()
 
@@ -463,7 +463,7 @@ func TestTrainingDatasetHandler_FindAods_CCDBUnreachable(t *testing.T) {
 
 	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 	responseBody := rr.Body.String()
-	assert.Contains(t, responseBody, `"CCDB" external service is unreachable`)
+	assert.Contains(t, responseBody, `"JAlien" external service is unreachable`)
 }
 
 func TestTrainingDatasetHandler_Index_Unauthorized(t *testing.T) {

@@ -35,7 +35,7 @@ func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 }
@@ -47,13 +47,13 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
+		writeError(w, r, http.StatusUnauthorized, errMsgUserUnauthorized, nil)
 		return
 	}
 
 	trainingTasks, err := h.Service.GetAll(user.ID, utils.IsUserScoped(r))
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
@@ -61,7 +61,7 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		TrainingTasks: trainingTasks,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 }
@@ -70,13 +70,13 @@ func (h *TrainingTaskHandler) UploadToCCDB(w http.ResponseWriter, r *http.Reques
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		http.Error(w, "invalid training task id", http.StatusUnprocessableEntity)
+		writeError(w, r, http.StatusUnprocessableEntity, "invalid training task id", err)
 		return
 	}
 
 	err = h.Service.UploadOnnxResults(uint(id))
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
@@ -96,13 +96,13 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		http.Error(w, "invalid training task id", http.StatusUnprocessableEntity)
+		writeError(w, r, http.StatusUnprocessableEntity, "invalid training task id", err)
 		return
 	}
 
 	tt, err := h.Service.GetByID(uint(id))
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
@@ -115,7 +115,7 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 	}
 }
 
@@ -128,13 +128,13 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
+		writeError(w, r, http.StatusUnauthorized, errMsgUserUnauthorized, nil)
 		return
 	}
 
 	ttHelpers, err := h.Service.GetHelpers(user.ID)
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
@@ -144,7 +144,7 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 		FieldConfigs:     ttHelpers.FieldConfigs,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 }
@@ -153,20 +153,20 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var trainingTask models.TrainingTask
 	err := json.NewDecoder(r.Body).Decode(&trainingTask)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusBadRequest, "invalid request payload", err)
 		return
 	}
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
+		writeError(w, r, http.StatusUnauthorized, errMsgUserUnauthorized, nil)
 		return
 	}
 	trainingTask.UserId = user.ID
 
 	err = h.Service.Create(&trainingTask)
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 

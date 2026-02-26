@@ -26,6 +26,7 @@ type TrainingDatasetService struct {
 }
 
 var errCCDBUnreachable = NewErrExternalServiceTimeout("CCDB")
+var errJAlienUnreachable = NewErrExternalServiceTimeout("JAlien")
 var errDatasetNotFound = NewErrHandlerNotFound("TrainingDataset")
 
 func NewTrainingDatasetService(repo *repository.RepositoryContext, jalien IJAliEnService) *TrainingDatasetService {
@@ -113,7 +114,7 @@ func (s *TrainingDatasetService) ExploreDirectory(path string) (*jalien.Director
 
 	dirContents, err := s.JAliEn.ListAndParseDirectory(path)
 	if err != nil {
-		return nil, "", handleCCDBError(err)
+		return nil, "", handleJAlienError(err)
 	}
 
 	parentDir := "/"
@@ -131,7 +132,7 @@ func (s *TrainingDatasetService) FindAods(path string) ([]jalien.AODFile, error)
 	aodFiles, err := s.JAliEn.FindAODFiles(path)
 
 	if err != nil {
-		return nil, handleCCDBError(err)
+		return nil, handleJAlienError(err)
 	}
 
 	return aodFiles, nil

@@ -19,7 +19,7 @@ func (h *LandingHandler) Index(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		err := h.ExecuteTemplate(w, "not-found", nil)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		}
 		return
 	}
@@ -34,7 +34,7 @@ func (h *LandingHandler) Index(w http.ResponseWriter, r *http.Request) {
 		Title: "AliceTraINT",
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 }

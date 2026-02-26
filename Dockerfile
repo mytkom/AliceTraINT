@@ -1,67 +1,81 @@
-# Dockerfile for AliceTraINT
 FROM golang:1.22-alpine AS builder
 
-RUN apk add --no-cache git build-base curl make
+# --- config that differs locally vs OpenShift ---
+ARG CERT_PATH=./gridCertificate.p12   # default for local builds
 
+# Dependencies for Go + Tailwind
+RUN apk add --no-cache git build-base curl make openssl
+
+USER root
 WORKDIR /app
 
+# Copy Go modules
 COPY go.mod go.sum ./
-
 RUN go mod download
 
-# install tailwind CLI
+# Install Tailwind CLI
 ENV TAILWIND_VERSION=v3.4.10
-RUN curl -L "https://github.com/tailwindlabs/tailwindcss/releases/download/$TAILWIND_VERSION/tailwindcss-linux-x64" -o /usr/local/bin/tailwindcss
-RUN chmod +x /usr/local/bin/tailwindcss
+RUN curl -L "https://github.com/tailwindlabs/tailwindcss/releases/download/$TAILWIND_VERSION/tailwindcss-linux-x64" \
+    -o /usr/local/bin/tailwindcss && \
+    chmod +x /usr/local/bin/tailwindcss
 
-COPY . .
+# Copy only important files
+COPY ./cmd ./cmd
+COPY ./internal ./internal
+COPY ./static ./static
+COPY ./web ./web
+COPY "$CERT_PATH" .
+COPY ./.env* .
+COPY ./tailwind* .
+COPY ./Makefile .
+RUN touch .env
 
-# generate css using tailwind CLI
+
+# Generate CSS
 RUN make css
 
+# Build the Go binary
 RUN CGO_ENABLED=0 GOOS=linux go build -o AliceTraINT ./cmd/AliceTraINT
 
-FROM python:3.12-alpine
+# Generate certificates
+RUN mkdir -p ~/.globus
+RUN openssl pkcs12 -clcerts -nokeys -in "$CERT_PATH" -out ./usercert.pem -password pass:
+RUN openssl pkcs12 -nocerts -nodes -in "$CERT_PATH" -out ./userkey.pem -password pass:
+RUN chmod 0400 ./userkey.pem
 
-RUN apk add --no-cache ca-certificates \
-                                cmake  \
-                                make   \
-                                g++    \
-                                zlib-dev \
-                                libuuid  \
-                                util-linux-dev \
-                                openssl \
-                                libcrypto3 \
-                                openssl-dev \
-                                openssl-libs-static \
-                                musl-dev \
-                                linux-headers \
-                                git \
-                                rsync
-RUN pip install alienpy
+RUN git clone --depth=1 --branch master https://github.com/alisw/alien-cas.git /app/alien-cas
+RUN openssl rehash /app/alien-cas
 
-WORKDIR /root/
+# --- runtime stage (same for both) ---
+FROM registry.access.redhat.com/ubi9 AS runtime
 
-RUN echo "Copying certificate to root directory"
-COPY gridCertificate.p12 .
-RUN mkdir ~/.globus
-RUN openssl pkcs12 -clcerts -nokeys -in ./gridCertificate.p12 -out ~/.globus/usercert.pem -password pass:
-RUN openssl pkcs12 -nocerts -nodes -in ./gridCertificate.p12 -out ~/.globus/userkey.pem -password pass:
-RUN chmod 0400 ~/.globus/userkey.pem
-ENV CCDB_SSL_CERT_PATH=/root/.globus/usercert.pem
-ENV CCDB_SSL_KEY_PATH=/root/.globus/userkey.pem
-
+USER 1001
 WORKDIR /app
-RUN alien.py getCAcerts
-ENV X509_CERT_DIR=/root/.globus/certificates
-# for some reason first execution of ls is returning nil - from second and on it works as expected
-RUN alien_ls /
 
-COPY --from=builder /app/.env /app/AliceTraINT ./
+USER root
+
+COPY --from=builder /app/alien-cas ./alien-cas
+ENV JALIEN_CERT_CA_DIR=/app/alien-cas
+
+# Copy Go binary and certificates
+COPY --from=builder /app/AliceTraINT ./
+COPY --from=builder /app/usercert.pem ./usercert.pem
+COPY --from=builder /app/userkey.pem ./userkey.pem
+COPY --from=builder /app/.env ./
+
+RUN chmod 0400 ./userkey.pem
+ENV GRID_CERT_PATH=./usercert.pem
+ENV GRID_KEY_PATH=./userkey.pem
+
+# Frontend / static files
 COPY --from=builder /app/web ./web
-COPY --from=builder /app/static/ ./static/
+COPY --from=builder /app/static ./static
+
+RUN mkdir -p . && \
+    chgrp -R 0 . && \
+    chmod -R g=u .
+
+USER 1001
 
 EXPOSE 8088
-
 CMD ["./AliceTraINT"]
-

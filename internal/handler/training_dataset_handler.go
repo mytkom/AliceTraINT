@@ -36,7 +36,7 @@ func (h *TrainingDatasetHandler) Index(w http.ResponseWriter, r *http.Request) {
 		Title: "Training Datasets",
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 }
@@ -48,13 +48,13 @@ func (h *TrainingDatasetHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
+		writeError(w, r, http.StatusUnauthorized, errMsgUserUnauthorized, nil)
 		return
 	}
 
 	trainingDatasets, err := h.Service.GetAll(user.ID, utils.IsUserScoped(r))
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
@@ -62,7 +62,7 @@ func (h *TrainingDatasetHandler) List(w http.ResponseWriter, r *http.Request) {
 		TrainingDatasets: trainingDatasets,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 }
@@ -76,13 +76,13 @@ func (h *TrainingDatasetHandler) Show(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		http.Error(w, "invalid training dataset id", http.StatusUnprocessableEntity)
+		writeError(w, r, http.StatusUnprocessableEntity, "invalid training dataset id", err)
 		return
 	}
 
 	trainingDataset, err := h.Service.GetByID(uint(id))
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
@@ -91,7 +91,7 @@ func (h *TrainingDatasetHandler) Show(w http.ResponseWriter, r *http.Request) {
 		TrainingDataset: *trainingDataset,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 	}
 }
 
@@ -104,7 +104,7 @@ func (h *TrainingDatasetHandler) New(w http.ResponseWriter, r *http.Request) {
 		Title: "Create New Training Dataset!",
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 }
@@ -113,20 +113,20 @@ func (h *TrainingDatasetHandler) Create(w http.ResponseWriter, r *http.Request) 
 	var trainingDataset models.TrainingDataset
 	err := json.NewDecoder(r.Body).Decode(&trainingDataset)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusBadRequest, "invalid request payload", err)
 		return
 	}
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
+		writeError(w, r, http.StatusUnauthorized, errMsgUserUnauthorized, nil)
 		return
 	}
 	trainingDataset.UserId = user.ID
 
 	err = h.Service.Create(&trainingDataset)
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
@@ -138,19 +138,19 @@ func (h *TrainingDatasetHandler) Delete(w http.ResponseWriter, r *http.Request) 
 	trainingDatasetId, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusBadRequest, "invalid training dataset id", err)
 		return
 	}
 
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
-		http.Error(w, errMsgUserUnauthorized, http.StatusUnauthorized)
+		writeError(w, r, http.StatusUnauthorized, errMsgUserUnauthorized, nil)
 		return
 	}
 
 	err = h.Service.Delete(user.ID, uint(trainingDatasetId))
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
@@ -168,7 +168,7 @@ func (h *TrainingDatasetHandler) ExploreDirectory(w http.ResponseWriter, r *http
 	path := r.URL.Query().Get("path")
 	dirContents, parentDir, err := h.Service.ExploreDirectory(path)
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
@@ -179,7 +179,7 @@ func (h *TrainingDatasetHandler) ExploreDirectory(w http.ResponseWriter, r *http
 		ParentDir: parentDir,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 }
@@ -192,7 +192,7 @@ func (h *TrainingDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request
 	path := r.URL.Query().Get("path")
 	aods, err := h.Service.FindAods(path)
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
@@ -200,7 +200,7 @@ func (h *TrainingDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request
 		AODFiles: aods,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 }

@@ -13,10 +13,13 @@ type Config struct {
 	Database           DatabaseConfig
 	Port               string
 	JalienCacheMinutes uint
+	JalienHost         string
+	JalienPort         string
+	JalienCertCADir    string
 	CCDBBaseURL        string
 	CCDBUploadSubdir   string
-	CCDBCertPath       string
-	CCDBKeyPath        string
+	CertPath           string
+	KeyPath            string
 	DataDirPath        string
 	NNArchPath         string
 }
@@ -37,6 +40,9 @@ func LoadConfig() *Config {
 		log.Println("Error loading .env file")
 	}
 
+	const defaultJalienHost = "alice-jcentral.cern.ch"
+	const defaultJalienPort = "8097"
+
 	return &Config{
 		Database: DatabaseConfig{
 			Host:            getEnv("DB_HOST", "localhost"),
@@ -49,10 +55,13 @@ func LoadConfig() *Config {
 		},
 		Port:               getEnv("ALICETRAINT_PORT", "8088"),
 		JalienCacheMinutes: getEnvAsUint("ALICETRAINT_JALIEN_CACHE_MINUTES", 60),
+		JalienHost:         getEnv("JALIEN_HOST", defaultJalienHost),
+		JalienPort:         getEnv("JALIEN_WSPORT", defaultJalienPort),
+		JalienCertCADir:    getEnv("JALIEN_CERT_CA_DIR", ""),
 		CCDBBaseURL:        getEnv("CCDB_URL", "http://ccdb-test.cern.ch:8080"),
 		CCDBUploadSubdir:   getEnv("CCDB_UPLOAD_SUBDIR", "/Users/m/mmytkows"),
-		CCDBCertPath:       getEnv("CCDB_SSL_CERT_PATH", ""),
-		CCDBKeyPath:        getEnv("CCDB_SSL_KEY_PATH", ""),
+		CertPath:           getEnv("GRID_CERT_PATH", ""),
+		KeyPath:            getEnv("GRID_KEY_PATH", ""),
 		DataDirPath:        getEnv("ALICETRAINT_DATA_DIR_PATH", "data"),
 		NNArchPath:         getEnv("ALICETRAINT_NN_ARCH_DIR", "web/nn_architectures/proposed.json"),
 	}

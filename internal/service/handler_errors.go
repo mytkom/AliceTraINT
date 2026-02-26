@@ -13,6 +13,11 @@ func handleCCDBError(err error) error {
 	return errInternalServerError
 }
 
+func handleJAlienError(err error) error {
+	print(err.Error())
+	return errJAlienUnreachable
+}
+
 type ErrHandlerNotFound struct {
 	Resource string
 }
