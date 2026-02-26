@@ -24,7 +24,7 @@ COPY ./cmd ./cmd
 COPY ./internal ./internal
 COPY ./static ./static
 COPY ./web ./web
-COPY "$CERT_PATH" .
+COPY ./*.p12 .
 COPY ./.env* .
 COPY ./tailwind* .
 COPY ./Makefile .
