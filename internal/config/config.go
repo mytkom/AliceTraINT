@@ -22,6 +22,7 @@ type Config struct {
 	KeyPath            string
 	DataDirPath        string
 	NNArchPath         string
+	DocsDirPath        string
 }
 
 type DatabaseConfig struct {
@@ -64,6 +65,7 @@ func LoadConfig() *Config {
 		KeyPath:            getEnv("GRID_KEY_PATH", ""),
 		DataDirPath:        getEnv("ALICETRAINT_DATA_DIR_PATH", "data"),
 		NNArchPath:         getEnv("ALICETRAINT_NN_ARCH_DIR", "web/nn_architectures/proposed.json"),
+		DocsDirPath:        getEnv("ALICETRAINT_DOCS_DIR_PATH", "docs"),
 	}
 }
 

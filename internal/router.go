@@ -16,6 +16,7 @@ import (
 func NewRouter(cfg *config.Config, repoContext *repository.RepositoryContext, authService auth.IAuthService) *http.ServeMux {
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir("static"))
+	docsFs := http.FileServer(http.Dir(cfg.DocsDirPath))
 
 	// templates
 	baseTemplate := utils.BaseTemplate()
@@ -33,12 +34,14 @@ func NewRouter(cfg *config.Config, repoContext *repository.RepositoryContext, au
 
 	// routes
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	mux.Handle("GET /docs/static/", http.StripPrefix("/docs/static/", docsFs))
 	mux.Handle("GET /data/", middleware.Chain(http.StripPrefix("/data/", fsData), middleware.NewAuthMw(authService, false)))
 	mux.HandleFunc("GET /login", authService.LoginHandler)
 	mux.HandleFunc("GET /callback", authService.CallbackHandler)
 
 	// handlers' routes
 	handler.InitLandingRoutes(mux, env)
+	handler.InitDocsRoutes(mux, env)
 	handler.InitTrainingDatasetRoutes(mux, env, jalienService)
 	handler.InitTrainingTaskRoutes(mux, env, ccdbService, jalienService, fileService, nnArch)
 	handler.InitTrainingMachineRoutes(mux, env, hasher)

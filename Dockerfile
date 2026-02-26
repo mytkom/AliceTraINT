@@ -23,6 +23,7 @@ RUN curl -L "https://github.com/tailwindlabs/tailwindcss/releases/download/$TAIL
 COPY ./cmd ./cmd
 COPY ./internal ./internal
 COPY ./static ./static
+COPY ./docs ./docs
 COPY ./web ./web
 COPY ./.env* .
 COPY ./tailwind* .
@@ -69,6 +70,7 @@ ENV GRID_KEY_PATH=./userkey.pem
 # Frontend / static files
 COPY --from=builder /app/web ./web
 COPY --from=builder /app/static ./static
+COPY --from=builder /app/docs ./docs
 
 RUN mkdir -p . && \
     chgrp -R 0 . && \
