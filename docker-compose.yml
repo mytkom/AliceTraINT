@@ -18,7 +18,22 @@ services:
         condition: service_healthy
     volumes:
       - ./data:/app/data
+      # Dev-friendly mounts: allow Tailwind output.css updates to be written to the host repo.
       - ./static:/app/static
+      - ./web:/app/web:ro
+      - ./tailwind.config.js:/app/tailwind.config.js:ro
+
+  # Development helper: watches templates and css input and regenerates static/css/output.css.
+  # This writes output.css into the host repo via the bind mount above.
+  tailwind:
+    build:
+      context: .
+    command: >
+      sh -lc "tailwindcss -i static/css/input.css -o static/css/output.css --watch --poll"
+    volumes:
+      - ./static:/app/static
+      - ./web:/app/web:ro
+      - ./tailwind.config.js:/app/tailwind.config.js:ro
 
   postgres:
     image: postgres:15-alpine

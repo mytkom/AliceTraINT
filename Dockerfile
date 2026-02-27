@@ -13,26 +13,12 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Install Tailwind CLI
-ENV TAILWIND_VERSION=v3.4.10
-RUN curl -L "https://github.com/tailwindlabs/tailwindcss/releases/download/$TAILWIND_VERSION/tailwindcss-linux-x64" \
-    -o /usr/local/bin/tailwindcss && \
-    chmod +x /usr/local/bin/tailwindcss
-
 # Copy only important files
 COPY ./cmd ./cmd
 COPY ./internal ./internal
-COPY ./static ./static
-COPY ./docs ./docs
-COPY ./web ./web
 COPY ./.env* .
-COPY ./tailwind* .
 COPY ./Makefile ./*.p12 .
 RUN touch .env
-
-
-# Generate CSS
-RUN make css
 
 # Build the Go binary
 RUN CGO_ENABLED=0 GOOS=linux go build -o AliceTraINT ./cmd/AliceTraINT
@@ -48,6 +34,12 @@ RUN openssl rehash /app/alien-cas
 
 # --- runtime stage (same for both) ---
 FROM registry.access.redhat.com/ubi9 AS runtime
+
+# Install Tailwind CLI
+ENV TAILWIND_VERSION=v3.4.10
+RUN curl -L "https://github.com/tailwindlabs/tailwindcss/releases/download/$TAILWIND_VERSION/tailwindcss-linux-x64" \
+    -o /usr/local/bin/tailwindcss && \
+    chmod +x /usr/local/bin/tailwindcss
 
 USER 1001
 WORKDIR /app
@@ -67,10 +59,16 @@ RUN chmod 0400 ./userkey.pem
 ENV GRID_CERT_PATH=./usercert.pem
 ENV GRID_KEY_PATH=./userkey.pem
 
-# Frontend / static files
-COPY --from=builder /app/web ./web
-COPY --from=builder /app/static ./static
-COPY --from=builder /app/docs ./docs
+# Docs and web templates are loaded at the execution
+# of Go binary so they can be copied here and css generated
+COPY ./tailwind* .
+COPY ./web ./web
+COPY ./static ./static
+
+# Generate CSS (it may be unnecessary, but it's better to have it here)
+RUN tailwindcss -i static/css/input.css -o static/css/output.css --minify
+
+COPY ./docs ./docs
 
 RUN mkdir -p . && \
     chgrp -R 0 . && \

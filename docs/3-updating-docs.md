@@ -68,6 +68,30 @@ Images are static files served from the same directory tree as the markdown docs
 
 At runtime this is served directly from the `docs/` directory configured in the app.
 
+## Using HTML inside markdown
+
+Markdown files can also contain explicit HTML. This is useful when you want more control
+over formatting than plain markdown gives you.
+
+For example, ordered lists with screenshots sometimes render inconsistently in markdown.
+In such cases you can use an HTML list and `<img>` tags to keep numbering stable:
+
+```html
+<ol>
+  <li>
+    Step with an image:
+    <p><img src="/docs/static/0-getting-started/example.png" alt="Example"></p>
+  </li>
+  <li>Next step...</li>
+</ol>
+```
+
+In general:
+
+- you can mix markdown and HTML in the same file,
+- HTML is rendered “as is”, so use it only for trusted documentation content,
+- prefer markdown for normal text, and use HTML only when you really need it.
+
 ## When changes are visible
 
 Because the application processes docs once at startup, updates are **not** picked up
