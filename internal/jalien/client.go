@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -250,13 +251,21 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer in.Close()
+	defer func() {
+		if err := in.Close(); err != nil {
+			log.Printf("error closing file: %v\n", err)
+		}
+	}()
 
 	out, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = out.Close() }()
+	defer func() {
+		if err := out.Close(); err != nil {
+			log.Printf("error closing file: %v\n", err)
+		}
+	}()
 
 	if _, err := io.Copy(out, in); err != nil {
 		return err
@@ -292,7 +301,11 @@ func (c *Client) send(ctx context.Context, cmd string, options []string) (*jalie
 	// Many JAliEn commands can return responses larger than the default 32 KiB
 	// read limit. Raise the limit to 16 MiB to accommodate typical payloads.
 	conn.SetReadLimit(16 * 1024 * 1024)
-	defer conn.Close(websocket.StatusNormalClosure, "")
+	defer func() {
+		if err := conn.Close(websocket.StatusNormalClosure, ""); err != nil {
+			log.Printf("error closing websocket: %v\n", err)
+		}
+	}()
 
 	if err = conn.Write(ctx, websocket.MessageText, data); err != nil {
 		return nil, err

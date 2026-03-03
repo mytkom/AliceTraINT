@@ -35,4 +35,3 @@ func NewRecoverMw() Middleware {
 		})
 	}
 }
-

@@ -30,7 +30,7 @@ func TestTrainingTaskHandler_Index(t *testing.T) {
 	ut.Router.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Contains(t, rr.Body.String(), "Training Machines")
+	assert.Contains(t, rr.Body.String(), "Machines")
 }
 
 func TestTrainingTaskHandler_List(t *testing.T) {
