@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type AODFile struct {
@@ -115,7 +114,7 @@ func (client *Client) FindAODFiles(path string) ([]AODFile, error) {
 		return nil, errors.New("path must start with `/alice/sim/` or `/alice/data/` and has at least one more level")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), client.timeout)
 	defer cancel()
 
 	rawResults, err := client.findFiles(ctx, path, aodFilename)
@@ -191,7 +190,7 @@ func (client *Client) ListAndParseDirectory(path string) (*DirectoryContents, er
 		path += "/"
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), client.timeout)
 	defer cancel()
 
 	entries, err := client.listDirectory(ctx, path)

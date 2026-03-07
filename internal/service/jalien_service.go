@@ -20,7 +20,7 @@ type JAliEnService struct {
 func NewJAliEnService(env *environment.Env) *JAliEnService {
 	cfg := env.Config
 
-	client, err := jalien.NewClient(cfg.JalienHost, cfg.JalienPort, cfg.CertPath, cfg.KeyPath, cfg.JalienCertCADir)
+	client, err := jalien.NewClient(cfg.JalienHost, cfg.JalienPort, cfg.CertPath, cfg.KeyPath, cfg.JalienCertCADir, cfg.JalienTimeoutSeconds)
 	if err != nil {
 		log.Fatalf("cannot create JAliEnService: %s", err.Error())
 	}

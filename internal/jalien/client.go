@@ -30,6 +30,7 @@ const (
 type Client struct {
 	url        string
 	httpClient *http.Client
+	timeout    time.Duration
 }
 
 // jalienResponse mirrors the generic structure returned by JAliEn websocket API.
@@ -40,7 +41,7 @@ type jalienResponse struct {
 
 // NewClient creates a JAliEn client using the provided host, port and
 // client certificate/key paths.
-func NewClient(host, port, certPath, keyPath, certDir string) (*Client, error) {
+func NewClient(host, port, certPath, keyPath, certDir string, timeoutSeconds uint) (*Client, error) {
 	if host == "" {
 		host = defaultJAlienHost
 	}
@@ -73,6 +74,7 @@ func NewClient(host, port, certPath, keyPath, certDir string) (*Client, error) {
 	return &Client{
 		url:        url,
 		httpClient: &http.Client{Transport: transport},
+		timeout:    time.Duration(timeoutSeconds) * time.Second,
 	}, nil
 }
 
@@ -289,7 +291,7 @@ func (c *Client) send(ctx context.Context, cmd string, options []string) (*jalie
 		return nil, err
 	}
 
-	dialCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	dialCtx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
 	conn, _, err := websocket.Dial(dialCtx, c.url, &websocket.DialOptions{
@@ -300,7 +302,7 @@ func (c *Client) send(ctx context.Context, cmd string, options []string) (*jalie
 	}
 	// Many JAliEn commands can return responses larger than the default 32 KiB
 	// read limit. Raise the limit to 16 MiB to accommodate typical payloads.
-	conn.SetReadLimit(16 * 1024 * 1024)
+	conn.SetReadLimit(64 * 1024 * 1024)
 	defer func() {
 		if err := conn.Close(websocket.StatusNormalClosure, ""); err != nil {
 			log.Printf("error closing websocket: %v\n", err)

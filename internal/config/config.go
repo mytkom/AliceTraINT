@@ -10,19 +10,20 @@ import (
 )
 
 type Config struct {
-	Database           DatabaseConfig
-	Port               string
-	JalienCacheMinutes uint
-	JalienHost         string
-	JalienPort         string
-	JalienCertCADir    string
-	CCDBBaseURL        string
-	CCDBUploadSubdir   string
-	CertPath           string
-	KeyPath            string
-	DataDirPath        string
-	NNArchPath         string
-	DocsDirPath        string
+	Database             DatabaseConfig
+	Port                 string
+	JalienCacheMinutes   uint
+	JalienHost           string
+	JalienPort           string
+	JalienCertCADir      string
+	JalienTimeoutSeconds uint
+	CCDBBaseURL          string
+	CCDBUploadSubdir     string
+	CertPath             string
+	KeyPath              string
+	DataDirPath          string
+	NNArchPath           string
+	DocsDirPath          string
 }
 
 type DatabaseConfig struct {
@@ -54,18 +55,19 @@ func LoadConfig() *Config {
 			SSLMode:         getEnv("DB_SSLMODE", "disable"),
 			SSLRootCertPath: getEnv("DB_SSL_CERT_PATH", ""),
 		},
-		Port:               getEnv("ALICETRAINT_PORT", "8088"),
-		JalienCacheMinutes: getEnvAsUint("ALICETRAINT_JALIEN_CACHE_MINUTES", 60),
-		JalienHost:         getEnv("JALIEN_HOST", defaultJalienHost),
-		JalienPort:         getEnv("JALIEN_WSPORT", defaultJalienPort),
-		JalienCertCADir:    getEnv("JALIEN_CERT_CA_DIR", ""),
-		CCDBBaseURL:        getEnv("CCDB_URL", "http://ccdb-test.cern.ch:8080"),
-		CCDBUploadSubdir:   getEnv("CCDB_UPLOAD_SUBDIR", "/Users/m/mmytkows"),
-		CertPath:           getEnv("GRID_CERT_PATH", ""),
-		KeyPath:            getEnv("GRID_KEY_PATH", ""),
-		DataDirPath:        getEnv("ALICETRAINT_DATA_DIR_PATH", "data"),
-		NNArchPath:         getEnv("ALICETRAINT_NN_ARCH_DIR", "web/nn_architectures/proposed.json"),
-		DocsDirPath:        getEnv("ALICETRAINT_DOCS_DIR_PATH", "docs"),
+		Port:                 getEnv("ALICETRAINT_PORT", "8088"),
+		JalienCacheMinutes:   getEnvAsUint("ALICETRAINT_JALIEN_CACHE_MINUTES", 60),
+		JalienHost:           getEnv("JALIEN_HOST", defaultJalienHost),
+		JalienPort:           getEnv("JALIEN_WSPORT", defaultJalienPort),
+		JalienCertCADir:      getEnv("JALIEN_CERT_CA_DIR", ""),
+		JalienTimeoutSeconds: getEnvAsUint("JALIEN_TIMEOUT_SECONDS", 60),
+		CCDBBaseURL:          getEnv("CCDB_URL", "http://ccdb-test.cern.ch:8080"),
+		CCDBUploadSubdir:     getEnv("CCDB_UPLOAD_SUBDIR", "/Users/m/mmytkows"),
+		CertPath:             getEnv("GRID_CERT_PATH", ""),
+		KeyPath:              getEnv("GRID_KEY_PATH", ""),
+		DataDirPath:          getEnv("ALICETRAINT_DATA_DIR_PATH", "data"),
+		NNArchPath:           getEnv("ALICETRAINT_NN_ARCH_DIR", "web/nn_architectures/proposed.json"),
+		DocsDirPath:          getEnv("ALICETRAINT_DOCS_DIR_PATH", "docs"),
 	}
 }
 
