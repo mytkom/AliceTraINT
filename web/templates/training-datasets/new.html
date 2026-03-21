@@ -28,6 +28,47 @@
             <div id="file-list" class="overflow-y-auto max-h-full"></div>
         </div>
 
+        <div class="border-t-2 border-dotted bg-white dark:bg-sky-700 p-3 flex flex-col gap-2">
+            <form id="random-subset-form"
+                  class="flex flex-wrap gap-3 items-end"
+                  hx-get="select-random-aods"
+                  hx-target="#selected-files"
+                  hx-select="li"
+                  hx-swap="innerHTML"
+                  hx-indicator="#file-list-overlay"
+                  hx-vals="js:{path: document.getElementById('path').value}">
+                <div class="flex flex-col">
+                    <label for="runCount">Run count</label>
+                    <input type="number"
+                           id="runCount"
+                           name="runCount"
+                           min="1"
+                           value="10"
+                           class="bg-white border-sky-900 text-gray-800 rounded-lg text-sm py-1 px-2" />
+                </div>
+                <div class="flex flex-col">
+                    <label for="filesPerRun">Files per run</label>
+                    <input type="number"
+                           id="filesPerRun"
+                           name="filesPerRun"
+                           min="1"
+                           value="5"
+                           class="bg-white border-sky-900 text-gray-800 rounded-lg text-sm py-1 px-2" />
+                </div>
+                <div class="flex flex-col">
+                    <label for="minFileSizeMB">Min file size [MB]</label>
+                    <input type="number"
+                           id="minFileSizeMB"
+                           name="minFileSizeMB"
+                           min="0"
+                           value="2048"
+                           class="bg-white border-sky-900 text-gray-800 rounded-lg text-sm py-1 px-2" />
+                </div>
+                <button class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2 whitespace-nowrap shrink-0"
+                    type="submit">Select Random Subset</button>
+            </form>
+        </div>
+
         <div id="file-list-overlay" class="display-htmx-indicator absolute inset-0 bg-sky-200 opacity-50 z-10">
             <div class="h-full flex justify-center items-center">
                 <img class="size-14 lg:size-20" src="/static/img/spinner.svg" />

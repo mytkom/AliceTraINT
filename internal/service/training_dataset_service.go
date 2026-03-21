@@ -18,6 +18,7 @@ type ITrainingDatasetService interface {
 	Delete(userId uint, id uint) error
 	ExploreDirectory(path string) (*jalien.DirectoryContents, string, error)
 	FindAods(path string) ([]jalien.AODFile, error)
+	SelectRandomAODSubset(path string, runCount, filesPerRun int, minSizeBytes uint64) ([]jalien.AODFile, error)
 }
 
 type TrainingDatasetService struct {
