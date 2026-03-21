@@ -7,7 +7,6 @@ import (
 	"github.com/mytkom/AliceTraINT/internal/jalien"
 )
 
-
 func (s *TrainingDatasetService) SelectRandomAODSubset(path string, runCount, filesPerRun int, minSizeBytes uint64) ([]jalien.AODFile, error) {
 	if path == "" {
 		return nil, &ErrHandlerValidation{
@@ -145,4 +144,3 @@ func uniformIndices(n, k int) []int {
 	}
 	return indices
 }
-
