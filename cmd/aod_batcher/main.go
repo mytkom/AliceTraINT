@@ -16,12 +16,13 @@ import (
 )
 
 type config struct {
-	path            string
-	runs            int
-	filesPerRun     int
-	maxRunsPerBatch int
-	minSizeMB       float64
-	outputDir       string
+	path             string
+	runs             int
+	filesPerRun      int
+	maxRunsPerBatch  int
+	maxFilesPerBatch int
+	minSizeMB        float64
+	outputDir        string
 
 	jalienHost           string
 	jalienPort           string
@@ -32,12 +33,13 @@ type config struct {
 }
 
 type metadata struct {
-	Path            string  `json:"path"`
-	Runs            int     `json:"runs"`
-	FilesPerRun     int     `json:"files_per_run"`
-	MaxRunsPerBatch int     `json:"max_runs_per_batch"`
-	MinSizeMB       float64 `json:"min_size_mb"`
-	Timestamp       string  `json:"timestamp"`
+	Path             string  `json:"path"`
+	Runs             int     `json:"runs"`
+	FilesPerRun      int     `json:"files_per_run"`
+	MaxRunsPerBatch  int     `json:"max_runs_per_batch"`
+	MaxFilesPerBatch int     `json:"max_files_per_batch"`
+	MinSizeMB        float64 `json:"min_size_mb"`
+	Timestamp        string  `json:"timestamp"`
 }
 
 func main() {
@@ -57,7 +59,8 @@ func parseFlags() (*config, error) {
 	flag.StringVar(&cfg.path, "path", "", "JAliEn path under which to search for AOD files (e.g. /alice/sim/2024/LHC24f3)")
 	flag.IntVar(&cfg.runs, "runs", 0, "Total number of runs to select")
 	flag.IntVar(&cfg.filesPerRun, "files-per-run", 0, "Number of AOD files to select for each chosen run")
-	flag.IntVar(&cfg.maxRunsPerBatch, "max-runs-per-batch", 0, "Maximum number of runs to include in a single batch")
+	flag.IntVar(&cfg.maxRunsPerBatch, "max-runs-per-batch", -1, "Maximum number of runs to include in a single batch")
+	flag.IntVar(&cfg.maxFilesPerBatch, "max-files-per-batch", -1, "Maximum number of AOD files to include in a single batch")
 	flag.Float64Var(&cfg.minSizeMB, "min-size-mb", 0, "Optional minimal AOD file size in megabytes; files smaller than this are excluded")
 	flag.StringVar(&cfg.outputDir, "output-dir", "", "Directory where batch .txt files will be written")
 	flag.UintVar(&cfg.jalienTimeoutSeconds, "jalien-timeout-seconds", 600, "JAliEn timeout in seconds")
@@ -79,8 +82,8 @@ func parseFlags() (*config, error) {
 	if cfg.filesPerRun <= 0 {
 		return nil, errors.New("flag --files-per-run must be > 0")
 	}
-	if cfg.maxRunsPerBatch <= 0 {
-		return nil, errors.New("flag --max-runs-per-batch must be > 0")
+	if cfg.maxRunsPerBatch < 0 && cfg.maxFilesPerBatch < 0 {
+		return nil, errors.New("flag --max-runs-per-batch or --max-files-per-batch must be > 0")
 	}
 	if cfg.outputDir == "" {
 		return nil, errors.New("flag --output-dir is required")
@@ -190,30 +193,59 @@ func run(cfg *config) error {
 	}
 
 	// Build batches of runs.
-	if cfg.maxRunsPerBatch <= 0 {
-		return errors.New("--max-runs-per-batch must be greater than 0")
+	if cfg.maxRunsPerBatch <= 0 && cfg.maxFilesPerBatch <= 0 {
+		return errors.New("flag --max-runs-per-batch or --max-files-per-batch must be > 0")
 	}
 
-	batchCount := int(math.Ceil(float64(len(selectedRuns)) / float64(cfg.maxRunsPerBatch)))
-	padding := len(fmt.Sprintf("%d", batchCount)) // number of digits for zero-padding
+	if cfg.maxRunsPerBatch > 0 {
+		batchCount := int(math.Ceil(float64(len(selectedRuns)) / float64(cfg.maxRunsPerBatch)))
+		padding := len(fmt.Sprintf("%d", batchCount)) // number of digits for zero-padding
 
-	batchIdx := 0
-	for start := 0; start < len(selectedRuns); start += cfg.maxRunsPerBatch {
-		end := start + cfg.maxRunsPerBatch
-		if end > len(selectedRuns) {
-			end = len(selectedRuns)
+		batchIdx := 0
+		for start := 0; start < len(selectedRuns); start += cfg.maxRunsPerBatch {
+			end := start + cfg.maxRunsPerBatch
+			if end > len(selectedRuns) {
+				end = len(selectedRuns)
+			}
+			batchRuns := selectedRuns[start:end]
+			batchFiles := make([]jalien.AODFile, 0, len(batchRuns)*cfg.filesPerRun)
+			for _, br := range batchRuns {
+				batchFiles = append(batchFiles, selectedFilesByRun[br]...)
+			}
+
+			batchIdx++
+			filename := fmt.Sprintf("batch_%0*d.txt", padding, batchIdx)
+			fullPath := filepath.Join(cfg.outputDir, filename)
+
+			if err := writeBatchFile(fullPath, batchFiles); err != nil {
+				return err
+			}
 		}
-		batchRuns := selectedRuns[start:end]
+	} else if cfg.maxFilesPerBatch > 0 {
+		batchCount := int(math.Ceil(float64(len(selectedFilesByRun)) / float64(cfg.maxFilesPerBatch)))
+		padding := len(fmt.Sprintf("%d", batchCount)) // number of digits for zero-padding
+		files := make([]jalien.AODFile, 0, len(selectedFilesByRun)*cfg.filesPerRun)
+		for _, f := range selectedFilesByRun {
+			files = append(files, f...)
+		}
 
-		batchIdx++
-		filename := fmt.Sprintf("batch_%0*d.txt", padding, batchIdx)
-		fullPath := filepath.Join(cfg.outputDir, filename)
+		batchIdx := 0
+		for start := 0; start < len(files); start += cfg.maxFilesPerBatch {
+			end := start + cfg.maxFilesPerBatch
+			if end > len(files) {
+				end = len(files)
+			}
+			batchFiles := files[start:end]
 
-		if err := writeBatchFile(fullPath, batchRuns, selectedFilesByRun); err != nil {
-			return err
+			batchIdx++
+			filename := fmt.Sprintf("batch_%0*d.txt", padding, batchIdx)
+			fullPath := filepath.Join(cfg.outputDir, filename)
+
+			if err := writeBatchFile(fullPath, batchFiles); err != nil {
+				return err
+			}
 		}
 	}
-
 	// Persist non-sensitive configuration metadata alongside the batch files.
 	if err := writeMetadataFile(cfg); err != nil {
 		return err
@@ -256,7 +288,7 @@ func uniformIndices(n, k int) []int {
 	return indices
 }
 
-func writeBatchFile(path string, runs []uint64, filesByRun map[uint64][]jalien.AODFile) error {
+func writeBatchFile(path string, batchFiles []jalien.AODFile) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("cannot create batch file %q: %w", path, err)
@@ -265,12 +297,9 @@ func writeBatchFile(path string, runs []uint64, filesByRun map[uint64][]jalien.A
 		_ = f.Close()
 	}()
 
-	for _, rn := range runs {
-		files := filesByRun[rn]
-		for _, a := range files {
-			if _, err := fmt.Fprintln(f, a.Path); err != nil {
-				return fmt.Errorf("failed to write to batch file %q: %w", path, err)
-			}
+	for _, a := range batchFiles {
+		if _, err := fmt.Fprintln(f, a.Path); err != nil {
+			return fmt.Errorf("failed to write to batch file %q: %w", path, err)
 		}
 	}
 
