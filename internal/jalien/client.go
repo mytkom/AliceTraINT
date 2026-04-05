@@ -301,8 +301,8 @@ func (c *Client) send(ctx context.Context, cmd string, options []string) (*jalie
 		return nil, err
 	}
 	// Many JAliEn commands can return responses larger than the default 32 KiB
-	// read limit. Raise the limit to 16 MiB to accommodate typical payloads.
-	conn.SetReadLimit(64 * 1024 * 1024)
+	// read limit. Raise the limit to 128 MiB to accommodate typical payloads.
+	conn.SetReadLimit(128 * 1024 * 1024)
 	defer func() {
 		if err := conn.Close(websocket.StatusNormalClosure, ""); err != nil {
 			log.Printf("error closing websocket: %v\n", err)
