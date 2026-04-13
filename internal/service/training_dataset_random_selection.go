@@ -34,7 +34,7 @@ func (s *TrainingDatasetService) SelectRandomAODSubset(path string, runCount, fi
 	if len(aods) == 0 {
 		return nil, &ErrHandlerValidation{
 			Field: "path",
-			Msg:   fmt.Sprintf("no AOD files found under %q", path),
+			Msg:   "has no AOD files",
 		}
 	}
 
@@ -49,7 +49,7 @@ func (s *TrainingDatasetService) SelectRandomAODSubset(path string, runCount, fi
 		if len(aods) == 0 {
 			return nil, &ErrHandlerValidation{
 				Field: "minFileSizeMB",
-				Msg:   fmt.Sprintf("no AOD files >= %.0f MB found under path %q", float64(minSizeBytes)/(1024*1024), path),
+				Msg:   "is too high for this path",
 			}
 		}
 	}
@@ -75,13 +75,17 @@ func (s *TrainingDatasetService) SelectRandomAODSubset(path string, runCount, fi
 		}
 	}
 
-	if len(eligibleRuns) < runCount {
+	if len(runNumbers) < runCount {
 		return nil, &ErrHandlerValidation{
 			Field: "runCount",
-			Msg: fmt.Sprintf(
-				"requested %d runs with at least %d AOD files each, but only %d runs satisfy this under path %q",
-				runCount, filesPerRun, len(eligibleRuns), path,
-			),
+			Msg:   fmt.Sprintf("is too high for this path (available runs: %d)", len(runNumbers)),
+		}
+	}
+
+	if len(eligibleRuns) < runCount {
+		return nil, &ErrHandlerValidation{
+			Field: "filesPerRun",
+			Msg:   fmt.Sprintf("is too high for selected run count (eligible runs: %d)", len(eligibleRuns)),
 		}
 	}
 

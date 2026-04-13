@@ -2,6 +2,7 @@ package internal
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/mytkom/AliceTraINT/internal/auth"
 	"github.com/mytkom/AliceTraINT/internal/config"
@@ -26,7 +27,8 @@ func NewRouter(cfg *config.Config, repoContext *repository.RepositoryContext, au
 	// services
 	hasher := service.NewArgon2Hasher()
 	ccdbService := service.NewCCDBService(env)
-	jalienService := service.NewJAliEnService(env)
+	jalienCache := utils.NewCache(time.Duration(cfg.JalienCacheMinutes) * time.Minute)
+	jalienService := service.NewJAliEnService(env, jalienCache)
 	nnArch := service.NewNNArchService(cfg.NNArchPath)
 	// local file storage
 	fileService := service.NewLocalFileService(cfg.DataDirPath)
@@ -42,7 +44,7 @@ func NewRouter(cfg *config.Config, repoContext *repository.RepositoryContext, au
 	// handlers' routes
 	handler.InitLandingRoutes(mux, env)
 	handler.InitDocsRoutes(mux, env)
-	handler.InitTrainingDatasetRoutes(mux, env, jalienService)
+	handler.InitTrainingDatasetRoutes(mux, env, jalienService, jalienCache)
 	handler.InitTrainingTaskRoutes(mux, env, ccdbService, jalienService, fileService, nnArch)
 	handler.InitTrainingMachineRoutes(mux, env, hasher)
 	handler.InitQueueRoutes(mux, env, fileService, hasher)
