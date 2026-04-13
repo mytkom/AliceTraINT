@@ -249,7 +249,7 @@ func (h *TrainingDatasetHandler) SelectRandomAods(w http.ResponseWriter, r *http
 		return
 	}
 
-	err = h.ExecuteTemplate(w, "training-datasets_file-list", TemplateData{
+	err = h.ExecuteTemplate(w, "training-datasets_selected-files", TemplateData{
 		AODFiles: aods,
 	})
 	if err != nil {
@@ -258,7 +258,7 @@ func (h *TrainingDatasetHandler) SelectRandomAods(w http.ResponseWriter, r *http
 	}
 }
 
-func InitTrainingDatasetRoutes(mux *http.ServeMux, env *environment.Env, jalien service.IJAliEnService) {
+func InitTrainingDatasetRoutes(mux *http.ServeMux, env *environment.Env, jalien service.IJAliEnService, routeCache *utils.Cache) {
 	prefix := "training-datasets"
 
 	tjh := &TrainingDatasetHandler{
@@ -266,7 +266,10 @@ func InitTrainingDatasetRoutes(mux *http.ServeMux, env *environment.Env, jalien 
 		Service: service.NewTrainingDatasetService(env.RepositoryContext, jalien),
 	}
 
-	cache := utils.NewCache(time.Duration(tjh.JalienCacheMinutes) * time.Minute)
+	cache := routeCache
+	if cache == nil {
+		cache = utils.NewCache(time.Duration(tjh.JalienCacheMinutes) * time.Minute)
+	}
 
 	authMw := middleware.NewAuthMw(tjh.IAuthService, true)
 	cacheMw := middleware.NewCacheMw(cache)
