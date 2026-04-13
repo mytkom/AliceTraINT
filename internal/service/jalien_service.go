@@ -55,7 +55,7 @@ func (s *JAliEnService) FindAODFiles(p string) ([]jalien.AODFile, error) {
 			return files, nil
 		}
 	}
-	
+
 	files, err := s.client.FindAODFiles(p)
 	if err != nil {
 		return nil, err
