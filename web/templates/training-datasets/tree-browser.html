@@ -13,11 +13,12 @@
       </svg>
     </button>
     {{ end }}
-    <p class="truncate flex-shrink">{{ .Path }}</p>
+    <p id="tree-current-path" class="truncate flex-shrink">{{ .Path }}</p>
     {{ if ne .Path "/" }}
-    <button class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2" hx-get="find-aods"
-      hx-vals='{"path":"{{ .Path }}"}' hx-target="#file-list" hx-trigger="click" hx-indicator="#file-list-overlay">Find
-      AO2Ds</button>
+    <button
+      class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2"
+      type="button"
+      onclick="setDatasetPath('{{ .Path }}')">Use Path</button>
     {{ end }}
   </div>
   <div class="max-h-full justify-self-stretch flex-grow overflow-y-auto">

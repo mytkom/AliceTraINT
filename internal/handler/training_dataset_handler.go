@@ -205,7 +205,60 @@ func (h *TrainingDatasetHandler) FindAods(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func InitTrainingDatasetRoutes(mux *http.ServeMux, env *environment.Env, jalien service.IJAliEnService) {
+func (h *TrainingDatasetHandler) SelectRandomAods(w http.ResponseWriter, r *http.Request) {
+	type TemplateData struct {
+		AODFiles []jalien.AODFile
+	}
+
+	path := r.URL.Query().Get("path")
+
+	runCountStr := r.URL.Query().Get("runCount")
+	if runCountStr == "" {
+		runCountStr = "10"
+	}
+	runCount, err := strconv.Atoi(runCountStr)
+	if err != nil {
+		writeError(w, r, http.StatusUnprocessableEntity, "invalid runCount", err)
+		return
+	}
+
+	filesPerRunStr := r.URL.Query().Get("filesPerRun")
+	if filesPerRunStr == "" {
+		filesPerRunStr = "5"
+	}
+	filesPerRun, err := strconv.Atoi(filesPerRunStr)
+	if err != nil {
+		writeError(w, r, http.StatusUnprocessableEntity, "invalid filesPerRun", err)
+		return
+	}
+
+	minSizeMBStr := r.URL.Query().Get("minFileSizeMB")
+	if minSizeMBStr == "" {
+		minSizeMBStr = "2048"
+	}
+	minSizeMB, err := strconv.ParseFloat(minSizeMBStr, 64)
+	if err != nil {
+		writeError(w, r, http.StatusUnprocessableEntity, "invalid minFileSizeMB", err)
+		return
+	}
+	minSizeBytes := uint64(minSizeMB * 1024 * 1024)
+
+	aods, err := h.Service.SelectRandomAODSubset(path, runCount, filesPerRun, minSizeBytes)
+	if err != nil {
+		handleServiceError(w, r, err)
+		return
+	}
+
+	err = h.ExecuteTemplate(w, "training-datasets_selected-files", TemplateData{
+		AODFiles: aods,
+	})
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
+		return
+	}
+}
+
+func InitTrainingDatasetRoutes(mux *http.ServeMux, env *environment.Env, jalien service.IJAliEnService, routeCache *utils.Cache) {
 	prefix := "training-datasets"
 
 	tjh := &TrainingDatasetHandler{
@@ -213,7 +266,10 @@ func InitTrainingDatasetRoutes(mux *http.ServeMux, env *environment.Env, jalien 
 		Service: service.NewTrainingDatasetService(env.RepositoryContext, jalien),
 	}
 
-	cache := utils.NewCache(time.Duration(tjh.JalienCacheMinutes) * time.Minute)
+	cache := routeCache
+	if cache == nil {
+		cache = utils.NewCache(time.Duration(tjh.JalienCacheMinutes) * time.Minute)
+	}
 
 	authMw := middleware.NewAuthMw(tjh.IAuthService, true)
 	cacheMw := middleware.NewCacheMw(cache)
@@ -266,6 +322,12 @@ func InitTrainingDatasetRoutes(mux *http.ServeMux, env *environment.Env, jalien 
 	mux.Handle(fmt.Sprintf("GET /%s/find-aods", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.FindAods),
 		cacheMw,
+		validateHtmxMw,
+		authMw,
+	))
+
+	mux.Handle(fmt.Sprintf("GET /%s/select-random-aods", prefix), middleware.Chain(
+		http.HandlerFunc(tjh.SelectRandomAods),
 		validateHtmxMw,
 		authMw,
 	))

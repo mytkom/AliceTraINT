@@ -14,18 +14,82 @@
     </div>
     <div
         class="relative lg:w-1/2 w-full border-dotted rounded-md shadow-md dark:shadow-none overflow-hidden bg-sky-50 dark:bg-sky-800">
-        <div class="flex flex-col max-h-96 min-h-96">
-            <form id="find-aods-form"
-                class="flex content-stretch bg-white dark:bg-sky-700 justify-end gap-4 items-center border-b-2 border-dotted p-3"
-                hx-get="find-aods" hx-target="#file-list" hx-swap="innerHTML" hx-indicator="#file-list-overlay">
-                <label for="path">Path:</label>
-                <input class="bg-white border-sky-900 text-gray-800 rounded-lg flex-grow text-sm py-1 px-2 max-w-1/2 flex-shrink"
-                    placeholder="ex. /alice/sim/2024/LHC24f3/0/523397" type="text" id="path" name="path" required>
-                <button class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2"
-                    type="submit">Find AO2Ds</button>
+        
+        <div id="random-panel" class="flex flex-col max-h-96 min-h-96 bg-white dark:bg-sky-700 p-3 gap-3">
+            <h2 class="text-2xl font-bold tracking-tight">Choose random subset</h2>
+            <form id="random-subset-form"
+                  class="flex flex-col gap-3"
+                  hx-get="select-random-aods"
+                  hx-target="#selected-files"
+                  hx-target-error="#errors"
+                  hx-swap="innerHTML"
+                  hx-ext="response-targets"
+                  hx-indicator="#file-list-overlay"
+                  hx-vals="js:{path: resolvePathForRequest(true)}">
+                <div class="flex items-center gap-3">
+                    <label for="path-random">Path:</label>
+                    <input class="bg-white border-sky-900 text-gray-800 rounded-lg flex-grow text-sm py-1 px-2"
+                        placeholder="ex. /alice/sim/2024/LHC24f3/0/523397" type="text" id="path-random" required>
+                </div>
+                <div class="grid grid-cols-3 gap-3 items-end">
+                    <div class="flex flex-col w-full">
+                        <label for="runCount">Run count</label>
+                        <input type="number"
+                               id="runCount"
+                               name="runCount"
+                               min="1"
+                               value="10"
+                               class="w-full bg-white border-sky-900 text-gray-800 rounded-lg text-sm py-1 px-2" />
+                    </div>
+                    <div class="flex flex-col w-full">
+                        <label for="filesPerRun">Files per run</label>
+                        <input type="number"
+                               id="filesPerRun"
+                               name="filesPerRun"
+                               min="1"
+                               value="5"
+                               class="w-full bg-white border-sky-900 text-gray-800 rounded-lg text-sm py-1 px-2" />
+                    </div>
+                    <div class="flex flex-col w-full">
+                        <label for="minFileSizeMB">Min file size [MB]</label>
+                        <input type="number"
+                               id="minFileSizeMB"
+                               name="minFileSizeMB"
+                               min="0"
+                               value="2048"
+                               class="w-full bg-white border-sky-900 text-gray-800 rounded-lg text-sm py-1 px-2" />
+                    </div>
+                </div>
+                <button class="self-end bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2 whitespace-nowrap shrink-0"
+                    type="submit" onclick="resolvePathForRequest(true)">Select Random Subset</button>
             </form>
+            <div class="flex justify-end items-center gap-2">
+                <span>or</span>
+                <button id="switch-to-find-button"
+                    class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2 whitespace-nowrap"
+                    type="button">Find AO2Ds</button>
+            </div>
+        </div>
 
-            <div id="file-list" class="overflow-y-auto max-h-full"></div>
+        <div id="find-panel" class="hidden flex flex-col max-h-96 min-h-96">
+            <form id="find-aods-form"
+                class="flex content-stretch bg-white dark:bg-sky-700 justify-end gap-4 items-center p-3"
+                hx-get="find-aods" hx-target="#file-list" hx-swap="innerHTML" hx-indicator="#file-list-overlay">
+                <label for="path-find">Path:</label>
+                <input class="bg-white border-sky-900 text-gray-800 rounded-lg flex-grow text-sm py-1 px-2 max-w-1/2 flex-shrink"
+                    placeholder="ex. /alice/sim/2024/LHC24f3/0/523397" type="text" id="path-find" name="path" required>
+                <button class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2"
+                    type="submit" onclick="resolvePathForRequest(true)">Find AO2Ds</button>
+            </form>
+            <div class="bg-white dark:bg-sky-700 border-b-2 border-dotted p-3">
+                <div class="flex justify-end items-center gap-2">
+                    <span>or</span>
+                    <button id="switch-to-random-button"
+                        class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2 whitespace-nowrap"
+                        type="button">Get Random Subset</button>
+                </div>
+            </div>
+            <div id="file-list" class="overflow-y-auto flex-grow min-h-0"></div>
         </div>
 
         <div id="file-list-overlay" class="display-htmx-indicator absolute inset-0 bg-sky-200 opacity-50 z-10">
@@ -50,7 +114,7 @@
         <label class="justify-self-start lg:justify-self-end text-lg self-center" for="train-dataset-name">Training dataset name:</label>
         <input type="text" class="bg-white border-sky-900 text-gray-800 rounded-lg text-lg py-1 px-2"
             name="name" id="train-dataset-name" required />
-        <h2 class="justify-self-start lg:justify-self-end text-lg self-center">Selected files:</h2>
+        <h2 class="justify-self-start lg:justify-self-end text-lg self-start">Selected files:</h2>
         <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2" id="selected-files"></ul>
         <button
             class="col-span-1 lg:col-span-2 justify-self-end bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2 text-lg"
@@ -59,6 +123,52 @@
 </div>
 
 <script>
+    function getCurrentTreePath() {
+        const treeEl = document.getElementById('tree-current-path');
+        return treeEl ? (treeEl.textContent || '').trim() : '';
+    }
+
+    function setDatasetPath(pathValue) {
+        const value = (pathValue || '').trim();
+        if (!value) return '';
+
+        const randomInput = document.getElementById('path-random');
+        const findInput = document.getElementById('path-find');
+        if (randomInput) randomInput.value = value;
+        if (findInput) findInput.value = value;
+        return value;
+    }
+
+    function resolvePathForRequest(preferTreePath = false) {
+        const randomInput = document.getElementById('path-random');
+        const findInput = document.getElementById('path-find');
+        const typedValue = ((randomInput && randomInput.value) || (findInput && findInput.value) || '').trim();
+        const treePath = getCurrentTreePath();
+
+        let v = typedValue;
+        if (preferTreePath && treePath) {
+            v = treePath;
+        } else if (!v) {
+            v = treePath;
+        }
+        return setDatasetPath(v);
+    }
+
+    const showFindPanel = () => {
+        document.getElementById('random-panel').classList.add('hidden');
+        document.getElementById('find-panel').classList.remove('hidden');
+    };
+
+    const showRandomPanel = () => {
+        document.getElementById('find-panel').classList.add('hidden');
+        document.getElementById('random-panel').classList.remove('hidden');
+    };
+
+    const clearErrors = () => {
+        const errors = document.getElementById('errors');
+        if (errors) errors.innerHTML = '';
+    };
+
     const handleFileListBeforeSwap = (event) => {
         const parser = new DOMParser();
         const serializer = new XMLSerializer();
@@ -95,6 +205,7 @@
         if (!target) return;
 
         const fileList = document.querySelector('#file-list ul')
+        if (!fileList) return;
         const clone = target.cloneNode(true)
         insertSortedDataPath(fileList, clone)
         target.remove();
@@ -103,6 +214,41 @@
     document.getElementById('file-list').addEventListener('htmx:beforeSwap', handleFileListBeforeSwap);
     document.getElementById('file-list').addEventListener('click', handleFileClick);
     document.getElementById('selected-files').addEventListener('click', handleSelectedFileClick);
+    document.getElementById('switch-to-find-button').addEventListener('click', function () {
+        showFindPanel();
+        resolvePathForRequest(true);
+        htmx.trigger(document.getElementById('find-aods-form'), 'submit');
+    });
+    document.getElementById('switch-to-random-button').addEventListener('click', function () {
+        resolvePathForRequest(true);
+        showRandomPanel();
+    });
+    document.getElementById('random-subset-form').addEventListener('htmx:beforeRequest', function (evt) {
+        resolvePathForRequest(true);
+        clearErrors();
+        if (document.querySelectorAll('#selected-files li').length === 0) return;
+        if (!confirm('You already have files in Selected files. The random subset will replace them. Do you want to continue?')) {
+            evt.preventDefault();
+        }
+    });
+
+    document.getElementById('find-aods-form').addEventListener('htmx:beforeRequest', function () {
+        clearErrors();
+    });
+
+    document.getElementById('find-aods-form').addEventListener('htmx:afterRequest', function (evt) {
+        if (!evt.detail.successful) return;
+        clearErrors();
+    });
+
+    document.getElementById('random-subset-form').addEventListener('htmx:afterRequest', function (evt) {
+        const status = evt.detail.xhr ? evt.detail.xhr.status : 0;
+        if (status < 200 || status >= 300) return;
+        clearErrors();
+        showFindPanel();
+        resolvePathForRequest(true);
+        htmx.trigger(document.getElementById('find-aods-form'), 'submit');
+    });
 
     const getSelectedFiles = () => {
         const selectedFiles = [];
