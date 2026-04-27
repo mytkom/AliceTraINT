@@ -122,42 +122,83 @@ func (client *Client) FindAODFiles(path string) ([]AODFile, error) {
 		return nil, err
 	}
 
-	matcher := newAODMatcher()
-	aods := make([]AODFile, 0, len(rawResults))
+  aods := make([]AODFile, 0, len(rawResults))
 
-	for _, r := range rawResults {
-		// Skip directories if type information is present.
-		if t := getStringField(r, "type"); t != "" {
-			if strings.ToLower(t) != "f" {
-				continue
-			}
-		}
+  if strings.Contains(path, "/alice/data") {
+    // process data
+    matcher := newDataAODMatcher()
 
-		aodPath := getStringField(r, "lfn")
+    for i, r := range rawResults {
+    	// Skip directories if type information is present.
+    	if t := getStringField(r, "type"); t != "" {
+    		if strings.ToLower(t) != "f" {
+    			continue
+    		}
+    	}
 
-		pathVariables, err := matcher.MatchAO2DPath(aodPath)
-		if err != nil {
-			print("Skipping file: %s, error: %s", aodPath, err.Error())
-			continue
-		}
-		if pathVariables == nil {
-			continue
-		}
+    	aodPath := getStringField(r, "lfn")
 
-		size, err := getUint64Field(r, "size")
-		if err != nil {
-			return nil, err
-		}
+    	pathVariables, err := matcher.MatchAO2DPath(aodPath)
+    	if err != nil {
+    		print("Skipping file: %s, error: %s", aodPath, err.Error())
+    		continue
+    	}
+    	if pathVariables == nil {
+    		continue
+    	}
 
-		aods = append(aods, AODFile{
-			Name:      aodFilename,
-			Path:      aodPath,
-			Size:      size,
-			LHCPeriod: pathVariables.LHCPeriod,
-			RunNumber: pathVariables.RunNumber,
-			AODNumber: pathVariables.AODNumber,
-		})
-	}
+    	size, err := getUint64Field(r, "size")
+    	if err != nil {
+    		return nil, err
+    	}
+
+    	aods = append(aods, AODFile{
+    		Name:      aodFilename,
+    		Path:      aodPath,
+    		Size:      size,
+    		LHCPeriod: pathVariables.LHCPeriod,
+    		RunNumber: pathVariables.RunNumber,
+    		AODNumber: uint64(i),
+    	})
+    }
+  } else {
+    // process MC
+    matcher := newAODMatcher()
+
+    for _, r := range rawResults {
+    	// Skip directories if type information is present.
+    	if t := getStringField(r, "type"); t != "" {
+    		if strings.ToLower(t) != "f" {
+    			continue
+    		}
+    	}
+
+    	aodPath := getStringField(r, "lfn")
+
+    	pathVariables, err := matcher.MatchAO2DPath(aodPath)
+    	if err != nil {
+    		print("Skipping file: %s, error: %s", aodPath, err.Error())
+    		continue
+    	}
+    	if pathVariables == nil {
+    		continue
+    	}
+
+    	size, err := getUint64Field(r, "size")
+    	if err != nil {
+    		return nil, err
+    	}
+
+    	aods = append(aods, AODFile{
+    		Name:      aodFilename,
+    		Path:      aodPath,
+    		Size:      size,
+    		LHCPeriod: pathVariables.LHCPeriod,
+    		RunNumber: pathVariables.RunNumber,
+    		AODNumber: pathVariables.AODNumber,
+    	})
+    }
+  }
 
 	return aods, nil
 }
