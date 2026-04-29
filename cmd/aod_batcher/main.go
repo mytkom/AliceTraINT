@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -27,6 +28,7 @@ type config struct {
 	path                 string
 	runs                 int
 	filesPerRun          int
+	filesPerRunData      int
 	maxFilesPerBatch     int
 	minSizeMB            float64
 	outputDir            string
@@ -43,6 +45,7 @@ type metadata struct {
 	Path             string  `json:"path"`
 	Runs             int     `json:"runs"`
 	FilesPerRun      int     `json:"files_per_run"`
+	FilesPerRunData  int     `json:"files_per_run_data"`
 	MaxFilesPerBatch int     `json:"max_files_per_batch"`
 	MinSizeMB        float64 `json:"min_size_mb"`
 	Timestamp        string  `json:"timestamp"`
@@ -65,6 +68,7 @@ func parseFlags() (*config, error) {
 	flag.StringVar(&cfg.path, "path", "", "JAliEn path under which to search for AOD files (e.g. /alice/sim/2024/LHC24f3)")
 	flag.IntVar(&cfg.runs, "runs", 0, "Total number of runs to select")
 	flag.IntVar(&cfg.filesPerRun, "files-per-run", 0, "Number of AOD files to select for each chosen run")
+	flag.IntVar(&cfg.filesPerRunData, "files-per-run-data", 0, "Number of AOD files to select for each chosen run's experimental data (typically 3-4x bigger files than for MC)")
 	flag.IntVar(&cfg.maxFilesPerBatch, "max-files-per-batch", -1, "Maximum number of AOD files to include in a single batch")
 	flag.Float64Var(&cfg.minSizeMB, "min-size-mb", 0, "Optional minimal AOD file size in megabytes; files smaller than this are excluded")
 	flag.StringVar(&cfg.outputDir, "output-dir", "", "Directory where batch .txt files will be written")
@@ -88,6 +92,10 @@ func parseFlags() (*config, error) {
 	if cfg.filesPerRun <= 0 {
 		return nil, errors.New("flag --files-per-run must be > 0")
 	}
+  if cfg.filesPerRunData <= 0 {
+    cfg.filesPerRunData = int(math.Ceil(float64(cfg.filesPerRun) / 3.0))
+    fmt.Printf("Setting up default files per run data as: %d (ceil(filesPerRun / 3))\n", cfg.filesPerRunData)
+  }
 	if cfg.maxFilesPerBatch <= 0 {
 		return nil, errors.New("flag --max-files-per-batch must be > 0")
 	}
@@ -192,7 +200,7 @@ func run(cfg *config) error {
 			return err
 		}
 
-		fCount := min(cfg.filesPerRun, len(aods))
+		fCount := min(cfg.filesPerRunData, len(aods))
 		idxs := uniformIndices(uint64(len(aods)), uint64(fCount))
 		selected := make([]jalien.AODFile, 0, fCount)
 		for _, idx := range idxs {
@@ -377,6 +385,7 @@ func writeMetadataFile(cfg *config) error {
 		Path:             cfg.path,
 		Runs:             cfg.runs,
 		FilesPerRun:      cfg.filesPerRun,
+		FilesPerRunData:  cfg.filesPerRunData,
 		MaxFilesPerBatch: cfg.maxFilesPerBatch,
 		MinSizeMB:        cfg.minSizeMB,
 		Timestamp:        time.Now().Format(time.RFC3339),
