@@ -29,6 +29,7 @@ func NewRouter(cfg *config.Config, repoContext *repository.RepositoryContext, au
 	ccdbService := service.NewCCDBService(env)
 	jalienCache := utils.NewCache(time.Duration(cfg.JalienCacheMinutes) * time.Minute)
 	jalienService := service.NewJAliEnService(env, jalienCache)
+	monalisaService := service.NewMonalisaService(env)
 	nnArch := service.NewNNArchService(cfg.NNArchPath)
 	// local file storage
 	fileService := service.NewLocalFileService(cfg.DataDirPath)
@@ -44,8 +45,8 @@ func NewRouter(cfg *config.Config, repoContext *repository.RepositoryContext, au
 	// handlers' routes
 	handler.InitLandingRoutes(mux, env)
 	handler.InitDocsRoutes(mux, env)
-	handler.InitTrainingDatasetRoutes(mux, env, jalienService, jalienCache)
-	handler.InitTrainingTaskRoutes(mux, env, ccdbService, jalienService, fileService, nnArch)
+	handler.InitTrainingDatasetRoutes(mux, env, jalienService, ccdbService, monalisaService, jalienCache)
+	handler.InitTrainingTaskRoutes(mux, env, ccdbService, monalisaService, fileService, nnArch)
 	handler.InitTrainingMachineRoutes(mux, env, hasher)
 	handler.InitQueueRoutes(mux, env, fileService, hasher)
 

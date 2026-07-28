@@ -29,6 +29,7 @@ func init() {
 type MockedServices struct {
 	CCDB        *service.MockCCDBService
 	JAliEn      *service.MockJAliEnService
+	Monalisa    *service.MockMonalisaService
 	FileService *service.MockFileService
 	Auth        *auth.AuthServiceMock
 	NNArch      *service.NNArchServiceInMemory
@@ -54,6 +55,7 @@ func mockRouter(db *gorm.DB, cfg *config.Config) *IntegrationTestUtils {
 	hasher := service.NewMockHasher()
 	ccdbService := service.NewMockCCDBService()
 	jalienService := service.NewMockJAliEnService()
+	monalisaService := service.NewMockMonalisaService()
 	nnArch := service.NewNNArchServiceInMemory(&service.NNFieldConfigs{
 		"fieldName": service.NNConfigField{
 			FullName:     "Full field name",
@@ -73,8 +75,8 @@ func mockRouter(db *gorm.DB, cfg *config.Config) *IntegrationTestUtils {
 
 	// handlers' routes
 	handler.InitLandingRoutes(mux, env)
-	handler.InitTrainingDatasetRoutes(mux, env, jalienService, nil)
-	handler.InitTrainingTaskRoutes(mux, env, ccdbService, jalienService, fileService, nnArch)
+	handler.InitTrainingDatasetRoutes(mux, env, jalienService, ccdbService, monalisaService, nil)
+	handler.InitTrainingTaskRoutes(mux, env, ccdbService, monalisaService, fileService, nnArch)
 	handler.InitTrainingMachineRoutes(mux, env, hasher)
 	handler.InitQueueRoutes(mux, env, fileService, hasher)
 
@@ -84,6 +86,7 @@ func mockRouter(db *gorm.DB, cfg *config.Config) *IntegrationTestUtils {
 		MockedServices: &MockedServices{
 			CCDB:        ccdbService,
 			JAliEn:      jalienService,
+			Monalisa:    monalisaService,
 			FileService: fileService,
 			Auth:        auth,
 			NNArch:      nnArch,

@@ -293,21 +293,14 @@ func prepareUploadToCCDB(t *testing.T, ut *IntegrationTestUtils, user *models.Us
 	assert.NoError(t, ut.TrainingTask.Create(trainingTask))
 
 	now := uint64(time.Now().UTC().UnixMilli())
-	ut.MockedServices.JAliEn.On("ListAndParseDirectory", "/alice/sim/2024/LHC24b1b/0").Return(&jalien.DirectoryContents{
-		Subdirs: []jalien.Dir{
-			{Name: "560000", Path: "/alice/sim/2024/LHC24b1b/0/560000"},
-			{Name: "567454", Path: "/alice/sim/2024/LHC24b1b/0/567454"},
-			{Name: "567458", Path: "/alice/sim/2024/LHC24b1b/0/567458"},
-			{Name: "570000", Path: "/alice/sim/2024/LHC24b1b/0/570000"},
-		},
-	}, nil)
-	ut.MockedServices.CCDB.On("GetRunInformation", uint64(560000)).Return(&ccdb.RunInformation{
-		RunNumber: 560000,
+	ut.MockedServices.Monalisa.On("GetRunList").Return(nil, errors.New("monalisa down"))
+	ut.MockedServices.CCDB.On("GetRunInformation", uint64(567454)).Return(&ccdb.RunInformation{
+		RunNumber: 567454,
 		SOR:       now - 10000,
 		EOR:       now,
 	}, nil)
-	ut.MockedServices.CCDB.On("GetRunInformation", uint64(570000)).Return(&ccdb.RunInformation{
-		RunNumber: 570000,
+	ut.MockedServices.CCDB.On("GetRunInformation", uint64(567458)).Return(&ccdb.RunInformation{
+		RunNumber: 567458,
 		SOR:       now,
 		EOR:       now + 10000,
 	}, nil)

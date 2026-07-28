@@ -11,18 +11,24 @@ import (
 )
 
 type trainingDatasetServiceTestUtils struct {
-	TDRepo        *repository.MockTrainingDatasetRepository
-	JAliEnService *service.MockJAliEnService
+	TDRepo          *repository.MockTrainingDatasetRepository
+	JAliEnService   *service.MockJAliEnService
+	CCDBService     *service.MockCCDBService
+	MonalisaService *service.MockMonalisaService
 }
 
 func newTrainingDatasetService() (*service.TrainingDatasetService, *trainingDatasetServiceTestUtils) {
 	tdRepo := repository.NewMockTrainingDatasetRepository()
 	jalienService := service.NewMockJAliEnService()
+	ccdbService := service.NewMockCCDBService()
+	monalisaService := service.NewMockMonalisaService()
 	return service.NewTrainingDatasetService(&repository.RepositoryContext{
 			TrainingDataset: tdRepo,
-		}, jalienService), &trainingDatasetServiceTestUtils{
-			TDRepo:        tdRepo,
-			JAliEnService: jalienService,
+		}, jalienService, ccdbService, monalisaService), &trainingDatasetServiceTestUtils{
+			TDRepo:          tdRepo,
+			JAliEnService:   jalienService,
+			CCDBService:     ccdbService,
+			MonalisaService: monalisaService,
 		}
 }
 

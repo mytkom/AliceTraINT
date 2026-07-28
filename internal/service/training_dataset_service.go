@@ -23,17 +23,22 @@ type ITrainingDatasetService interface {
 
 type TrainingDatasetService struct {
 	*repository.RepositoryContext
-	JAliEn IJAliEnService
+	JAliEn          IJAliEnService
+	CCDBService     ICCDBService
+	MonalisaService IMonalisaService
 }
 
 var errCCDBUnreachable = NewErrExternalServiceTimeout("CCDB")
 var errJAlienUnreachable = NewErrExternalServiceTimeout("JAlien")
+var errMonalisaUnreachable = NewErrExternalServiceTimeout("Monalisa")
 var errDatasetNotFound = NewErrHandlerNotFound("TrainingDataset")
 
-func NewTrainingDatasetService(repo *repository.RepositoryContext, jalien IJAliEnService) *TrainingDatasetService {
+func NewTrainingDatasetService(repo *repository.RepositoryContext, jalien IJAliEnService, ccdbService ICCDBService, monalisaService IMonalisaService) *TrainingDatasetService {
 	return &TrainingDatasetService{
 		RepositoryContext: repo,
 		JAliEn:            jalien,
+		CCDBService:       ccdbService,
+		MonalisaService:   monalisaService,
 	}
 }
 
@@ -78,7 +83,17 @@ func (s *TrainingDatasetService) Create(td *models.TrainingDataset) error {
 		}
 	}
 
-	err := s.TrainingDataset.Create(td)
+	timestampFrom, timestampTo, err := resolveDatasetTimestampRange(td.AODFiles, s.MonalisaService, s.CCDBService)
+	if err != nil {
+		if errors.Is(err, errCCDBUnreachable) || errors.Is(err, errInternalServerError) {
+			return err
+		}
+		return handleMonalisaError(err)
+	}
+	td.AnchorProdTimestampFrom = timestampFrom
+	td.AnchorProdTimestampTo = timestampTo
+
+	err = s.TrainingDataset.Create(td)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {

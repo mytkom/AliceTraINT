@@ -18,6 +18,13 @@ func handleJAlienError(err error) error {
 	return errJAlienUnreachable
 }
 
+func handleMonalisaError(err error) error {
+	if os.IsTimeout(err) {
+		return errMonalisaUnreachable
+	}
+	return errInternalServerError
+}
+
 type ErrHandlerNotFound struct {
 	Resource string
 }

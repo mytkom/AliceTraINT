@@ -92,61 +92,6 @@
             <div id="file-list" class="overflow-y-auto flex-grow min-h-0"></div>
         </div>
 
-        <div class="border-t-2 border-dotted bg-white dark:bg-sky-700 p-3 flex flex-col gap-2">
-            <form id="random-subset-form"
-                  class="flex flex-col gap-3"
-                  hx-get="select-random-aods"
-                  hx-target="#selected-files"
-                  hx-target-error="#errors"
-                  hx-swap="innerHTML"
-                  hx-ext="response-targets"
-                  hx-indicator="#file-list-overlay"
-                  hx-vals="js:{path: resolvePathForRequest(true)}">
-                <div class="flex items-center gap-3">
-                    <label for="path-random">Path:</label>
-                    <input class="bg-white border-sky-900 text-gray-800 rounded-lg flex-grow text-sm py-1 px-2"
-                        placeholder="ex. /alice/sim/2024/LHC24f3/0/523397" type="text" id="path-random" required>
-                </div>
-                <div class="grid grid-cols-3 gap-3 items-end">
-                    <div class="flex flex-col w-full">
-                        <label for="runCount">Run count</label>
-                        <input type="number"
-                               id="runCount"
-                               name="runCount"
-                               min="1"
-                               value="10"
-                               class="w-full bg-white border-sky-900 text-gray-800 rounded-lg text-sm py-1 px-2" />
-                    </div>
-                    <div class="flex flex-col w-full">
-                        <label for="filesPerRun">Files per run</label>
-                        <input type="number"
-                               id="filesPerRun"
-                               name="filesPerRun"
-                               min="1"
-                               value="5"
-                               class="w-full bg-white border-sky-900 text-gray-800 rounded-lg text-sm py-1 px-2" />
-                    </div>
-                    <div class="flex flex-col w-full">
-                        <label for="minFileSizeMB">Min file size [MB]</label>
-                        <input type="number"
-                               id="minFileSizeMB"
-                               name="minFileSizeMB"
-                               min="0"
-                               value="2048"
-                               class="w-full bg-white border-sky-900 text-gray-800 rounded-lg text-sm py-1 px-2" />
-                    </div>
-                </div>
-                <button class="self-end bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2 whitespace-nowrap shrink-0"
-                    type="submit" onclick="resolvePathForRequest(true)">Select Random Subset</button>
-            </form>
-            <div class="flex justify-end items-center gap-2">
-                <span>or</span>
-                <button id="switch-to-find-button"
-                    class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2 whitespace-nowrap"
-                    type="button">Find AO2Ds</button>
-            </div>
-        </div>
-
         <div id="find-panel" class="hidden flex flex-col max-h-96 min-h-96">
             <form id="find-aods-form"
                 class="flex content-stretch bg-white dark:bg-sky-700 justify-end gap-4 items-center p-3"

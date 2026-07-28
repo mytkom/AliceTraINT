@@ -4,14 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"regexp"
-	"slices"
-	"strconv"
 
-	"github.com/mytkom/AliceTraINT/internal/ccdb"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
-	"github.com/mytkom/AliceTraINT/internal/jalien"
 	"gorm.io/gorm"
 )
 
@@ -37,21 +32,19 @@ type ITrainingTaskService interface {
 
 type TrainingTaskService struct {
 	*repository.RepositoryContext
-	CCDBService   ICCDBService
-	JAliEnService IJAliEnService
-	FileService   IFileService
-	NNArch        INNArchService
-	PeriodRegex   *regexp.Regexp
+	CCDBService     ICCDBService
+	MonalisaService IMonalisaService
+	FileService     IFileService
+	NNArch          INNArchService
 }
 
-func NewTrainingTaskService(repo *repository.RepositoryContext, ccdbService ICCDBService, jalienService IJAliEnService, fileService IFileService, nnArch INNArchService) *TrainingTaskService {
+func NewTrainingTaskService(repo *repository.RepositoryContext, ccdbService ICCDBService, monalisaService IMonalisaService, fileService IFileService, nnArch INNArchService) *TrainingTaskService {
 	return &TrainingTaskService{
 		RepositoryContext: repo,
 		CCDBService:       ccdbService,
-		JAliEnService:     jalienService,
+		MonalisaService:   monalisaService,
 		FileService:       fileService,
 		NNArch:            nnArch,
-		PeriodRegex:       regexp.MustCompile(`(/alice/sim/\d{4}/LHC[a-z0-9A-Z\_].+(/\d+)?)/\d+/AOD/\d+`),
 	}
 }
 
@@ -166,41 +159,9 @@ func (s *TrainingTaskService) UploadOnnxResults(id uint) error {
 		}
 	}
 
-	lhcPeriods, err := s.getLHCPeriods(trainingTask)
+	minSOR, maxEOR, err := s.getUploadTimestampRange(trainingTask)
 	if err != nil {
 		return err
-	}
-
-	var minSOR, maxEOR uint64
-	initialized := false
-
-	for i, period := range lhcPeriods {
-		log.Printf("%d: Name=\"%s\" DirPath=\"%s\"", i, period.Name, period.DirPath)
-
-		dirContents, err := s.JAliEnService.ListAndParseDirectory(period.DirPath)
-		if err != nil {
-			return err
-		}
-
-		smallestRun, greatestRun, err := s.findRunNumberRange(dirContents.Subdirs)
-		if err != nil {
-			return err
-		}
-
-		firstRunInfo, lastRunInfo, err := s.getRunInfoRange(smallestRun, greatestRun)
-		if err != nil {
-			return err
-		}
-
-		if !initialized || firstRunInfo.SOR < minSOR {
-			minSOR = firstRunInfo.SOR
-		}
-
-		if !initialized || lastRunInfo.EOR > maxEOR {
-			maxEOR = lastRunInfo.EOR
-		}
-
-		initialized = true
 	}
 
 	mappedOnnxFiles, err := s.filterOnnxFiles(trainingTask.ID)
@@ -222,98 +183,32 @@ func (s *TrainingTaskService) UploadOnnxResults(id uint) error {
 	return nil
 }
 
-type lhcPeriod struct {
-	Name    string
-	DirPath string
-}
-
-func (s *TrainingTaskService) periodPathFromAODPath(aodPath string) (string, error) {
-	matches := s.PeriodRegex.FindStringSubmatch(aodPath)
-
-	if len(matches) != 3 {
-		return "", errors.New("unexpected AOD path format, cannot correctly match")
+func (s *TrainingTaskService) getUploadTimestampRange(trainingTask *models.TrainingTask) (uint64, uint64, error) {
+	if !trainingTask.TrainingDataset.AnchorProdTimestampFrom.IsZero() &&
+		!trainingTask.TrainingDataset.AnchorProdTimestampTo.IsZero() {
+		return uint64(trainingTask.TrainingDataset.AnchorProdTimestampFrom.UnixMilli()),
+			uint64(trainingTask.TrainingDataset.AnchorProdTimestampTo.UnixMilli()),
+			nil
 	}
 
-	return matches[1], nil
-}
-
-func (s *TrainingTaskService) getLHCPeriods(task *models.TrainingTask) ([]lhcPeriod, error) {
-	var periods []lhcPeriod
-	initialized := false
-
-	for _, aod := range task.TrainingDataset.AODFiles {
-		if !slices.ContainsFunc(periods, func(p lhcPeriod) bool {
-			return p.Name == aod.LHCPeriod
-		}) {
-			periodPath, err := s.periodPathFromAODPath(aod.Path)
-			if err != nil {
-				return nil, err
-			}
-
-			periods = append(periods, lhcPeriod{
-				Name:    aod.LHCPeriod,
-				DirPath: periodPath,
-			})
-		}
-		initialized = true
+	timestampFrom, timestampTo, err := resolveDatasetTimestampRange(trainingTask.TrainingDataset.AODFiles, s.MonalisaService, s.CCDBService)
+	if err == nil {
+		return uint64(timestampFrom.UnixMilli()), uint64(timestampTo.UnixMilli()), nil
 	}
 
-	if !initialized {
-		return nil, errors.New("unexpected behaviour: empty training dataset")
-	}
+	log.Printf("timestamp resolver failed, using dataset-run fallback: %v", err)
 
-	return periods, nil
-}
-
-func (s *TrainingTaskService) findRunNumberRange(subdirs []jalien.Dir) (uint64, uint64, error) {
-	var smallestRun, greatestRun uint64
-	initialized := false
-
-	for _, dir := range subdirs {
-		log.Printf("Dir: %+v", dir)
-
-		runNumber, err := strconv.ParseUint(dir.Name, 10, 64)
-		if err != nil {
-			log.Println(err.Error())
-			continue
-		}
-		log.Printf("RunNumber: %+v", runNumber)
-
-		if !initialized || runNumber < smallestRun {
-			smallestRun = runNumber
-		}
-		if !initialized || runNumber > greatestRun {
-			greatestRun = runNumber
-		}
-		initialized = true
-	}
-
-	log.Printf("SmallestRun: %+v", smallestRun)
-	log.Printf("GreatestRun: %+v", greatestRun)
-	log.Printf("Initialized: %+v", initialized)
-
-	if !initialized {
-		return 0, 0, errors.New("unexpected behaviour: empty training dataset")
-	}
-
-	return smallestRun, greatestRun, nil
-}
-
-func (s *TrainingTaskService) getRunInfoRange(smallestRun, greatestRun uint64) (*ccdb.RunInformation, *ccdb.RunInformation, error) {
-	firstRunInfo, err := s.CCDBService.GetRunInformation(smallestRun)
+	minRun, maxRun, err := getDatasetAODRunRange(trainingTask.TrainingDataset.AODFiles)
 	if err != nil {
-		return nil, nil, handleCCDBError(err)
+		return 0, 0, err
 	}
 
-	lastRunInfo, err := s.CCDBService.GetRunInformation(greatestRun)
+	firstRunInfo, lastRunInfo, err := getRunInfoRangeFromCCDB(s.CCDBService, minRun, maxRun)
 	if err != nil {
-		return nil, nil, handleCCDBError(err)
+		return 0, 0, err
 	}
 
-	log.Printf("From run %d, SOR %d", firstRunInfo.RunNumber, firstRunInfo.SOR)
-	log.Printf("to run %d, EOR %d", lastRunInfo.RunNumber, lastRunInfo.EOR)
-
-	return firstRunInfo, lastRunInfo, nil
+	return firstRunInfo.SOR, lastRunInfo.EOR, nil
 }
 
 func (s *TrainingTaskService) filterOnnxFiles(ttId uint) (map[string]*models.TrainingTaskResult, error) {
