@@ -3,6 +3,7 @@ package service
 import (
 	"sync"
 
+	"github.com/mytkom/AliceTraINT/internal/applog"
 	"github.com/mytkom/AliceTraINT/internal/environment"
 	"github.com/mytkom/AliceTraINT/internal/monalisa"
 	"github.com/stretchr/testify/mock"
@@ -29,20 +30,23 @@ func (s *MonalisaService) GetRunList() (*monalisa.HyperloopRunList, error) {
 	if s.cachedRunList != nil {
 		runList := s.cachedRunList
 		s.mu.RUnlock()
+		applog.ExternalCacheHit("Monalisa", "GetRunList", "")
 		return runList, nil
 	}
 	s.mu.RUnlock()
 
-	runList, err := s.client.GetRunList()
-	if err != nil {
-		return nil, err
-	}
+	return applog.ExternalCallResult("Monalisa", "GetRunList", "", func() (*monalisa.HyperloopRunList, error) {
+		runList, err := s.client.GetRunList()
+		if err != nil {
+			return nil, err
+		}
 
-	s.mu.Lock()
-	s.cachedRunList = runList
-	s.mu.Unlock()
+		s.mu.Lock()
+		s.cachedRunList = runList
+		s.mu.Unlock()
 
-	return runList, nil
+		return runList, nil
+	})
 }
 
 type MockMonalisaService struct {

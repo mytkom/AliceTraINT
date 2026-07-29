@@ -6,23 +6,58 @@ import (
 	"os"
 )
 
-func handleCCDBError(err error) error {
+type ErrInternal struct {
+	Op  string
+	Err error
+}
+
+func (e *ErrInternal) Error() string {
+	return fmt.Sprintf("%s: %v", e.Op, e.Err)
+}
+
+func (e *ErrInternal) Unwrap() error {
+	return e.Err
+}
+
+func (e *ErrInternal) PublicMessage() string {
+	return "unexpected internal server error"
+}
+
+func InternalError(op string, err error) error {
+	if err == nil {
+		err = errors.New("unknown error")
+	}
+	return &ErrInternal{
+		Op:  op,
+		Err: err,
+	}
+}
+
+func mapCCDBError(op string, err error) error {
+	if err == nil {
+		return nil
+	}
 	if os.IsTimeout(err) {
 		return errCCDBUnreachable
 	}
-	return errInternalServerError
+	return InternalError(op, err)
 }
 
-func handleJAlienError(err error) error {
-	print(err.Error())
+func mapJAlienError(_ string, err error) error {
+	if err == nil {
+		return nil
+	}
 	return errJAlienUnreachable
 }
 
-func handleMonalisaError(err error) error {
+func mapMonalisaError(op string, err error) error {
+	if err == nil {
+		return nil
+	}
 	if os.IsTimeout(err) {
 		return errMonalisaUnreachable
 	}
-	return errInternalServerError
+	return InternalError(op, err)
 }
 
 type ErrHandlerNotFound struct {
@@ -52,10 +87,6 @@ type ErrHandlerValidation struct {
 func (e *ErrHandlerValidation) Error() string {
 	return fmt.Sprintf("%s %s", e.Field, e.Msg)
 }
-
-var (
-	errInternalServerError = errors.New("unexpected internal server error")
-)
 
 type ErrExternalServiceTimeout struct {
 	Service string

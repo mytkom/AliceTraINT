@@ -24,14 +24,14 @@ func GetRunInformation(baseURL string, runNumber uint64) (*RunInformation, error
 		return nil, err
 	}
 
-	sorStr, sorOk := headers["Sor"]
+	sorStr, sorOk := headerValue(headers, "Sor", "SOR")
 	if !sorOk {
-		return nil, fmt.Errorf("CCDB: SOR not present for run")
+		return nil, fmt.Errorf("CCDB: SOR not present for run %d (headers: %v)", runNumber, headers)
 	}
 
-	eorStr, eorOk := headers["Eor"]
+	eorStr, eorOk := headerValue(headers, "Eor", "EOR")
 	if !eorOk {
-		return nil, fmt.Errorf("CCDB: EOR not present for run")
+		return nil, fmt.Errorf("CCDB: EOR not present for run %d (headers: %v)", runNumber, headers)
 	}
 
 	sor, err := parseUint64(sorStr)
@@ -58,4 +58,13 @@ func parseUint64(val string) (uint64, error) {
 	}
 
 	return valUint, nil
+}
+
+func headerValue(headers map[string]string, keys ...string) (string, bool) {
+	for _, key := range keys {
+		if value, ok := headers[key]; ok && value != "" {
+			return value, true
+		}
+	}
+	return "", false
 }

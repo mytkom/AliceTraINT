@@ -3,8 +3,8 @@ package service
 import (
 	"errors"
 	"fmt"
-	"log"
 
+	"github.com/mytkom/AliceTraINT/internal/applog"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"gorm.io/gorm"
@@ -62,7 +62,7 @@ func (s *TrainingTaskService) Create(tt *models.TrainingTask) error {
 				Msg:   errMsgNotUnique,
 			}
 		} else {
-			return errInternalServerError
+			return InternalError("create training task", err)
 		}
 	}
 
@@ -76,12 +76,12 @@ func (s *TrainingTaskService) GetAll(loggedUserId uint, userScoped bool) ([]mode
 	if userScoped {
 		trainingTasks, err = s.TrainingTask.GetAllUser(loggedUserId)
 		if err != nil {
-			return nil, errInternalServerError
+			return nil, InternalError("get training tasks", err)
 		}
 	} else {
 		trainingTasks, err = s.TrainingTask.GetAll()
 		if err != nil {
-			return nil, errInternalServerError
+			return nil, InternalError("get training tasks", err)
 		}
 	}
 
@@ -91,7 +91,7 @@ func (s *TrainingTaskService) GetAll(loggedUserId uint, userScoped bool) ([]mode
 func (s *TrainingTaskService) GetHelpers(loggedUserId uint) (*TrainingTaskHelpers, error) {
 	trainingDatasets, err := s.TrainingDataset.GetAllUser(loggedUserId)
 	if err != nil {
-		return nil, errInternalServerError
+		return nil, InternalError("get training task helpers", err)
 	}
 
 	return &TrainingTaskHelpers{
@@ -106,7 +106,7 @@ func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errTaskNotFound
 		} else {
-			return nil, errInternalServerError
+			return nil, InternalError("get training task by id", err)
 		}
 	}
 
@@ -114,7 +114,7 @@ func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error)
 	if trainingTask.Status >= models.Training {
 		imageFiles, err = s.TrainingTaskResult.GetByType(trainingTask.ID, models.Image)
 		if err != nil {
-			return nil, errInternalServerError
+			return nil, InternalError("get training task image results", err)
 		}
 	}
 
@@ -122,7 +122,7 @@ func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error)
 	if trainingTask.Status >= models.Benchmarking {
 		onnxFiles, err = s.TrainingTaskResult.GetByType(trainingTask.ID, models.Onnx)
 		if err != nil {
-			return nil, errInternalServerError
+			return nil, InternalError("get training task onnx results", err)
 		}
 	}
 
@@ -130,7 +130,7 @@ func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error)
 	if trainingTask.Status != models.Queued {
 		logFiles, err = s.TrainingTaskResult.GetByType(trainingTask.ID, models.Log)
 		if err != nil {
-			return nil, errInternalServerError
+			return nil, InternalError("get training task log results", err)
 		}
 	}
 
@@ -147,9 +147,8 @@ func (s *TrainingTaskService) UploadOnnxResults(id uint) error {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errTaskNotFound
-		} else {
-			return errInternalServerError
 		}
+		return InternalError("get training task for upload", err)
 	}
 
 	if trainingTask.Status < models.Completed {
@@ -177,7 +176,7 @@ func (s *TrainingTaskService) UploadOnnxResults(id uint) error {
 
 	trainingTask.Status = models.Uploaded
 	if err := s.TrainingTask.Update(trainingTask); err != nil {
-		return errInternalServerError
+		return InternalError("update training task status after upload", err)
 	}
 
 	return nil
@@ -196,7 +195,7 @@ func (s *TrainingTaskService) getUploadTimestampRange(trainingTask *models.Train
 		return uint64(timestampFrom.UnixMilli()), uint64(timestampTo.UnixMilli()), nil
 	}
 
-	log.Printf("timestamp resolver failed, using dataset-run fallback: %v", err)
+	applog.Fallback("resolve dataset timestamp range", err, "dataset AOD run range")
 
 	minRun, maxRun, err := getDatasetAODRunRange(trainingTask.TrainingDataset.AODFiles)
 	if err != nil {
@@ -230,7 +229,6 @@ func (s *TrainingTaskService) filterOnnxFiles(ttId uint) (map[string]*models.Tra
 		}
 
 		if !found {
-			log.Printf("expected file not present: %s", localName)
 			return nil, NewErrHandlerNotFound(fmt.Sprintf("TrainingTask's result file: %s", localName))
 		}
 	}
@@ -246,7 +244,7 @@ func (s *TrainingTaskService) uploadOnnxFile(sor, eor uint64, onnxFile *models.T
 	defer closeFile(f)
 
 	if err := s.CCDBService.UploadFile(sor, eor, uploadFilename, f); err != nil {
-		return handleCCDBError(err)
+		return mapCCDBError("UploadFile", err)
 	}
 
 	return nil

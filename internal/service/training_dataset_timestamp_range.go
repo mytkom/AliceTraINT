@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/mytkom/AliceTraINT/internal/ccdb"
@@ -26,7 +27,7 @@ func resolveDatasetTimestampRange(aodFiles []jalien.AODFile, monalisaService IMo
 
 	runList, err := monalisaService.GetRunList()
 	if err != nil {
-		return time.Time{}, time.Time{}, err
+		return time.Time{}, time.Time{}, mapMonalisaError("GetRunList", err)
 	}
 
 	globalMinRun, globalMaxRun, err := findGlobalRunRange(runList.TagToRuns, distinctPeriods)
@@ -65,7 +66,12 @@ func findGlobalRunRange(runMap map[string][]uint64, periods map[string]struct{})
 	}
 
 	if !initialized {
-		return 0, 0, errors.New("no runs found for dataset periods in Monalisa run list")
+		availablePeriods := make([]string, 0, len(runMap))
+		for period := range runMap {
+			availablePeriods = append(availablePeriods, period)
+		}
+		return 0, 0, fmt.Errorf("no runs found for dataset periods in Monalisa run list; requested periods=%v; sample available periods=%v",
+			periodKeys(periods), sampleStrings(availablePeriods, 10))
 	}
 
 	return globalMinRun, globalMaxRun, nil
@@ -74,12 +80,12 @@ func findGlobalRunRange(runMap map[string][]uint64, periods map[string]struct{})
 func getRunInfoRangeFromCCDB(ccdbService ICCDBService, smallestRun, greatestRun uint64) (*ccdb.RunInformation, *ccdb.RunInformation, error) {
 	firstRunInfo, err := ccdbService.GetRunInformation(smallestRun)
 	if err != nil {
-		return nil, nil, handleCCDBError(err)
+		return nil, nil, mapCCDBError(fmt.Sprintf("GetRunInformation(%d)", smallestRun), err)
 	}
 
 	lastRunInfo, err := ccdbService.GetRunInformation(greatestRun)
 	if err != nil {
-		return nil, nil, handleCCDBError(err)
+		return nil, nil, mapCCDBError(fmt.Sprintf("GetRunInformation(%d)", greatestRun), err)
 	}
 
 	return firstRunInfo, lastRunInfo, nil
@@ -104,4 +110,19 @@ func getDatasetAODRunRange(aodFiles []jalien.AODFile) (uint64, uint64, error) {
 	}
 
 	return minRun, maxRun, nil
+}
+
+func periodKeys(periods map[string]struct{}) []string {
+	keys := make([]string, 0, len(periods))
+	for period := range periods {
+		keys = append(keys, period)
+	}
+	return keys
+}
+
+func sampleStrings(values []string, limit int) []string {
+	if len(values) <= limit {
+		return values
+	}
+	return values[:limit]
 }

@@ -2,10 +2,12 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"path"
 	"strings"
 
+	"github.com/mytkom/AliceTraINT/internal/applog"
 	"github.com/mytkom/AliceTraINT/internal/environment"
 	"github.com/mytkom/AliceTraINT/internal/jalien"
 	"github.com/mytkom/AliceTraINT/internal/utils"
@@ -45,30 +47,36 @@ func findAODFilesCacheKey(p string) string {
 
 func (s *JAliEnService) FindAODFiles(p string) ([]jalien.AODFile, error) {
 	cacheKey := findAODFilesCacheKey(p)
-	if cacheKey == "" || s.aodCache == nil {
-		return s.client.FindAODFiles(p)
-	}
-
-	if raw, ok := s.aodCache.Get(cacheKey); ok {
-		var files []jalien.AODFile
-		if err := json.Unmarshal([]byte(raw), &files); err == nil {
-			return files, nil
+	if cacheKey != "" && s.aodCache != nil {
+		if raw, ok := s.aodCache.Get(cacheKey); ok {
+			var files []jalien.AODFile
+			if err := json.Unmarshal([]byte(raw), &files); err == nil {
+				applog.ExternalCacheHit("JAliEn", "FindAODFiles", fmt.Sprintf("path=%s", p))
+				return files, nil
+			}
 		}
 	}
 
-	files, err := s.client.FindAODFiles(p)
+	files, err := applog.ExternalCallResult("JAliEn", "FindAODFiles", fmt.Sprintf("path=%s", p), func() ([]jalien.AODFile, error) {
+		return s.client.FindAODFiles(p)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if b, err := json.Marshal(files); err == nil {
-		s.aodCache.Set(cacheKey, string(b))
+	if cacheKey != "" && s.aodCache != nil {
+		if b, err := json.Marshal(files); err == nil {
+			s.aodCache.Set(cacheKey, string(b))
+		}
 	}
+
 	return files, nil
 }
 
 func (s *JAliEnService) ListAndParseDirectory(path string) (*jalien.DirectoryContents, error) {
-	return s.client.ListAndParseDirectory(path)
+	return applog.ExternalCallResult("JAliEn", "ListAndParseDirectory", fmt.Sprintf("path=%s", path), func() (*jalien.DirectoryContents, error) {
+		return s.client.ListAndParseDirectory(path)
+	})
 }
 
 type MockJAliEnService struct {
