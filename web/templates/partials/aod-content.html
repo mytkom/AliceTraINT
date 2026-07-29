@@ -1,0 +1,26 @@
+{{ define "aod_period_content" }}
+{{ if . }}
+<div class="flex flex-col gap-4">
+    {{ range . }}
+    <div class="rounded-lg bg-sky-100 dark:bg-sky-800 p-4 flex flex-col gap-3">
+        <div class="grid grid-cols-3 gap-2 border-b border-sky-300 dark:border-sky-600 pb-2 text-center">
+            <span class="text-xl font-semibold">{{ .LHCPeriod }}</span>
+            <span>{{ .FileCount }} {{ if eq .FileCount 1 }}file{{ else }}files{{ end }}</span>
+            <span>{{ formatFileSizePretty .TotalSize }}</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {{ range .Runs }}
+            <div class="grid grid-cols-3 gap-2 items-center p-2 rounded-md bg-sky-200 dark:bg-sky-600 text-sm text-center">
+                <span class="font-medium">Run {{ .RunNumber }}</span>
+                <span>{{ .FileCount }} {{ if eq .FileCount 1 }}file{{ else }}files{{ end }}</span>
+                <span>{{ formatFileSizePretty .TotalSize }}</span>
+            </div>
+            {{ end }}
+        </div>
+    </div>
+    {{ end }}
+</div>
+{{ else }}
+<p class="text-sm text-gray-600 dark:text-gray-300">No AOD files in this dataset.</p>
+{{ end }}
+{{ end }}

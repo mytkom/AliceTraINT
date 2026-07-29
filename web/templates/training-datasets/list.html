@@ -1,33 +1,27 @@
 {{ define "training-datasets_list" }}
 {{ range .TrainingDatasets }}
 <div hx-target="this" hx-swap="outerHTML"
-    class="flex flex-col w-full gap-4 bg-sky-50 dark:bg-sky-900 hover:bg-white dark:hover:bg-sky-800 rounded-lg py-4 px-4">
-    <div class="flex justify-between items-center">
-        <a href="/training-datasets/{{ .ID }}">
-            <div class="text-xl font-bold">{{ .Name }}</div>
-        </a>
-        <button class="bg-red-600 hover:bg-red-400 text-gray-50 rounded-lg text-lg font-bold py-1 px-2"
-            hx-delete="/training-datasets/{{.ID}}"
-            hx-confirm="Are you sure you want to remove {{ .Name }}?">Remove</button>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-        {{ range .AODFiles }}
-        <div class="file flex justify-between items-center gap-4 p-2 rounded-md bg-sky-200 dark:bg-sky-600" data-path="{{ .Path }}">
-            <div class="flex justify-start gap-2 items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                    stroke="currentColor" class="size-4 lg:size-6">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M20.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                </svg>
-                <p>
-                <p name="LHCPeriod">{{ .LHCPeriod }}</p>-<p name="runNumber">{{ .RunNumber }}</p>-<p name="AODNumber">{{
-                    .AODNumber }}</p>
-                </p>
-            </div>
-            <p name="size" int-size="{{ .Size }}">{{ formatFileSizePretty .Size }}</p>
-        </div>
+    class="flex flex-wrap w-full items-center justify-between gap-3 bg-sky-50 dark:bg-sky-900 hover:bg-white dark:hover:bg-sky-800 rounded-lg py-3 px-4">
+    <a href="/training-datasets/{{ .ID }}" class="text-xl font-bold shrink-0">
+        {{ .Name }}
+    </a>
+    <div class="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+        {{ range summarizeAODByPeriod .AODFiles }}
+        <span class="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-sky-200 dark:bg-sky-600 text-sm whitespace-nowrap">
+            <span class="font-semibold">{{ .LHCPeriod }}</span>
+            <span>{{ .FileCount }} {{ if eq .FileCount 1 }}file{{ else }}files{{ end }}</span>
+            <span>{{ formatFileSizePretty .TotalSize }}</span>
+        </span>
+        {{ else }}
+        <span class="text-sm text-gray-600 dark:text-gray-300">No AOD files</span>
         {{ end }}
+        <span class="text-sm text-gray-700 dark:text-gray-200 whitespace-nowrap">
+            by {{ .User.FirstName }} {{ .User.FamilyName }} ({{ .User.Username }})
+        </span>
     </div>
+    <button class="bg-red-600 hover:bg-red-400 text-gray-50 rounded-lg text-lg font-bold py-1 px-2 shrink-0"
+        hx-delete="/training-datasets/{{.ID}}"
+        hx-confirm="Are you sure you want to remove {{ .Name }}?">Remove</button>
 </div>
 {{ end }}
 {{ end }}
