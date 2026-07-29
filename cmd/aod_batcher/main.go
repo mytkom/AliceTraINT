@@ -92,10 +92,10 @@ func parseFlags() (*config, error) {
 	if cfg.filesPerRun <= 0 {
 		return nil, errors.New("flag --files-per-run must be > 0")
 	}
-  if cfg.filesPerRunData <= 0 {
-    cfg.filesPerRunData = int(math.Ceil(float64(cfg.filesPerRun) / 3.0))
-    fmt.Printf("Setting up default files per run data as: %d (ceil(filesPerRun / 3))\n", cfg.filesPerRunData)
-  }
+	if cfg.filesPerRunData <= 0 {
+		cfg.filesPerRunData = int(math.Ceil(float64(cfg.filesPerRun) / 3.0))
+		fmt.Printf("Setting up default files per run data as: %d (ceil(filesPerRun / 3))\n", cfg.filesPerRunData)
+	}
 	if cfg.maxFilesPerBatch <= 0 {
 		return nil, errors.New("flag --max-files-per-batch must be > 0")
 	}
@@ -156,30 +156,30 @@ func run(cfg *config) error {
 	}
 
 	monc := monalisa.NewMonalisaClient(cfg.clientKey, cfg.clientCert, cfg.monalisaBaseUrl)
-  // Get runlist
+	// Get runlist
 	runList, err := monc.GetRunList()
 	if err != nil {
 		return err
 	}
 
 	// Get anchored data production (real data tag)
-  var passName string
-  mcTag := allSimAodsByRun[selectedRuns[0]][0].LHCPeriod
-  aodRow, err := monc.GetMCRow(mcTag)
+	var passName string
+	mcTag := allSimAodsByRun[selectedRuns[0]][0].LHCPeriod
+	aodRow, err := monc.GetMCRow(mcTag)
 	if err != nil {
-    // try to obtain it from RunList
-    desc := runList.TagToDesc[mcTag]
-    re := regexp.MustCompile(`\bapass\d+(?:_\w+)?`)
-    m := re.FindString(desc)
+		// try to obtain it from RunList
+		desc := runList.TagToDesc[mcTag]
+		re := regexp.MustCompile(`\bapass\d+(?:_\w+)?`)
+		m := re.FindString(desc)
 
-    if m == "" {
-      return fmt.Errorf("error while obtaining anchored prod pass name")
-    }
+		if m == "" {
+			return fmt.Errorf("error while obtaining anchored prod pass name")
+		}
 
-    passName = m
+		passName = m
 	} else {
-    passName = aodRow.PassName
-  }
+		passName = aodRow.PassName
+	}
 
 	runToDataAods := make(map[uint64][]jalien.AODFile, len(selectedRuns))
 	for _, sr := range selectedRuns {
@@ -194,7 +194,7 @@ func run(cfg *config) error {
 			return fmt.Errorf("Cannot find a anchored production period for run %d", sr)
 		}
 
-    dataPath := getDataPath(dataTag, passName, sr)
+		dataPath := getDataPath(dataTag, passName, sr)
 		aods, err := getAods(dataPath, cfg.minSizeMB/2, client)
 		if err != nil {
 			return err

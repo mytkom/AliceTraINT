@@ -23,14 +23,14 @@ type HyperloopRunList struct {
 	RunToTags map[uint64][]string
 	TagToRuns map[string][]uint64
 	TagToIsMC map[string]bool
-  TagToDesc map[string]string
+	TagToDesc map[string]string
 }
 
 type hyperloopRunListRawEntry struct {
 	EntryType          string `json:"type"`
 	RunListStringified string `json:"runlist"`
 	PeriodTag          string `json:"period"`
-  Description        string `json:"jt_description"`
+	Description        string `json:"jt_description"`
 }
 
 func (rl *HyperloopRunList) UnmarshalJSON(raw []byte) error {
@@ -137,17 +137,17 @@ func (c *MonalisaClient) GetMCRow(mcPeriod string) (*MCRow, error) {
 		First().
 		Text()
 
-  if mcTag == "" {
-    return nil, fmt.Errorf("cannot obtain mcRow")
-  }
+	if mcTag == "" {
+		return nil, fmt.Errorf("cannot obtain mcRow")
+	}
 
 	anchorProd := doc.Find(fmt.Sprintf(".link[target=%s]", MC_ANCH_TARGET_STR)).
 		First().
 		Text()
 
-  if anchorProd == "" {
-    return nil, fmt.Errorf("cannot obtain mcRow")
-  }
+	if anchorProd == "" {
+		return nil, fmt.Errorf("cannot obtain mcRow")
+	}
 
 	passName := doc.Find("tbody tr.table_row td").
 		Get(MC_ANCH_PASS_NAME_COL_ID).
