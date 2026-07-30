@@ -8,10 +8,16 @@ htmx.defineExtension('json-enc', {
     encodeParameters: function (xhr, parameters, elt) {
         xhr.overrideMimeType('application/json');
         const form = (elt && elt.closest) ? (elt.closest('form') || (elt.tagName === 'FORM' ? elt : null)) : null;
-        if (!form || !window.AliceTraINTForm) {
-            return JSON.stringify({});
+
+        // Start from htmx parameters so hx-vals (e.g. AODFiles) are included.
+        const nested = window.AliceTraINTForm.encodeParametersObject(parameters || {});
+
+        // Overlay typed form encoding (bools, lists, nested configuration.* paths).
+        if (form) {
+            window.AliceTraINTForm.deepMerge(nested, window.AliceTraINTForm.encodeForm(form));
         }
-        return JSON.stringify(window.AliceTraINTForm.encodeForm(form));
+
+        return JSON.stringify(nested);
     }
 });
 
@@ -30,6 +36,29 @@ window.AliceTraINTForm = (function () {
             }
             current = current[part];
         }
+    }
+
+    function deepMerge(target, source) {
+        if (!source || typeof source !== 'object' || Array.isArray(source)) {
+            return source;
+        }
+        Object.keys(source).forEach(function (key) {
+            const srcVal = source[key];
+            const tgtVal = target[key];
+            if (
+                srcVal &&
+                typeof srcVal === 'object' &&
+                !Array.isArray(srcVal) &&
+                tgtVal &&
+                typeof tgtVal === 'object' &&
+                !Array.isArray(tgtVal)
+            ) {
+                deepMerge(tgtVal, srcVal);
+                return;
+            }
+            target[key] = srcVal;
+        });
+        return target;
     }
 
     function parseList(value, jsonType) {
@@ -150,8 +179,46 @@ window.AliceTraINTForm = (function () {
         return nestedParams;
     }
 
+    function encodeParametersObject(parameters) {
+        const nestedParams = {};
+        Object.keys(parameters || {}).forEach(function (name) {
+            let value = parameters[name];
+
+            // Skip range part keys; encodeForm rebuilds ranges from DOM.
+            if (name.indexOf('.__min') !== -1 || name.indexOf('.__max') !== -1) {
+                return;
+            }
+
+            // hx-vals may already provide objects/arrays (e.g. AODFiles).
+            if (value !== null && typeof value === 'object') {
+                setNested(nestedParams, name, value);
+                return;
+            }
+
+            if (Array.isArray(value)) {
+                value = value[value.length - 1];
+            }
+
+            if (value === 'true' || value === 'false') {
+                value = value === 'true';
+            } else if (value === '') {
+                // Keep empty strings for plain text fields; null only hurts free-text.
+                // Leave as-is.
+            } else if (typeof value === 'string' && /^-?\d+$/.test(value)) {
+                value = parseInt(value, 10);
+            } else if (typeof value === 'string' && /^-?\d+\.\d+$/.test(value)) {
+                value = parseFloat(value);
+            }
+
+            setNested(nestedParams, name, value);
+        });
+        return nestedParams;
+    }
+
     return {
         encodeForm: encodeForm,
+        encodeParametersObject: encodeParametersObject,
+        deepMerge: deepMerge,
         syncBoolHidden: syncBoolHidden
     };
 })();
