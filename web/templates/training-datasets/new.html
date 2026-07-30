@@ -92,6 +92,27 @@
             <div id="file-list" class="overflow-y-auto flex-grow min-h-0"></div>
         </div>
 
+        <div id="find-panel" class="hidden flex flex-col max-h-96 min-h-96">
+            <form id="find-aods-form"
+                class="flex content-stretch bg-white dark:bg-sky-700 justify-end gap-4 items-center p-3"
+                hx-get="find-aods" hx-target="#file-list" hx-swap="innerHTML" hx-indicator="#file-list-overlay">
+                <label for="path-find">Path:</label>
+                <input class="bg-white border-sky-900 text-gray-800 rounded-lg flex-grow text-sm py-1 px-2 max-w-1/2 flex-shrink"
+                    placeholder="ex. /alice/sim/2024/LHC24f3/0/523397" type="text" id="path-find" name="path" required>
+                <button class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2"
+                    type="submit" onclick="resolvePathForRequest(true)">Find AO2Ds</button>
+            </form>
+            <div class="bg-white dark:bg-sky-700 border-b-2 border-dotted p-3">
+                <div class="flex justify-end items-center gap-2">
+                    <span>or</span>
+                    <button id="switch-to-random-button"
+                        class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg font-bold py-1 px-2 whitespace-nowrap"
+                        type="button">Get Random Subset</button>
+                </div>
+            </div>
+            <div id="file-list" class="overflow-y-auto flex-grow min-h-0"></div>
+        </div>
+
         <div id="file-list-overlay" class="display-htmx-indicator absolute inset-0 bg-sky-200 opacity-50 z-10">
             <div class="h-full flex justify-center items-center">
                 <img class="size-14 lg:size-20" src="/static/img/spinner.svg" />

@@ -29,7 +29,7 @@ func (s *TrainingDatasetService) SelectRandomAODSubset(path string, runCount, fi
 
 	aods, err := s.JAliEn.FindAODFiles(path)
 	if err != nil {
-		return nil, handleJAlienError(err)
+		return nil, mapJAlienError("FindAODFiles", err)
 	}
 	if len(aods) == 0 {
 		return nil, &ErrHandlerValidation{

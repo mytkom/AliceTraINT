@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # --- config that differs locally vs OpenShift ---
 ARG CERT_PATH=./gridCertificate.p12   # default for local builds

@@ -23,17 +23,22 @@ type ITrainingDatasetService interface {
 
 type TrainingDatasetService struct {
 	*repository.RepositoryContext
-	JAliEn IJAliEnService
+	JAliEn          IJAliEnService
+	CCDBService     ICCDBService
+	MonalisaService IMonalisaService
 }
 
 var errCCDBUnreachable = NewErrExternalServiceTimeout("CCDB")
 var errJAlienUnreachable = NewErrExternalServiceTimeout("JAlien")
+var errMonalisaUnreachable = NewErrExternalServiceTimeout("Monalisa")
 var errDatasetNotFound = NewErrHandlerNotFound("TrainingDataset")
 
-func NewTrainingDatasetService(repo *repository.RepositoryContext, jalien IJAliEnService) *TrainingDatasetService {
+func NewTrainingDatasetService(repo *repository.RepositoryContext, jalien IJAliEnService, ccdbService ICCDBService, monalisaService IMonalisaService) *TrainingDatasetService {
 	return &TrainingDatasetService{
 		RepositoryContext: repo,
 		JAliEn:            jalien,
+		CCDBService:       ccdbService,
+		MonalisaService:   monalisaService,
 	}
 }
 
@@ -63,7 +68,7 @@ func (s *TrainingDatasetService) GetByID(id uint) (*models.TrainingDataset, erro
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errDatasetNotFound
 		} else {
-			return nil, errInternalServerError
+			return nil, InternalError("get training dataset by id", err)
 		}
 	}
 
@@ -78,7 +83,18 @@ func (s *TrainingDatasetService) Create(td *models.TrainingDataset) error {
 		}
 	}
 
-	err := s.TrainingDataset.Create(td)
+	timestampFrom, timestampTo, err := resolveDatasetTimestampRange(td.AODFiles, s.MonalisaService, s.CCDBService)
+	if err != nil {
+		var external *ErrExternalServiceTimeout
+		if errors.As(err, &external) {
+			return err
+		}
+		return InternalError("resolve training dataset timestamp range", err)
+	}
+	td.AnchorProdTimestampFrom = timestampFrom
+	td.AnchorProdTimestampTo = timestampTo
+
+	err = s.TrainingDataset.Create(td)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
@@ -87,7 +103,7 @@ func (s *TrainingDatasetService) Create(td *models.TrainingDataset) error {
 				Msg:   errMsgNotUnique,
 			}
 		} else {
-			return errInternalServerError
+			return InternalError("create training dataset", err)
 		}
 	}
 
@@ -101,7 +117,7 @@ func (s *TrainingDatasetService) Delete(userId uint, id uint) error {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errDatasetNotFound
 		} else {
-			return errInternalServerError
+			return InternalError("delete training dataset", err)
 		}
 	}
 
@@ -115,7 +131,7 @@ func (s *TrainingDatasetService) ExploreDirectory(path string) (*jalien.Director
 
 	dirContents, err := s.JAliEn.ListAndParseDirectory(path)
 	if err != nil {
-		return nil, "", handleJAlienError(err)
+		return nil, "", mapJAlienError("ListAndParseDirectory", err)
 	}
 
 	parentDir := "/"
@@ -133,7 +149,7 @@ func (s *TrainingDatasetService) FindAods(path string) ([]jalien.AODFile, error)
 	aodFiles, err := s.JAliEn.FindAODFiles(path)
 
 	if err != nil {
-		return nil, handleJAlienError(err)
+		return nil, mapJAlienError("FindAODFiles", err)
 	}
 
 	return aodFiles, nil

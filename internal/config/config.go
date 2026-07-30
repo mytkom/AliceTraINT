@@ -17,6 +17,7 @@ type Config struct {
 	JalienPort           string
 	JalienCertCADir      string
 	JalienTimeoutSeconds uint
+	MonalisaBaseURL      string
 	CCDBBaseURL          string
 	CCDBUploadSubdir     string
 	CertPath             string
@@ -60,7 +61,8 @@ func LoadConfig() *Config {
 		JalienHost:           getEnv("JALIEN_HOST", defaultJalienHost),
 		JalienPort:           getEnv("JALIEN_WSPORT", defaultJalienPort),
 		JalienCertCADir:      getEnv("JALIEN_CERT_CA_DIR", ""),
-		JalienTimeoutSeconds: getEnvAsUint("JALIEN_TIMEOUT_SECONDS", 60),
+		JalienTimeoutSeconds: getEnvAsUint("JALIEN_TIMEOUT_SECONDS", 180),
+		MonalisaBaseURL:      getEnv("MONALISA_URL", "https://alimonitor.cern.ch"),
 		CCDBBaseURL:          getEnv("CCDB_URL", "http://ccdb-test.cern.ch:8080"),
 		CCDBUploadSubdir:     getEnv("CCDB_UPLOAD_SUBDIR", "/Users/m/mmytkows"),
 		CertPath:             getEnv("GRID_CERT_PATH", ""),

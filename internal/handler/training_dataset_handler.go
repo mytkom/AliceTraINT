@@ -258,12 +258,12 @@ func (h *TrainingDatasetHandler) SelectRandomAods(w http.ResponseWriter, r *http
 	}
 }
 
-func InitTrainingDatasetRoutes(mux *http.ServeMux, env *environment.Env, jalien service.IJAliEnService, routeCache *utils.Cache) {
+func InitTrainingDatasetRoutes(mux *http.ServeMux, env *environment.Env, jalien service.IJAliEnService, ccdbService service.ICCDBService, monalisaService service.IMonalisaService, routeCache *utils.Cache) {
 	prefix := "training-datasets"
 
 	tjh := &TrainingDatasetHandler{
 		Env:     env,
-		Service: service.NewTrainingDatasetService(env.RepositoryContext, jalien),
+		Service: service.NewTrainingDatasetService(env.RepositoryContext, jalien, ccdbService, monalisaService),
 	}
 
 	cache := routeCache

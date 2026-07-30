@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
+	"github.com/mytkom/AliceTraINT/internal/ccdb"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/mytkom/AliceTraINT/internal/jalien"
+	"github.com/mytkom/AliceTraINT/internal/monalisa"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -165,6 +168,24 @@ type createTrainingDatasetPayload struct {
 	UserId   uint
 }
 
+func mockDatasetTimestampRange(ut *IntegrationTestUtils, period string, minRun, maxRun uint64) {
+	ut.Monalisa.On("GetRunList").Return(&monalisa.HyperloopRunList{
+		TagToRuns: map[string][]uint64{
+			period: {minRun, maxRun},
+		},
+	}, nil).Once()
+	ut.CCDB.On("GetRunInformation", minRun).Return(&ccdb.RunInformation{
+		RunNumber: minRun,
+		SOR:       uint64(time.Now().Add(-time.Hour).UnixMilli()),
+		EOR:       uint64(time.Now().Add(-30 * time.Minute).UnixMilli()),
+	}, nil).Once()
+	ut.CCDB.On("GetRunInformation", maxRun).Return(&ccdb.RunInformation{
+		RunNumber: maxRun,
+		SOR:       uint64(time.Now().Add(-20 * time.Minute).UnixMilli()),
+		EOR:       uint64(time.Now().UnixMilli()),
+	}, nil).Once()
+}
+
 func TestTrainingDatasetHandler_Create_Failure(t *testing.T) {
 	ut, cleanup := setupIntegrationTest(t)
 	defer cleanup()
@@ -201,6 +222,8 @@ func TestTrainingDatasetHandler_Create_Failure(t *testing.T) {
 	body, err := json.Marshal(tdSameName)
 	assert.NoError(t, err)
 
+	mockDatasetTimestampRange(ut, "LHC24b1b", 567454, 567456)
+
 	req, err := http.NewRequest("POST", "/training-datasets", bytes.NewReader(body))
 	assert.NoError(t, err)
 	HTMXReq(req)
@@ -235,6 +258,8 @@ func TestTrainingDatasetHandler_Create(t *testing.T) {
 	}
 	body, err := json.Marshal(trainingDataset)
 	assert.NoError(t, err)
+
+	mockDatasetTimestampRange(ut, "LHC24b1b", 567454, 567454)
 
 	req, err := http.NewRequest("POST", "/training-datasets", bytes.NewReader(body))
 	assert.NoError(t, err)

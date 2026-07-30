@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strconv"
 
@@ -86,11 +87,12 @@ func (h *TrainingTaskHandler) UploadToCCDB(w http.ResponseWriter, r *http.Reques
 
 func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
-		Title        string
-		TrainingTask models.TrainingTask
-		ImageFiles   []models.TrainingTaskResult
-		OnnxFiles    []models.TrainingTaskResult
-		LogFiles     []models.TrainingTaskResult
+		Title            string
+		TrainingTask     models.TrainingTask
+		ImageFiles       []models.TrainingTaskResult
+		OnnxFiles        []models.TrainingTaskResult
+		LogFiles         []models.TrainingTaskResult
+		HasConfiguration bool
 	}
 
 	idStr := r.PathValue("id")
@@ -107,11 +109,12 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.ExecuteTemplate(w, "training-tasks_show", TemplateData{
-		Title:        "Training Tasks",
-		TrainingTask: *tt.TrainingTask,
-		ImageFiles:   tt.ImageFiles,
-		OnnxFiles:    tt.OnnxFiles,
-		LogFiles:     tt.LogFiles,
+		Title:            "Training Tasks",
+		TrainingTask:     *tt.TrainingTask,
+		ImageFiles:       tt.ImageFiles,
+		OnnxFiles:        tt.OnnxFiles,
+		LogFiles:         tt.LogFiles,
+		HasConfiguration: utils.HasConfiguration(tt.TrainingTask.Configuration),
 	})
 
 	if err != nil {
@@ -121,9 +124,12 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 
 func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
-		Title            string
-		TrainingDatasets []models.TrainingDataset
-		FieldConfigs     service.NNFieldConfigs
+		Title              string
+		TrainingDatasets   []models.TrainingDataset
+		FieldGroups        []service.NNFieldGroup
+		PrefillConfig      template.JS
+		PrefillDatasetId   uint
+		PrefillNameSuggest string
 	}
 
 	user, ok := middleware.GetLoggedUser(r)
@@ -138,11 +144,30 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.ExecuteTemplate(w, "training-tasks_new", TemplateData{
+	data := TemplateData{
 		Title:            "Create New Training Task!",
 		TrainingDatasets: ttHelpers.TrainingDatasets,
-		FieldConfigs:     ttHelpers.FieldConfigs,
-	})
+		FieldGroups:      ttHelpers.FieldGroups,
+		PrefillConfig:    "null",
+	}
+
+	if fromTask := r.URL.Query().Get("fromTask"); fromTask != "" {
+		fromID, parseErr := strconv.ParseUint(fromTask, 10, 32)
+		if parseErr != nil {
+			writeError(w, r, http.StatusUnprocessableEntity, "invalid fromTask id", parseErr)
+			return
+		}
+		source, getErr := h.Service.GetByID(uint(fromID))
+		if getErr != nil {
+			handleServiceError(w, r, getErr)
+			return
+		}
+		data.PrefillConfig = utils.ConfigJSON(source.TrainingTask.Configuration)
+		data.PrefillDatasetId = source.TrainingTask.TrainingDatasetId
+		data.PrefillNameSuggest = source.TrainingTask.Name + " (copy)"
+	}
+
+	err = h.ExecuteTemplate(w, "training-tasks_new", data)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
@@ -174,10 +199,10 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func InitTrainingTaskRoutes(mux *http.ServeMux, env *environment.Env, ccdbService service.ICCDBService, jalienService service.IJAliEnService, fileService service.IFileService, nnArch service.INNArchService) {
+func InitTrainingTaskRoutes(mux *http.ServeMux, env *environment.Env, ccdbService service.ICCDBService, monalisaService service.IMonalisaService, fileService service.IFileService, nnArch service.INNArchService) {
 	prefix := "training-tasks"
 
-	ttService := service.NewTrainingTaskService(env.RepositoryContext, ccdbService, jalienService, fileService, nnArch)
+	ttService := service.NewTrainingTaskService(env.RepositoryContext, ccdbService, monalisaService, fileService, nnArch)
 	tjh := NewTrainingTaskHandler(env, ttService)
 
 	authMw := middleware.NewAuthMw(env.IAuthService, true)

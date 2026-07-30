@@ -48,7 +48,7 @@ func (s *TrainingMachineService) Create(tm *models.TrainingMachine) (string, err
 				Msg:   errMsgNotUnique,
 			}
 		} else {
-			return "", errInternalServerError
+			return "", InternalError("create training machine", err)
 		}
 	}
 
@@ -62,12 +62,12 @@ func (s *TrainingMachineService) GetAll(loggedUserId uint, userScoped bool) ([]m
 	if userScoped {
 		trainingMachines, err = s.TrainingMachine.GetAllUser(loggedUserId)
 		if err != nil {
-			return nil, errInternalServerError
+			return nil, InternalError("get training machines", err)
 		}
 	} else {
 		trainingMachines, err = s.TrainingMachine.GetAll()
 		if err != nil {
-			return nil, errInternalServerError
+			return nil, InternalError("get training machines", err)
 		}
 	}
 
@@ -80,7 +80,7 @@ func (s *TrainingMachineService) GetByID(id uint) (*models.TrainingMachine, erro
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errMachineNotFound
 		} else {
-			return nil, errInternalServerError
+			return nil, InternalError("get training machine by id", err)
 		}
 	}
 
@@ -93,7 +93,7 @@ func (s *TrainingMachineService) Delete(loggedUserId uint, id uint) error {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errMachineNotFound
 		} else {
-			return errInternalServerError
+			return InternalError("delete training machine", err)
 		}
 	}
 

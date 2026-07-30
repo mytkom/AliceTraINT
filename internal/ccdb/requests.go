@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -106,6 +105,5 @@ func uploadFile(filename, url string, fileReader io.Reader, val, valEnd uint64, 
 		return fmt.Errorf("upload failed with status code %d", resp.StatusCode)
 	}
 
-	log.Printf("Uploaded file: %s to path: %s\n", filename, uploadPath)
 	return nil
 }

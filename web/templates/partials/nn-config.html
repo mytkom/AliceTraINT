@@ -1,0 +1,75 @@
+{{ define "nn_field_group" }}
+<div class="nn-field-group flex flex-col gap-4 p-4 rounded-lg bg-sky-100 dark:bg-sky-800 border border-sky-200 dark:border-sky-700"
+    {{ if .ShowWhen }}
+    data-show-when-field="{{ .ShowWhen.Field }}"
+    data-show-when-equals='{{ showWhenEqualsJSON .ShowWhen.Equals }}'
+    {{ end }}>
+    <h4 class="text-lg font-semibold">{{ .FullName }}</h4>
+    {{ range .Fields }}
+    {{ $fieldName := configFieldName $.Path .Name }}
+    {{ $configPath := configPath $.Path .Name }}
+    <div class="flex flex-col gap-1">
+        <div class="flex flex-wrap justify-end items-center gap-2">
+            <label for="{{ $fieldName }}">{{ .FullName }}:</label>
+
+            {{ if eq .Type "uint" "int" }}
+            <input class="w-40 text-lg rounded-lg text-gray-800" type="number" id="{{ $fieldName }}"
+                name="{{ $fieldName }}" value="{{ .DefaultValue }}" min="{{ .Min }}" max="{{ .Max }}"
+                step="{{ .Step }}" data-json-type="{{ .Type }}" required>
+
+            {{ else if eq .Type "float64" }}
+            <input class="w-40 text-lg rounded-lg text-gray-800" type="number" id="{{ $fieldName }}"
+                name="{{ $fieldName }}" value="{{ .DefaultValue }}" min="{{ .Min }}" max="{{ .Max }}"
+                step="{{ .Step }}" data-json-type="float64" required>
+
+            {{ else if eq .Type "bool" }}
+            <input type="hidden" name="{{ $fieldName }}" value="{{ if .DefaultValue }}true{{ else }}false{{ end }}"
+                data-json-type="bool">
+            <input class="w-8 h-8 rounded-full text-gray-800" type="checkbox" id="{{ $fieldName }}"
+                data-bool-target="{{ $fieldName }}"
+                {{ if .DefaultValue }}checked{{ end }}>
+
+            {{ else if eq .Type "select" }}
+            <select class="w-52 text-lg rounded-lg text-gray-800" id="{{ $fieldName }}"
+                name="{{ $fieldName }}" data-json-type="select" data-config-path="{{ $configPath }}">
+                {{ $default := .DefaultValue }}
+                {{ range .Options }}
+                <option value="{{ if eq .Value nil }}{{ else }}{{ .Value }}{{ end }}"
+                    data-null="{{ if eq .Value nil }}true{{ else }}false{{ end }}"
+                    {{ if optionSelected .Value $default }}selected{{ end }}>{{ .Label }}</option>
+                {{ end }}
+            </select>
+
+            {{ else if eq .Type "uint_list" "string_list" }}
+            <input class="w-64 text-lg rounded-lg text-gray-800" type="text" id="{{ $fieldName }}"
+                name="{{ $fieldName }}" value="{{ formatListDefault .DefaultValue }}"
+                data-json-type="{{ .Type }}" required>
+
+            {{ else if eq .Type "float_range" "int_range" }}
+            <div class="flex items-center gap-2">
+                <input class="w-28 text-lg rounded-lg text-gray-800" type="number"
+                    name="{{ $fieldName }}.__min" value="{{ rangeDefaultAt .DefaultValue 0 }}"
+                    min="{{ .Min }}" max="{{ .Max }}" step="{{ .Step }}"
+                    data-json-type="{{ .Type }}" data-range-parent="{{ $fieldName }}" data-range-index="0" required>
+                <span>–</span>
+                <input class="w-28 text-lg rounded-lg text-gray-800" type="number"
+                    name="{{ $fieldName }}.__max" value="{{ rangeDefaultAt .DefaultValue 1 }}"
+                    min="{{ .Min }}" max="{{ .Max }}" step="{{ .Step }}"
+                    data-json-type="{{ .Type }}" data-range-parent="{{ $fieldName }}" data-range-index="1" required>
+            </div>
+
+            {{ else }}
+            <input class="w-40 text-lg rounded-lg text-gray-800" type="text" id="{{ $fieldName }}"
+                name="{{ $fieldName }}" value="{{ .DefaultValue }}" data-json-type="string" required>
+            {{ end }}
+        </div>
+        <div class="flex justify-end gap-2">
+            <p class="text-sm font-normal">{{ .Description }}</p>
+        </div>
+    </div>
+    {{ end }}
+    {{ range .Groups }}
+    {{ template "nn_field_group" . }}
+    {{ end }}
+</div>
+{{ end }}

@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 
+	"github.com/mytkom/AliceTraINT/internal/applog"
 	"github.com/mytkom/AliceTraINT/internal/ccdb"
 	"github.com/mytkom/AliceTraINT/internal/environment"
 	"github.com/stretchr/testify/mock"
@@ -36,18 +37,22 @@ func NewCCDBService(env *environment.Env) *CCDBService {
 }
 
 func (s *CCDBService) GetRunInformation(runNumber uint64) (*ccdb.RunInformation, error) {
-	return ccdb.GetRunInformation(s.baseURL, runNumber)
+	return applog.ExternalCallResult("CCDB", "GetRunInformation", fmt.Sprintf("run=%d", runNumber), func() (*ccdb.RunInformation, error) {
+		return ccdb.GetRunInformation(s.baseURL, runNumber)
+	})
 }
 
 func (s *CCDBService) UploadFile(sor, eor uint64, filename string, file io.Reader) error {
-	return ccdb.UploadFile(
-		fmt.Sprintf("%s/%s", s.baseURL, s.uploadSubdir),
-		&s.cert,
-		sor,
-		eor,
-		filename,
-		file,
-	)
+	return applog.ExternalCall("CCDB", "UploadFile", fmt.Sprintf("file=%s sor=%d eor=%d", filename, sor, eor), func() error {
+		return ccdb.UploadFile(
+			fmt.Sprintf("%s/%s", s.baseURL, s.uploadSubdir),
+			&s.cert,
+			sor,
+			eor,
+			filename,
+			file,
+		)
+	})
 }
 
 type MockCCDBService struct {
