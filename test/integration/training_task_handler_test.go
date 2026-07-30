@@ -187,7 +187,7 @@ func TestTrainingTaskHandler_New(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 	responseBody := rr.Body.String()
 	assert.Contains(t, responseBody, "Unique Dataset Name")
-	assert.Contains(t, responseBody, "fieldName")
+	assert.Contains(t, responseBody, "configuration.training.batch_size")
 	assert.Contains(t, responseBody, "512")
 }
 

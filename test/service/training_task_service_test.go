@@ -35,15 +35,23 @@ func newTrainingTaskService() (*service.TrainingTaskService, *trainingTaskServic
 	ccdbService := service.NewMockCCDBService()
 	monalisaService := service.NewMockMonalisaService()
 	fileService := service.NewMockFileService()
-	nnArch := service.NewNNArchServiceInMemory(&service.NNFieldConfigs{
-		"fieldName": service.NNConfigField{
-			FullName:     "Full field name",
-			Type:         "uint",
-			DefaultValue: uint(512),
-			Min:          uint(128),
-			Max:          uint(1024),
-			Step:         uint(1),
-			Description:  "Field description",
+	nnArch := service.NewNNArchServiceInMemory([]service.NNFieldGroup{
+		{
+			Name:     "training",
+			Path:     "training",
+			FullName: "Training",
+			Fields: []service.NNConfigField{
+				{
+					Name:         "batch_size",
+					FullName:     "Batch size",
+					Type:         "uint",
+					DefaultValue: uint(512),
+					Min:          uint(128),
+					Max:          uint(1024),
+					Step:         uint(1),
+					Description:  "Field description",
+				},
+			},
 		},
 	}, &service.NNExpectedResults{
 		Onnx: map[string]string{
@@ -156,7 +164,7 @@ func TestTrainingTaskService_GetHelpers(t *testing.T) {
 	ut.TDRepo.AssertCalled(t, "GetAllUser", userId)
 	assert.Equal(t, tds[0].Name, helpers.TrainingDatasets[0].Name)
 	assert.Equal(t, tds[1].Name, helpers.TrainingDatasets[1].Name)
-	assert.True(t, reflect.DeepEqual(helpers.FieldConfigs, ut.NNArch.FieldConfigs))
+	assert.True(t, reflect.DeepEqual(helpers.FieldGroups, ut.NNArch.FieldGroups))
 }
 
 func TestTrainingTaskService_GetByID_Queued(t *testing.T) {

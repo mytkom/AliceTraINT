@@ -9,129 +9,1187 @@
       "antipion.onnx": "simple_model_0211.onnx"
     }
   },
-  "field_configs": {
-    "undersample": {
-      "full_name": "Undersample Training Dataset",
-      "type": "bool",
-      "default_value": false,
-      "description": "Undersample training dataset, in result count of tracks of every missing detectors combination would be equal."
+  "field_groups": [
+    {
+      "name": "data",
+      "path": "data",
+      "full_name": "Data",
+      "fields": [
+        {
+          "name": "train_size",
+          "full_name": "Train size",
+          "type": "float64",
+          "default_value": 0.64,
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01,
+          "description": "Fraction of data used for training. Validation size is 1 - train_size - test_size."
+        },
+        {
+          "name": "test_size",
+          "full_name": "Test size",
+          "type": "float64",
+          "default_value": 0.2,
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01,
+          "description": "Fraction of data used for testing."
+        },
+        {
+          "name": "run_event_selection",
+          "full_name": "Run event selection",
+          "type": "bool",
+          "default_value": true,
+          "description": "Drop events that do not meet PIDMLProducer event selection criteria."
+        },
+        {
+          "name": "use_event_data",
+          "full_name": "Use event data",
+          "type": "bool",
+          "default_value": true,
+          "description": "Include event-level columns in training features."
+        },
+        {
+          "name": "use_n_sigma",
+          "full_name": "Use n-sigma",
+          "type": "bool",
+          "default_value": false,
+          "description": "Include n-sigma detector columns in training features."
+        },
+        {
+          "name": "use_exp_sigma",
+          "full_name": "Use expected sigma",
+          "type": "bool",
+          "default_value": true,
+          "description": "Include expected TPC/TOF resolution columns in training features."
+        },
+        {
+          "name": "outlier_filtering_method",
+          "full_name": "Outlier filtering method",
+          "type": "select",
+          "default_value": null,
+          "allow_null": true,
+          "options": [
+            {"value": null, "label": "None"},
+            {"value": "iqr", "label": "IQR"},
+            {"value": "ocsvm", "label": "One-Class SVM"},
+            {"value": "isolation_forest", "label": "Isolation Forest"}
+          ],
+          "description": "Optional outlier filtering applied before training."
+        }
+      ],
+      "groups": [
+        {
+          "name": "outlier_filtering_methods",
+          "path": "data.outlier_filtering_methods",
+          "full_name": "Outlier filtering parameters",
+          "fields": [
+            {
+              "name": "columns",
+              "full_name": "Filter columns",
+              "type": "string_list",
+              "default_value": ["fBeta", "fTOFSignal", "fTPCSignal", "fP"],
+              "description": "Columns used by the selected outlier filter (comma-separated)."
+            }
+          ],
+          "groups": [
+            {
+              "name": "iqr",
+              "path": "data.outlier_filtering_methods.iqr",
+              "full_name": "IQR",
+              "show_when": {"field": "data.outlier_filtering_method", "equals": "iqr"},
+              "fields": [
+                {
+                  "name": "multiplier",
+                  "full_name": "IQR multiplier",
+                  "type": "float64",
+                  "default_value": 8.0,
+                  "min": 0.0,
+                  "max": 100.0,
+                  "step": 0.1,
+                  "description": "Multiplier for the interquartile range to define outliers."
+                }
+              ]
+            },
+            {
+              "name": "ocsvm",
+              "path": "data.outlier_filtering_methods.ocsvm",
+              "full_name": "One-Class SVM",
+              "show_when": {"field": "data.outlier_filtering_method", "equals": "ocsvm"},
+              "fields": [
+                {
+                  "name": "kernel",
+                  "full_name": "Kernel",
+                  "type": "select",
+                  "default_value": "rbf",
+                  "options": [
+                    {"value": "linear", "label": "linear"},
+                    {"value": "poly", "label": "poly"},
+                    {"value": "rbf", "label": "rbf"},
+                    {"value": "sigmoid", "label": "sigmoid"},
+                    {"value": "precomputed", "label": "precomputed"}
+                  ],
+                  "description": "Kernel type."
+                },
+                {
+                  "name": "degree",
+                  "full_name": "Degree",
+                  "type": "int",
+                  "default_value": 3,
+                  "min": 1,
+                  "max": 10,
+                  "step": 1,
+                  "description": "Degree of the polynomial kernel (if kernel=poly)."
+                },
+                {
+                  "name": "gamma",
+                  "full_name": "Gamma",
+                  "type": "select",
+                  "default_value": "scale",
+                  "options": [
+                    {"value": "scale", "label": "scale"},
+                    {"value": "auto", "label": "auto"}
+                  ],
+                  "description": "Kernel coefficient for rbf/poly/sigmoid."
+                },
+                {
+                  "name": "coef0",
+                  "full_name": "Coef0",
+                  "type": "float64",
+                  "default_value": 0.0,
+                  "min": -10.0,
+                  "max": 10.0,
+                  "step": 0.1,
+                  "description": "Independent term in kernel function."
+                },
+                {
+                  "name": "tol",
+                  "full_name": "Tolerance",
+                  "type": "float64",
+                  "default_value": 0.001,
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.0001,
+                  "description": "Stopping criterion tolerance."
+                },
+                {
+                  "name": "nu",
+                  "full_name": "Nu",
+                  "type": "float64",
+                  "default_value": 0.005,
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.001,
+                  "description": "Upper bound on margin errors / lower bound on support vectors."
+                },
+                {
+                  "name": "shrinking",
+                  "full_name": "Shrinking",
+                  "type": "bool",
+                  "default_value": true,
+                  "description": "Whether to use the shrinking heuristic."
+                },
+                {
+                  "name": "cache_size",
+                  "full_name": "Cache size (MB)",
+                  "type": "float64",
+                  "default_value": 400.0,
+                  "min": 1.0,
+                  "max": 8192.0,
+                  "step": 1.0,
+                  "description": "Kernel cache size in MB."
+                }
+              ]
+            },
+            {
+              "name": "isolation_forest",
+              "path": "data.outlier_filtering_methods.isolation_forest",
+              "full_name": "Isolation Forest",
+              "show_when": {"field": "data.outlier_filtering_method", "equals": "isolation_forest"},
+              "fields": [
+                {
+                  "name": "n_estimators",
+                  "full_name": "N estimators",
+                  "type": "uint",
+                  "default_value": 100,
+                  "min": 1,
+                  "max": 1000,
+                  "step": 1,
+                  "description": "Number of base estimators in the ensemble."
+                },
+                {
+                  "name": "max_samples",
+                  "full_name": "Max samples",
+                  "type": "select",
+                  "default_value": "auto",
+                  "options": [
+                    {"value": "auto", "label": "auto"}
+                  ],
+                  "description": "Samples drawn to train each base estimator."
+                },
+                {
+                  "name": "contamination",
+                  "full_name": "Contamination",
+                  "type": "float64",
+                  "default_value": 0.01,
+                  "min": 0.0,
+                  "max": 0.5,
+                  "step": 0.001,
+                  "description": "Expected proportion of outliers."
+                },
+                {
+                  "name": "max_features",
+                  "full_name": "Max features",
+                  "type": "float64",
+                  "default_value": 1.0,
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.01,
+                  "description": "Fraction of features drawn to train each base estimator."
+                },
+                {
+                  "name": "bootstrap",
+                  "full_name": "Bootstrap",
+                  "type": "bool",
+                  "default_value": false,
+                  "description": "Whether to use bootstrap sampling."
+                },
+                {
+                  "name": "n_jobs",
+                  "full_name": "N jobs",
+                  "type": "int",
+                  "default_value": -1,
+                  "min": -1,
+                  "max": 64,
+                  "step": 1,
+                  "description": "Parallel jobs (-1 = all processors)."
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
-    "bs": {
-      "full_name": "Batch Size",
-      "type": "uint",
-      "default_value": 512,
-      "min": 1,
-      "max": 1024,
-      "step": 1,
-      "description": "Number of samples processed before updating model weights."
+    {
+      "name": "model",
+      "path": "model",
+      "full_name": "Model",
+      "fields": [
+        {
+          "name": "architecture",
+          "full_name": "Architecture",
+          "type": "select",
+          "default_value": "attention",
+          "options": [
+            {"value": "mlp", "label": "MLP"},
+            {"value": "ensemble", "label": "Ensemble"},
+            {"value": "attention", "label": "Attention"},
+            {"value": "attention_dann", "label": "Attention DANN"},
+            {"value": "attention_cdan", "label": "Attention CDAN"},
+            {"value": "boosting_lgbm", "label": "Boosting LightGBM"},
+            {"value": "boosting_xgb", "label": "Boosting XGBoost"}
+          ],
+          "description": "Neural network / boosting architecture to train."
+        }
+      ],
+      "groups": [
+        {
+          "name": "mlp",
+          "path": "model.mlp",
+          "full_name": "MLP",
+          "show_when": {"field": "model.architecture", "equals": "mlp"},
+          "fields": [
+            {
+              "name": "hidden_layers",
+              "full_name": "Hidden layers",
+              "type": "uint_list",
+              "default_value": [64, 32, 16],
+              "description": "Hidden layer sizes (comma-separated), e.g. 64, 32, 16."
+            },
+            {
+              "name": "missing_data_strategy",
+              "full_name": "Missing data strategy",
+              "type": "select",
+              "default_value": "mean",
+              "options": [
+                {"value": "mean", "label": "mean"},
+                {"value": "linear regression", "label": "linear regression"}
+              ],
+              "description": "How to fill missing detector values for MLP."
+            },
+            {
+              "name": "activation",
+              "full_name": "Activation",
+              "type": "select",
+              "default_value": "ReLU",
+              "options": [{"value": "ReLU", "label": "ReLU"}],
+              "description": "Non-linear activation after each layer."
+            },
+            {
+              "name": "dropout",
+              "full_name": "Dropout",
+              "type": "float64",
+              "default_value": 0.9,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 0.01,
+              "description": "Dropout rate for regularisation."
+            }
+          ]
+        },
+        {
+          "name": "ensemble",
+          "path": "model.ensemble",
+          "full_name": "Ensemble",
+          "show_when": {"field": "model.architecture", "equals": "ensemble"},
+          "fields": [
+            {
+              "name": "hidden_layers",
+              "full_name": "Hidden layers",
+              "type": "uint_list",
+              "default_value": [64, 32, 16],
+              "description": "Hidden layer sizes (comma-separated)."
+            },
+            {
+              "name": "activation",
+              "full_name": "Activation",
+              "type": "select",
+              "default_value": "ReLU",
+              "options": [{"value": "ReLU", "label": "ReLU"}],
+              "description": "Non-linear activation after each layer."
+            },
+            {
+              "name": "dropout",
+              "full_name": "Dropout",
+              "type": "float64",
+              "default_value": 0.9,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 0.01,
+              "description": "Dropout rate for regularisation."
+            }
+          ]
+        },
+        {
+          "name": "attention",
+          "path": "model.attention",
+          "full_name": "Attention",
+          "show_when": {"field": "model.architecture", "equals": "attention"},
+          "fields": [
+            {
+              "name": "embed_hidden_layers",
+              "full_name": "Embed hidden layers",
+              "type": "uint_list",
+              "default_value": [64, 32, 16],
+              "description": "Hidden sizes for preliminary embedding MLP."
+            },
+            {
+              "name": "embed_dim",
+              "full_name": "Embed dim",
+              "type": "uint",
+              "default_value": 32,
+              "min": 1,
+              "max": 4096,
+              "step": 1,
+              "description": "Embedding dimension."
+            },
+            {
+              "name": "encoder_ff_hidden",
+              "full_name": "Encoder FF hidden",
+              "type": "uint",
+              "default_value": 128,
+              "min": 1,
+              "max": 8192,
+              "step": 1,
+              "description": "Feed-forward hidden size in attention encoder."
+            },
+            {
+              "name": "mlp_hidden_layers",
+              "full_name": "MLP hidden layers",
+              "type": "uint_list",
+              "default_value": [64, 32, 16],
+              "description": "Hidden sizes for post-attention MLP."
+            },
+            {
+              "name": "pool_hidden_layers",
+              "full_name": "Pool hidden layers",
+              "type": "uint_list",
+              "default_value": [64, 32, 16],
+              "description": "Hidden sizes for AttentionPooling module."
+            },
+            {
+              "name": "num_heads",
+              "full_name": "Number of heads",
+              "type": "uint",
+              "default_value": 2,
+              "min": 1,
+              "max": 16,
+              "step": 1,
+              "description": "Number of heads in multi-head attention."
+            },
+            {
+              "name": "num_blocks",
+              "full_name": "Number of blocks",
+              "type": "uint",
+              "default_value": 2,
+              "min": 1,
+              "max": 24,
+              "step": 1,
+              "description": "Number of attention blocks."
+            },
+            {
+              "name": "activation",
+              "full_name": "Activation",
+              "type": "select",
+              "default_value": "ReLU",
+              "options": [{"value": "ReLU", "label": "ReLU"}],
+              "description": "Activation for feed-forward network."
+            },
+            {
+              "name": "dropout",
+              "full_name": "Dropout",
+              "type": "float64",
+              "default_value": 0.4,
+              "min": 0.0,
+              "max": 1.0,
+              "step": 0.01,
+              "description": "Dropout for feed-forward network."
+            }
+          ]
+        },
+        {
+          "name": "attention_dann",
+          "path": "model.attention_dann",
+          "full_name": "Attention DANN",
+          "show_when": {"field": "model.architecture", "equals": "attention_dann"},
+          "fields": [
+            {
+              "name": "dom_hidden_layers",
+              "full_name": "Domain classifier hidden layers",
+              "type": "uint_list",
+              "default_value": [64, 32, 16],
+              "description": "Hidden sizes for domain classifier."
+            },
+            {
+              "name": "alpha",
+              "full_name": "Alpha",
+              "type": "float64",
+              "default_value": 2.0,
+              "min": 0.0,
+              "max": 100.0,
+              "step": 0.1,
+              "description": "Domain-adversarial loss multiplier."
+            }
+          ],
+          "groups": [
+            {
+              "name": "attention",
+              "path": "model.attention_dann.attention",
+              "full_name": "Attention backbone",
+              "fields": [
+                {
+                  "name": "embed_hidden_layers",
+                  "full_name": "Embed hidden layers",
+                  "type": "uint_list",
+                  "default_value": [64, 32, 16],
+                  "description": "Hidden sizes for preliminary embedding MLP."
+                },
+                {
+                  "name": "embed_dim",
+                  "full_name": "Embed dim",
+                  "type": "uint",
+                  "default_value": 32,
+                  "min": 1,
+                  "max": 4096,
+                  "step": 1,
+                  "description": "Embedding dimension."
+                },
+                {
+                  "name": "encoder_ff_hidden",
+                  "full_name": "Encoder FF hidden",
+                  "type": "uint",
+                  "default_value": 128,
+                  "min": 1,
+                  "max": 8192,
+                  "step": 1,
+                  "description": "Feed-forward hidden size in attention encoder."
+                },
+                {
+                  "name": "mlp_hidden_layers",
+                  "full_name": "MLP hidden layers",
+                  "type": "uint_list",
+                  "default_value": [64, 32, 16],
+                  "description": "Hidden sizes for post-attention MLP."
+                },
+                {
+                  "name": "pool_hidden_layers",
+                  "full_name": "Pool hidden layers",
+                  "type": "uint_list",
+                  "default_value": [64, 32, 16],
+                  "description": "Hidden sizes for AttentionPooling module."
+                },
+                {
+                  "name": "num_heads",
+                  "full_name": "Number of heads",
+                  "type": "uint",
+                  "default_value": 2,
+                  "min": 1,
+                  "max": 16,
+                  "step": 1,
+                  "description": "Number of heads in multi-head attention."
+                },
+                {
+                  "name": "num_blocks",
+                  "full_name": "Number of blocks",
+                  "type": "uint",
+                  "default_value": 2,
+                  "min": 1,
+                  "max": 24,
+                  "step": 1,
+                  "description": "Number of attention blocks."
+                },
+                {
+                  "name": "activation",
+                  "full_name": "Activation",
+                  "type": "select",
+                  "default_value": "ReLU",
+                  "options": [{"value": "ReLU", "label": "ReLU"}],
+                  "description": "Activation for feed-forward network."
+                },
+                {
+                  "name": "dropout",
+                  "full_name": "Dropout",
+                  "type": "float64",
+                  "default_value": 0.4,
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.01,
+                  "description": "Dropout for feed-forward network."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "attention_cdan",
+          "path": "model.attention_cdan",
+          "full_name": "Attention CDAN",
+          "show_when": {"field": "model.architecture", "equals": "attention_cdan"},
+          "fields": [
+            {
+              "name": "dom_hidden_layers",
+              "full_name": "Domain classifier hidden layers",
+              "type": "uint_list",
+              "default_value": [64, 32, 16],
+              "description": "Hidden sizes for domain classifier."
+            },
+            {
+              "name": "alpha",
+              "full_name": "Alpha",
+              "type": "float64",
+              "default_value": 2.0,
+              "min": 0.0,
+              "max": 100.0,
+              "step": 0.1,
+              "description": "Domain-adversarial loss multiplier."
+            }
+          ],
+          "groups": [
+            {
+              "name": "attention",
+              "path": "model.attention_cdan.attention",
+              "full_name": "Attention backbone",
+              "fields": [
+                {
+                  "name": "embed_hidden_layers",
+                  "full_name": "Embed hidden layers",
+                  "type": "uint_list",
+                  "default_value": [64, 32, 16],
+                  "description": "Hidden sizes for preliminary embedding MLP."
+                },
+                {
+                  "name": "embed_dim",
+                  "full_name": "Embed dim",
+                  "type": "uint",
+                  "default_value": 32,
+                  "min": 1,
+                  "max": 4096,
+                  "step": 1,
+                  "description": "Embedding dimension."
+                },
+                {
+                  "name": "encoder_ff_hidden",
+                  "full_name": "Encoder FF hidden",
+                  "type": "uint",
+                  "default_value": 128,
+                  "min": 1,
+                  "max": 8192,
+                  "step": 1,
+                  "description": "Feed-forward hidden size in attention encoder."
+                },
+                {
+                  "name": "mlp_hidden_layers",
+                  "full_name": "MLP hidden layers",
+                  "type": "uint_list",
+                  "default_value": [64, 32, 16],
+                  "description": "Hidden sizes for post-attention MLP."
+                },
+                {
+                  "name": "pool_hidden_layers",
+                  "full_name": "Pool hidden layers",
+                  "type": "uint_list",
+                  "default_value": [64, 32, 16],
+                  "description": "Hidden sizes for AttentionPooling module."
+                },
+                {
+                  "name": "num_heads",
+                  "full_name": "Number of heads",
+                  "type": "uint",
+                  "default_value": 2,
+                  "min": 1,
+                  "max": 16,
+                  "step": 1,
+                  "description": "Number of heads in multi-head attention."
+                },
+                {
+                  "name": "num_blocks",
+                  "full_name": "Number of blocks",
+                  "type": "uint",
+                  "default_value": 2,
+                  "min": 1,
+                  "max": 24,
+                  "step": 1,
+                  "description": "Number of attention blocks."
+                },
+                {
+                  "name": "activation",
+                  "full_name": "Activation",
+                  "type": "select",
+                  "default_value": "ReLU",
+                  "options": [{"value": "ReLU", "label": "ReLU"}],
+                  "description": "Activation for feed-forward network."
+                },
+                {
+                  "name": "dropout",
+                  "full_name": "Dropout",
+                  "type": "float64",
+                  "default_value": 0.4,
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.01,
+                  "description": "Dropout for feed-forward network."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "boosting",
+          "path": "model.boosting",
+          "full_name": "Boosting (GBDT)",
+          "show_when": {"field": "model.architecture", "equals": ["boosting_lgbm", "boosting_xgb"]},
+          "fields": [
+            {
+              "name": "group_by_missing",
+              "full_name": "Group by missing",
+              "type": "bool",
+              "default_value": true,
+              "description": "Group by missing column combinations."
+            },
+            {
+              "name": "drop_TRD_data",
+              "full_name": "Drop TRD data",
+              "type": "bool",
+              "default_value": false,
+              "description": "Drop TRD columns when grouping by missing (avoids tiny groups)."
+            },
+            {
+              "name": "n_trials",
+              "full_name": "Optuna trials",
+              "type": "uint",
+              "default_value": 50,
+              "min": 1,
+              "max": 1000,
+              "step": 1,
+              "description": "Number of Optuna hyperparameter search trials."
+            }
+          ],
+          "groups": [
+            {
+              "name": "lgbm",
+              "path": "model.boosting.lgbm",
+              "full_name": "LightGBM Optuna ranges",
+              "show_when": {"field": "model.architecture", "equals": "boosting_lgbm"},
+              "fields": [
+                {
+                  "name": "boosting_type",
+                  "full_name": "Boosting types",
+                  "type": "string_list",
+                  "default_value": ["gbdt", "dart", "rf"],
+                  "description": "Candidate boosting types for Optuna (comma-separated)."
+                },
+                {
+                  "name": "lambda_l1",
+                  "full_name": "Lambda L1 range",
+                  "type": "float_range",
+                  "default_value": [1e-08, 0.5],
+                  "min": 0.0,
+                  "max": 10.0,
+                  "step": 1e-08,
+                  "description": "Optuna search range for L1 regularisation."
+                },
+                {
+                  "name": "lambda_l2",
+                  "full_name": "Lambda L2 range",
+                  "type": "float_range",
+                  "default_value": [1e-08, 9.0],
+                  "min": 0.0,
+                  "max": 100.0,
+                  "step": 1e-08,
+                  "description": "Optuna search range for L2 regularisation."
+                },
+                {
+                  "name": "num_leaves",
+                  "full_name": "Num leaves range",
+                  "type": "int_range",
+                  "default_value": [30, 300],
+                  "min": 2,
+                  "max": 1024,
+                  "step": 1,
+                  "description": "Optuna search range for number of leaves."
+                },
+                {
+                  "name": "feature_fraction",
+                  "full_name": "Feature fraction range",
+                  "type": "float_range",
+                  "default_value": [0.3, 1.0],
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.01,
+                  "description": "Optuna search range for feature fraction."
+                },
+                {
+                  "name": "bagging_fraction",
+                  "full_name": "Bagging fraction range",
+                  "type": "float_range",
+                  "default_value": [0.3, 1.0],
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.01,
+                  "description": "Optuna search range for bagging fraction."
+                },
+                {
+                  "name": "bagging_freq",
+                  "full_name": "Bagging freq range",
+                  "type": "float_range",
+                  "default_value": [1, 10],
+                  "min": 0,
+                  "max": 100,
+                  "step": 1,
+                  "description": "Optuna search range for bagging frequency."
+                },
+                {
+                  "name": "min_child_samples",
+                  "full_name": "Min child samples range",
+                  "type": "int_range",
+                  "default_value": [5, 100],
+                  "min": 1,
+                  "max": 1000,
+                  "step": 1,
+                  "description": "Optuna search range for min child samples."
+                },
+                {
+                  "name": "learning_rate",
+                  "full_name": "Learning rate range",
+                  "type": "float_range",
+                  "default_value": [1e-08, 0.2],
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 1e-08,
+                  "description": "Optuna search range for learning rate."
+                }
+              ]
+            },
+            {
+              "name": "xgb",
+              "path": "model.boosting.xgb",
+              "full_name": "XGBoost Optuna ranges",
+              "show_when": {"field": "model.architecture", "equals": "boosting_xgb"},
+              "fields": [
+                {
+                  "name": "max_depth",
+                  "full_name": "Max depth range",
+                  "type": "int_range",
+                  "default_value": [4, 10],
+                  "min": 1,
+                  "max": 32,
+                  "step": 1,
+                  "description": "Optuna search range for max tree depth."
+                },
+                {
+                  "name": "learning_rate",
+                  "full_name": "Learning rate range",
+                  "type": "float_range",
+                  "default_value": [0.001, 0.175],
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.001,
+                  "description": "Optuna search range for learning rate."
+                },
+                {
+                  "name": "n_estimators",
+                  "full_name": "N estimators range",
+                  "type": "int_range",
+                  "default_value": [100, 1000],
+                  "min": 1,
+                  "max": 5000,
+                  "step": 1,
+                  "description": "Optuna search range for number of estimators."
+                },
+                {
+                  "name": "subsample",
+                  "full_name": "Subsample range",
+                  "type": "float_range",
+                  "default_value": [0.5, 1.0],
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.01,
+                  "description": "Optuna search range for subsample ratio."
+                },
+                {
+                  "name": "colsample_bytree",
+                  "full_name": "Colsample by tree range",
+                  "type": "float_range",
+                  "default_value": [0.5, 1.0],
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.01,
+                  "description": "Optuna search range for column subsample."
+                },
+                {
+                  "name": "min_child_weight",
+                  "full_name": "Min child weight range",
+                  "type": "float_range",
+                  "default_value": [1, 10],
+                  "min": 0.0,
+                  "max": 100.0,
+                  "step": 0.1,
+                  "description": "Optuna search range for min child weight."
+                },
+                {
+                  "name": "gamma",
+                  "full_name": "Gamma range",
+                  "type": "float_range",
+                  "default_value": [0.001, 5.0],
+                  "min": 0.0,
+                  "max": 100.0,
+                  "step": 0.001,
+                  "description": "Optuna search range for min loss reduction (gamma)."
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
-    "max_epochs": {
-      "full_name": "Maximum Epochs",
-      "type": "uint",
-      "default_value": 40,
-      "min": 1,
-      "max": 1000,
-      "step": 1,
-      "description": "Total number of training cycles through the dataset."
+    {
+      "name": "training",
+      "path": "training",
+      "full_name": "Training",
+      "fields": [
+        {
+          "name": "optimizer",
+          "full_name": "Optimizer",
+          "type": "select",
+          "default_value": "adamw",
+          "options": [
+            {"value": "adamw", "label": "AdamW"},
+            {"value": "sgd", "label": "SGD"}
+          ],
+          "description": "Optimizer used for training."
+        },
+        {
+          "name": "lr_scheduler",
+          "full_name": "LR scheduler",
+          "type": "select",
+          "default_value": "polynomial",
+          "allow_null": true,
+          "options": [
+            {"value": null, "label": "None"},
+            {"value": "exponential", "label": "Exponential"},
+            {"value": "cosine_restarts", "label": "Cosine restarts"},
+            {"value": "polynomial", "label": "Polynomial"},
+            {"value": "constant", "label": "Constant"}
+          ],
+          "description": "Learning rate scheduler (optional)."
+        },
+        {
+          "name": "start_lr",
+          "full_name": "Starting learning rate",
+          "type": "float64",
+          "default_value": 0.003,
+          "min": 0.000001,
+          "max": 1.0,
+          "step": 0.000001,
+          "description": "Initial learning rate."
+        },
+        {
+          "name": "batch_size",
+          "full_name": "Batch size",
+          "type": "uint",
+          "default_value": 8192,
+          "min": 1,
+          "max": 65536,
+          "step": 1,
+          "description": "Training batch size."
+        },
+        {
+          "name": "max_epochs",
+          "full_name": "Maximum epochs",
+          "type": "uint",
+          "default_value": 200,
+          "min": 1,
+          "max": 1000,
+          "step": 1,
+          "description": "Max training epochs if early stopping does not trigger."
+        },
+        {
+          "name": "early_stopping_epoch_count",
+          "full_name": "Early stopping patience",
+          "type": "uint",
+          "default_value": 5,
+          "min": 1,
+          "max": 100,
+          "step": 1,
+          "description": "Epochs without progress before early stopping."
+        },
+        {
+          "name": "early_stopping_progress_threshold",
+          "full_name": "Early stopping threshold",
+          "type": "float64",
+          "default_value": 0.001,
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.0001,
+          "description": "Minimum relative loss improvement to reset patience."
+        },
+        {
+          "name": "weight_particles_species",
+          "full_name": "Weight particle species",
+          "type": "bool",
+          "default_value": false,
+          "description": "Weight loss by particle-species class imbalance."
+        },
+        {
+          "name": "undersample_missing_detectors",
+          "full_name": "Undersample missing detectors",
+          "type": "bool",
+          "default_value": true,
+          "description": "Undersample by missing-detector groups each epoch."
+        },
+        {
+          "name": "undersample_pions",
+          "full_name": "Undersample pions",
+          "type": "bool",
+          "default_value": false,
+          "description": "Within each missing-detector group, undersample (anti)pions to next majority class."
+        }
+      ],
+      "groups": [
+        {
+          "name": "optimizers",
+          "path": "training.optimizers",
+          "full_name": "Optimizer parameters",
+          "groups": [
+            {
+              "name": "adamw",
+              "path": "training.optimizers.adamw",
+              "full_name": "AdamW",
+              "show_when": {"field": "training.optimizer", "equals": "adamw"},
+              "fields": [
+                {
+                  "name": "weight_decay",
+                  "full_name": "Weight decay",
+                  "type": "float64",
+                  "default_value": 0.0,
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.0001,
+                  "description": "AdamW weight decay regularisation."
+                }
+              ]
+            },
+            {
+              "name": "sgd",
+              "path": "training.optimizers.sgd",
+              "full_name": "SGD",
+              "show_when": {"field": "training.optimizer", "equals": "sgd"},
+              "fields": [
+                {
+                  "name": "momentum",
+                  "full_name": "Momentum",
+                  "type": "float64",
+                  "default_value": 0.9,
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.01,
+                  "description": "SGD momentum."
+                },
+                {
+                  "name": "weight_decay",
+                  "full_name": "Weight decay",
+                  "type": "float64",
+                  "default_value": 0.0,
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.0001,
+                  "description": "SGD weight decay."
+                },
+                {
+                  "name": "nesterov",
+                  "full_name": "Nesterov",
+                  "type": "bool",
+                  "default_value": true,
+                  "description": "Use Nesterov momentum."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "lr_schedulers",
+          "path": "training.lr_schedulers",
+          "full_name": "LR scheduler parameters",
+          "groups": [
+            {
+              "name": "exponential",
+              "path": "training.lr_schedulers.exponential",
+              "full_name": "Exponential",
+              "show_when": {"field": "training.lr_scheduler", "equals": "exponential"},
+              "fields": [
+                {
+                  "name": "gamma",
+                  "full_name": "Gamma",
+                  "type": "float64",
+                  "default_value": 0.9,
+                  "min": 0.0,
+                  "max": 1.0,
+                  "step": 0.01,
+                  "description": "Multiplicative LR decay factor per epoch."
+                }
+              ]
+            },
+            {
+              "name": "cosine_restarts",
+              "path": "training.lr_schedulers.cosine_restarts",
+              "full_name": "Cosine restarts",
+              "show_when": {"field": "training.lr_scheduler", "equals": "cosine_restarts"},
+              "fields": [
+                {
+                  "name": "first_cycle_epochs",
+                  "full_name": "First cycle epochs",
+                  "type": "uint",
+                  "default_value": 20,
+                  "min": 1,
+                  "max": 1000,
+                  "step": 1,
+                  "description": "Epochs in the first cosine cycle."
+                },
+                {
+                  "name": "cycle_epoch_inc",
+                  "full_name": "Cycle epoch increment",
+                  "type": "uint",
+                  "default_value": 5,
+                  "min": 0,
+                  "max": 1000,
+                  "step": 1,
+                  "description": "Extra epochs added to each new cycle."
+                }
+              ]
+            },
+            {
+              "name": "polynomial",
+              "path": "training.lr_schedulers.polynomial",
+              "full_name": "Polynomial",
+              "show_when": {"field": "training.lr_scheduler", "equals": "polynomial"},
+              "fields": [
+                {
+                  "name": "power",
+                  "full_name": "Power",
+                  "type": "float64",
+                  "default_value": 1.2,
+                  "min": 0.0,
+                  "max": 10.0,
+                  "step": 0.1,
+                  "description": "Polynomial decay power."
+                }
+              ]
+            },
+            {
+              "name": "constant",
+              "path": "training.lr_schedulers.constant",
+              "full_name": "Constant",
+              "show_when": {"field": "training.lr_scheduler", "equals": "constant"},
+              "fields": [
+                {
+                  "name": "factor",
+                  "full_name": "Factor",
+                  "type": "float64",
+                  "default_value": 1.0,
+                  "min": 0.0,
+                  "max": 10.0,
+                  "step": 0.01,
+                  "description": "Constant LR multiplicative factor."
+                },
+                {
+                  "name": "total_iters",
+                  "full_name": "Total iters",
+                  "type": "uint",
+                  "default_value": 50,
+                  "min": 1,
+                  "max": 10000,
+                  "step": 1,
+                  "description": "Epochs for which factor is applied."
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
-    "dropout": {
-      "full_name": "Dropout Rate",
-      "type": "float64",
-      "default_value": 0.1,
-      "min": 0.0,
-      "max": 1.0,
-      "step": 0.01,
-      "description": "Fraction of neurons randomly deactivated to prevent overfitting."
+    {
+      "name": "validation",
+      "path": "validation",
+      "full_name": "Validation",
+      "fields": [
+        {
+          "name": "validate_every",
+          "full_name": "Validate every N epochs",
+          "type": "uint",
+          "default_value": 3,
+          "min": 1,
+          "max": 100,
+          "step": 1,
+          "description": "Run validation after this many training epochs."
+        }
+      ]
     },
-    "gamma": {
-      "full_name": "Gamma",
-      "type": "float64",
-      "default_value": 0.9,
-      "min": 0.0,
-      "max": 1.0,
-      "step": 0.01,
-      "description": "Learning rate decay factor applied after each epoch."
-    },
-    "patience": {
-      "full_name": "Patience",
-      "type": "uint",
-      "default_value": 5,
-      "min": 1,
-      "max": 100,
-      "step": 1,
-      "description": "Number of epochs to wait for improvement before early stopping."
-    },
-    "patience_threshold": {
-      "full_name": "Patience Threshold",
-      "type": "float64",
-      "default_value": 0.001,
-      "min": 0.0,
-      "max": 1.0,
-      "step": 0.0001,
-      "description": "Minimum improvement threshold to reset patience."
-    },
-    "embed_hidden": {
-      "full_name": "Embedding Hidden Size",
-      "type": "uint",
-      "default_value": 128,
-      "min": 1,
-      "max": 4096,
-      "step": 1,
-      "description": "Number of neurons in the embedding hidden layer."
-    },
-    "d_model": {
-      "full_name": "D Model",
-      "type": "uint",
-      "default_value": 32,
-      "min": 1,
-      "max": 4096,
-      "step": 1,
-      "description": "Dimensionality of model hidden states."
-    },
-    "ff_hidden": {
-      "full_name": "Feedforward Hidden Size",
-      "type": "uint",
-      "default_value": 128,
-      "min": 1,
-      "max": 8192,
-      "step": 1,
-      "description": "Size of hidden layer in the feedforward network."
-    },
-    "pool_hidden": {
-      "full_name": "Pooling Hidden Size",
-      "type": "uint",
-      "default_value": 64,
-      "min": 1,
-      "max": 4096,
-      "step": 1,
-      "description": "Number of neurons in the pooling hidden layer."
-    },
-    "num_heads": {
-      "full_name": "Number of Attention Heads",
-      "type": "uint",
-      "default_value": 2,
-      "min": 1,
-      "max": 16,
-      "step": 1,
-      "description": "Number of attention heads in the model."
-    },
-    "num_blocks": {
-      "full_name": "Number of Blocks",
-      "type": "uint",
-      "default_value": 2,
-      "min": 1,
-      "max": 24,
-      "step": 1,
-      "description": "Total number of blocks in the model."
-    },
-    "start_lr": {
-      "full_name": "Starting Learning Rate",
-      "type": "float64",
-      "default_value": 0.0001,
-      "min": 0.0001,
-      "max": 1.0,
-      "step": 0.00001,
-      "description": "Initial learning rate for model training."
+    {
+      "name": "seed",
+      "path": "",
+      "full_name": "General",
+      "fields": [
+        {
+          "name": "seed",
+          "full_name": "Seed",
+          "type": "int",
+          "default_value": 0,
+          "min": 0,
+          "max": 2147483647,
+          "step": 1,
+          "description": "Random seed for reproducibility."
+        }
+      ]
     }
-  }
+  ]
 }

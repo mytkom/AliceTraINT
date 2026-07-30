@@ -56,15 +56,23 @@ func mockRouter(db *gorm.DB, cfg *config.Config) *IntegrationTestUtils {
 	ccdbService := service.NewMockCCDBService()
 	jalienService := service.NewMockJAliEnService()
 	monalisaService := service.NewMockMonalisaService()
-	nnArch := service.NewNNArchServiceInMemory(&service.NNFieldConfigs{
-		"fieldName": service.NNConfigField{
-			FullName:     "Full field name",
-			Type:         "uint",
-			DefaultValue: uint(512),
-			Min:          uint(128),
-			Max:          uint(1024),
-			Step:         uint(1),
-			Description:  "Field description",
+	nnArch := service.NewNNArchServiceInMemory([]service.NNFieldGroup{
+		{
+			Name:     "training",
+			Path:     "training",
+			FullName: "Training",
+			Fields: []service.NNConfigField{
+				{
+					Name:         "batch_size",
+					FullName:     "Full field name",
+					Type:         "uint",
+					DefaultValue: uint(512),
+					Min:          uint(128),
+					Max:          uint(1024),
+					Step:         uint(1),
+					Description:  "Field description",
+				},
+			},
 		},
 	}, &service.NNExpectedResults{
 		Onnx: map[string]string{

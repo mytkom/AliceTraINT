@@ -11,20 +11,40 @@ type NNExpectedResults struct {
 	Onnx map[string]string `json:"onnx"`
 }
 
+type NNOption struct {
+	Value interface{} `json:"value"`
+	Label string      `json:"label"`
+}
+
+type NNShowWhen struct {
+	Field  string      `json:"field"`
+	Equals interface{} `json:"equals"`
+}
+
 type NNConfigField struct {
+	Name         string      `json:"name"`
 	FullName     string      `json:"full_name"`
 	Type         string      `json:"type"`
 	DefaultValue interface{} `json:"default_value"`
-	Min          interface{} `json:"min"`
-	Max          interface{} `json:"max"`
-	Step         interface{} `json:"step"`
+	Min          interface{} `json:"min,omitempty"`
+	Max          interface{} `json:"max,omitempty"`
+	Step         interface{} `json:"step,omitempty"`
+	Options      []NNOption  `json:"options,omitempty"`
+	AllowNull    bool        `json:"allow_null,omitempty"`
 	Description  string      `json:"description"`
 }
 
-type NNFieldConfigs map[string]NNConfigField
+type NNFieldGroup struct {
+	Name     string          `json:"name"`
+	Path     string          `json:"path"`
+	FullName string          `json:"full_name"`
+	ShowWhen *NNShowWhen     `json:"show_when,omitempty"`
+	Fields   []NNConfigField `json:"fields,omitempty"`
+	Groups   []NNFieldGroup  `json:"groups,omitempty"`
+}
 
 type NNArchSpec struct {
-	FieldConfigs    NNFieldConfigs    `json:"field_configs"`
+	FieldGroups     []NNFieldGroup    `json:"field_groups"`
 	ExpectedResults NNExpectedResults `json:"expected_results"`
 }
 
@@ -51,7 +71,7 @@ func loadSpec(filename string) (*NNArchSpec, error) {
 }
 
 type INNArchService interface {
-	GetFieldConfigs() NNFieldConfigs
+	GetFieldGroups() []NNFieldGroup
 	GetExpectedResults() NNExpectedResults
 }
 
@@ -71,8 +91,8 @@ func NewNNArchService(filename string) *NNArchService {
 	}
 }
 
-func (s *NNArchService) GetFieldConfigs() NNFieldConfigs {
-	return s.FieldConfigs
+func (s *NNArchService) GetFieldGroups() []NNFieldGroup {
+	return s.FieldGroups
 }
 
 func (s *NNArchService) GetExpectedResults() NNExpectedResults {
@@ -83,17 +103,17 @@ type NNArchServiceInMemory struct {
 	*NNArchSpec
 }
 
-func NewNNArchServiceInMemory(fieldConfigs *NNFieldConfigs, expectedResults *NNExpectedResults) *NNArchServiceInMemory {
+func NewNNArchServiceInMemory(fieldGroups []NNFieldGroup, expectedResults *NNExpectedResults) *NNArchServiceInMemory {
 	return &NNArchServiceInMemory{
 		NNArchSpec: &NNArchSpec{
-			FieldConfigs:    *fieldConfigs,
+			FieldGroups:     fieldGroups,
 			ExpectedResults: *expectedResults,
 		},
 	}
 }
 
-func (s *NNArchServiceInMemory) GetFieldConfigs() NNFieldConfigs {
-	return s.FieldConfigs
+func (s *NNArchServiceInMemory) GetFieldGroups() []NNFieldGroup {
+	return s.FieldGroups
 }
 
 func (s *NNArchServiceInMemory) GetExpectedResults() NNExpectedResults {

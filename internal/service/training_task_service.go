@@ -19,7 +19,7 @@ type TrainingTaskWithResults struct {
 
 type TrainingTaskHelpers struct {
 	TrainingDatasets []models.TrainingDataset
-	FieldConfigs     NNFieldConfigs
+	FieldGroups      []NNFieldGroup
 }
 
 type ITrainingTaskService interface {
@@ -96,7 +96,7 @@ func (s *TrainingTaskService) GetHelpers(loggedUserId uint) (*TrainingTaskHelper
 
 	return &TrainingTaskHelpers{
 		TrainingDatasets: trainingDatasets,
-		FieldConfigs:     s.NNArch.GetFieldConfigs(),
+		FieldGroups:      s.NNArch.GetFieldGroups(),
 	}, nil
 }
 
