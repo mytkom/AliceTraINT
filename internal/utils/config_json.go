@@ -7,15 +7,17 @@ import (
 	"strings"
 )
 
+const Null = "null"
+
 // ConfigJSON returns compact JSON for embedding in pages (copy / prefill).
 func ConfigJSON(v any) template.JS {
 	normalized := normalizeJSONValue(v)
 	if normalized == nil {
-		return "null"
+		return Null
 	}
 	b, err := json.Marshal(normalized)
 	if err != nil {
-		return "null"
+		return Null
 	}
 	safe := strings.ReplaceAll(string(b), "<", `\u003c`)
 	return template.JS(safe)
