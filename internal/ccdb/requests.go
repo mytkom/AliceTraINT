@@ -13,9 +13,19 @@ import (
 )
 
 // Inspired by retrieveHeaders method of O2 CcdbApi
-func doRemoteHeaderCall(url, uniqueAgentID string, timestamp int64) (map[string]string, error) {
+func doRemoteHeaderCall(url, uniqueAgentID string, timestamp int64, cert *tls.Certificate) (map[string]string, error) {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	if cert != nil {
+		tlsConfig.Certificates = []tls.Certificate{*cert}
+	}
+
 	client := &http.Client{
 		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+		},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},

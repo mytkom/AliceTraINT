@@ -1,6 +1,7 @@
 package ccdb
 
 import (
+	"crypto/tls"
 	"fmt"
 	"strconv"
 )
@@ -16,10 +17,10 @@ const (
 	AGENT        string = "AliceTraINT_Agent/1.0"
 )
 
-func GetRunInformation(baseURL string, runNumber uint64) (*RunInformation, error) {
+func GetRunInformation(baseURL string, runNumber uint64, cert *tls.Certificate) (*RunInformation, error) {
 	url := fmt.Sprintf("%s/%s/%d", baseURL, RCT_ENDPOINT, runNumber)
 
-	headers, err := doRemoteHeaderCall(url, AGENT, -1)
+	headers, err := doRemoteHeaderCall(url, AGENT, -1, cert)
 	if err != nil {
 		return nil, err
 	}

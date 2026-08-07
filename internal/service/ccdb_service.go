@@ -38,7 +38,7 @@ func NewCCDBService(env *environment.Env) *CCDBService {
 
 func (s *CCDBService) GetRunInformation(runNumber uint64) (*ccdb.RunInformation, error) {
 	return applog.ExternalCallResult("CCDB", "GetRunInformation", fmt.Sprintf("run=%d", runNumber), func() (*ccdb.RunInformation, error) {
-		return ccdb.GetRunInformation(s.baseURL, runNumber)
+		return ccdb.GetRunInformation(s.baseURL, runNumber, &s.cert)
 	})
 }
 
