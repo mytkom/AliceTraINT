@@ -1,6 +1,7 @@
 package ccdb
 
 import (
+	"crypto/tls"
 	"fmt"
 	"strconv"
 )
@@ -16,32 +17,32 @@ const (
 	AGENT        string = "AliceTraINT_Agent/1.0"
 )
 
-func GetRunInformation(baseURL string, runNumber uint64) (*RunInformation, error) {
+func GetRunInformation(baseURL string, runNumber uint64, tlsConfig *tls.Config) (*RunInformation, error) {
 	url := fmt.Sprintf("%s/%s/%d", baseURL, RCT_ENDPOINT, runNumber)
 
-	headers, err := doRemoteHeaderCall(url, AGENT, -1)
+	headers, err := doRemoteHeaderCall(url, AGENT, -1, tlsConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	sorStr, sorOk := headerValue(headers, "Sor", "SOR")
 	if !sorOk {
-		return nil, fmt.Errorf("CCDB: SOR not present for run %d (headers: %v)", runNumber, headers)
+		return nil, fmt.Errorf("CCDB: SOR not present for run %d", runNumber)
 	}
 
 	eorStr, eorOk := headerValue(headers, "Eor", "EOR")
 	if !eorOk {
-		return nil, fmt.Errorf("CCDB: EOR not present for run %d (headers: %v)", runNumber, headers)
+		return nil, fmt.Errorf("CCDB: EOR not present for run %d", runNumber)
 	}
 
 	sor, err := parseUint64(sorStr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CCDB: invalid SOR for run %d: %w", runNumber, err)
 	}
 
 	eor, err := parseUint64(eorStr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CCDB: invalid EOR for run %d: %w", runNumber, err)
 	}
 
 	return &RunInformation{

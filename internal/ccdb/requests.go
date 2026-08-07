@@ -13,9 +13,15 @@ import (
 )
 
 // Inspired by retrieveHeaders method of O2 CcdbApi
-func doRemoteHeaderCall(url, uniqueAgentID string, timestamp int64) (map[string]string, error) {
+func doRemoteHeaderCall(url, uniqueAgentID string, timestamp int64, tlsConfig *tls.Config) (map[string]string, error) {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	if tlsConfig != nil {
+		transport.TLSClientConfig = tlsConfig
+	}
+
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout:   10 * time.Second,
+		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -30,11 +36,19 @@ func doRemoteHeaderCall(url, uniqueAgentID string, timestamp int64) (map[string]
 	req.Header.Set("User-Agent", uniqueAgentID)
 
 	resp, err := client.Do(req)
-	if err != nil && !isUnsupportedProtocol(err) {
+	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	//nolint:errcheck
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("CCDB: run information not found")
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("CCDB: unexpected status %d", resp.StatusCode)
+	}
 
 	headers := make(map[string]string)
 	for key, values := range resp.Header {
@@ -45,15 +59,7 @@ func doRemoteHeaderCall(url, uniqueAgentID string, timestamp int64) (map[string]
 		}
 	}
 
-	if resp.StatusCode == http.StatusNotFound {
-		headers = nil
-	}
-
 	return headers, nil
-}
-
-func isUnsupportedProtocol(err error) bool {
-	return strings.Contains(err.Error(), "unsupported protocol")
 }
 
 func removeExtension(filename string) string {

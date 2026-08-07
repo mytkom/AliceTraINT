@@ -20,6 +20,7 @@ type Config struct {
 	MonalisaBaseURL      string
 	CCDBBaseURL          string
 	CCDBUploadSubdir     string
+	CCDBCACertPath       string
 	CertPath             string
 	KeyPath              string
 	DataDirPath          string
@@ -65,6 +66,7 @@ func LoadConfig() *Config {
 		MonalisaBaseURL:      getEnv("MONALISA_URL", "https://alimonitor.cern.ch"),
 		CCDBBaseURL:          getEnv("CCDB_URL", "http://ccdb-test.cern.ch:8080"),
 		CCDBUploadSubdir:     getEnv("CCDB_UPLOAD_SUBDIR", "/Users/m/mmytkows"),
+		CCDBCACertPath:       getEnv("CCDB_CA_CERT_PATH", ""),
 		CertPath:             getEnv("GRID_CERT_PATH", ""),
 		KeyPath:              getEnv("GRID_KEY_PATH", ""),
 		DataDirPath:          getEnv("ALICETRAINT_DATA_DIR_PATH", "data"),
