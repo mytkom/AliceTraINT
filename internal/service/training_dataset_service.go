@@ -94,6 +94,16 @@ func (s *TrainingDatasetService) Create(td *models.TrainingDataset) error {
 	td.AnchorProdTimestampFrom = timestampFrom
 	td.AnchorProdTimestampTo = timestampTo
 
+	isONe, err := resolveDatasetIsONe(td.AODFiles, s.MonalisaService)
+	if err != nil {
+		var external *ErrExternalServiceTimeout
+		if errors.As(err, &external) {
+			return err
+		}
+		return InternalError("resolve training dataset IsONe", err)
+	}
+	td.IsONe = isONe
+
 	err = s.TrainingDataset.Create(td)
 
 	if err != nil {
@@ -153,4 +163,23 @@ func (s *TrainingDatasetService) FindAods(path string) ([]jalien.AODFile, error)
 	}
 
 	return aodFiles, nil
+}
+
+func resolveDatasetIsONe(aodFiles []jalien.AODFile, monalisaService IMonalisaService) (bool, error) {
+	runList, err := monalisaService.GetRunList()
+	if err != nil {
+		return false, mapMonalisaError("GetRunList", err)
+	}
+
+	for _, aod := range aodFiles {
+		if aod.LHCPeriod != "" {
+			desc := runList.TagToDesc[aod.LHCPeriod]
+			if strings.Contains(desc, "O-O") || strings.Contains(desc, "OO") ||
+				strings.Contains(desc, "Ne-Ne") || strings.Contains(desc, "NeNe") {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
 }
