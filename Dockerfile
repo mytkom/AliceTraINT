@@ -32,6 +32,20 @@ RUN chmod 0400 ./userkey.pem
 RUN git clone --depth=1 --branch master https://github.com/alisw/alien-cas.git /app/alien-cas
 RUN openssl rehash /app/alien-cas
 
+# CERN CA bundle for CCDB TLS. alice-ccdb is issued by CERN Grid CA, which
+# chains to CERN Root CA 2; server often omits the intermediate, so both needed.
+# Soft-fail so offline/CI builds still succeed.
+RUN mkdir -p /app/certs && \
+    (curl -fsSL --retry 3 --retry-delay 2 \
+      -o /app/certs/cern-root-ca-2.crt \
+      "https://ca.cern.ch/cafiles/certificates/CERN%20Root%20Certification%20Authority%202.crt" \
+     && curl -fsSL --retry 3 --retry-delay 2 \
+      -o /app/certs/cern-grid-ca-1.crt \
+      "https://ca.cern.ch/cafiles/certificates/CERN%20Grid%20Certification%20Authority(1).crt" \
+     && echo "CERN CCDB CA bundle downloaded") \
+    || (echo "WARNING: failed to download CERN CA bundle; CCDB will fall back to system roots" >&2; \
+        rm -f /app/certs/cern-root-ca-2.crt /app/certs/cern-grid-ca-1.crt)
+
 # --- runtime stage (same for both) ---
 FROM registry.access.redhat.com/ubi9 AS runtime
 
@@ -53,11 +67,13 @@ ENV JALIEN_CERT_CA_DIR=/app/alien-cas
 COPY --from=builder /app/AliceTraINT ./
 COPY --from=builder /app/usercert.pem ./usercert.pem
 COPY --from=builder /app/userkey.pem ./userkey.pem
+COPY --from=builder /app/certs ./certs
 COPY --from=builder /app/.env ./
 
 RUN chmod 0400 ./userkey.pem
 ENV GRID_CERT_PATH=./usercert.pem
 ENV GRID_KEY_PATH=./userkey.pem
+ENV CCDB_CA_CERT_PATH=/app/certs
 
 # Docs and web templates are loaded at the execution
 # of Go binary so they can be copied here and css generated

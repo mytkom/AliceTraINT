@@ -2,6 +2,7 @@ package service
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"github.com/mytkom/AliceTraINT/internal/applog"
 	"github.com/mytkom/AliceTraINT/internal/ccdb"
 	"github.com/mytkom/AliceTraINT/internal/environment"
+	"github.com/mytkom/AliceTraINT/internal/gridtls"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -21,6 +23,7 @@ type CCDBService struct {
 	baseURL      string
 	uploadSubdir string
 	cert         tls.Certificate
+	rootCAs      *x509.CertPool
 }
 
 func NewCCDBService(env *environment.Env) *CCDBService {
@@ -29,16 +32,30 @@ func NewCCDBService(env *environment.Env) *CCDBService {
 		log.Fatalf("cannot create CCDBService: %s", err.Error())
 	}
 
+	rootCAs, err := gridtls.LoadCertPoolWithOptionalFile(env.CCDBCACertPath)
+	if err != nil {
+		log.Printf("CCDB: using system roots only (%v)", err)
+	}
+
 	return &CCDBService{
 		baseURL:      env.CCDBBaseURL,
 		uploadSubdir: env.CCDBUploadSubdir,
 		cert:         cert,
+		rootCAs:      rootCAs,
+	}
+}
+
+func (s *CCDBService) tlsConfig() *tls.Config {
+	return &tls.Config{
+		MinVersion:   tls.VersionTLS12,
+		Certificates: []tls.Certificate{s.cert},
+		RootCAs:      s.rootCAs,
 	}
 }
 
 func (s *CCDBService) GetRunInformation(runNumber uint64) (*ccdb.RunInformation, error) {
 	return applog.ExternalCallResult("CCDB", "GetRunInformation", fmt.Sprintf("run=%d", runNumber), func() (*ccdb.RunInformation, error) {
-		return ccdb.GetRunInformation(s.baseURL, runNumber)
+		return ccdb.GetRunInformation(s.baseURL, runNumber, s.tlsConfig())
 	})
 }
 
@@ -46,7 +63,7 @@ func (s *CCDBService) UploadFile(sor, eor uint64, filename string, file io.Reade
 	return applog.ExternalCall("CCDB", "UploadFile", fmt.Sprintf("file=%s sor=%d eor=%d", filename, sor, eor), func() error {
 		return ccdb.UploadFile(
 			fmt.Sprintf("%s/%s", s.baseURL, s.uploadSubdir),
-			&s.cert,
+			s.tlsConfig(),
 			sor,
 			eor,
 			filename,
