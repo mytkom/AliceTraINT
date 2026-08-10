@@ -173,7 +173,7 @@ func mockDatasetTimestampRange(ut *IntegrationTestUtils, period string, minRun, 
 		TagToRuns: map[string][]uint64{
 			period: {minRun, maxRun},
 		},
-	}, nil).Once()
+	}, nil)
 	ut.CCDB.On("GetRunInformation", minRun).Return(&ccdb.RunInformation{
 		RunNumber: minRun,
 		SOR:       uint64(time.Now().Add(-time.Hour).UnixMilli()),

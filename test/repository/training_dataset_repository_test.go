@@ -40,7 +40,7 @@ func TestTrainingDatasetRepository_Create(t *testing.T) {
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "training_datasets" (.+) RETURNING "id"`).
-		WithArgs(AnyTime(), AnyTime(), AnyTime(), trainingDataset.Name, marshalAODFiles(t, trainingDataset), AnyTime(), AnyTime(), 1).
+		WithArgs(AnyTime(), AnyTime(), AnyTime(), trainingDataset.Name, marshalAODFiles(t, trainingDataset), false, AnyTime(), AnyTime(), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
