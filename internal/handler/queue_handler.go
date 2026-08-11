@@ -110,8 +110,7 @@ func (qh *QueueHandler) QueryTask(w http.ResponseWriter, r *http.Request) {
 		ID:            tt.ID,
 		AODFiles:      tt.TrainingDataset.AODFiles,
 		IsONe:         tt.TrainingDataset.IsONe,
-		// For now we don't use any real experimental data (simulated data only).
-		IsData:        false,	
+		IsData:        false, // For now we don't use any real experimental data (simulated data only).
 		Configuration: tt.Configuration,
 	}
 
