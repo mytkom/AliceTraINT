@@ -124,12 +124,14 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 
 func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
-		Title              string
-		TrainingDatasets   []models.TrainingDataset
-		FieldGroups        []service.NNFieldGroup
-		PrefillConfig      template.JS
-		PrefillDatasetId   uint
-		PrefillNameSuggest string
+		Title                      string
+		TrainingDatasets           []models.TrainingDataset
+		FieldGroups                []service.NNFieldGroup
+		PrefillConfig              template.JS
+		PrefillDatasetId           uint
+		PrefillNameSuggest         string
+		PrefillSubsampleEventCount uint
+		PrefillEnableSubsample     bool
 	}
 
 	user, ok := middleware.GetLoggedUser(r)
@@ -145,10 +147,12 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := TemplateData{
-		Title:            "Create New Training Task!",
-		TrainingDatasets: ttHelpers.TrainingDatasets,
-		FieldGroups:      ttHelpers.FieldGroups,
-		PrefillConfig:    "null",
+		Title:                      "Create New Training Task!",
+		TrainingDatasets:           ttHelpers.TrainingDatasets,
+		FieldGroups:                ttHelpers.FieldGroups,
+		PrefillConfig:              "null",
+		PrefillSubsampleEventCount: models.DefaultSubsampleEventCount,
+		PrefillEnableSubsample:     false,
 	}
 
 	if fromTask := r.URL.Query().Get("fromTask"); fromTask != "" {
@@ -165,6 +169,10 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 		data.PrefillConfig = utils.ConfigJSON(source.TrainingTask.Configuration)
 		data.PrefillDatasetId = source.TrainingTask.TrainingDatasetId
 		data.PrefillNameSuggest = source.TrainingTask.Name + " (copy)"
+		if source.TrainingTask.SubsampleEventCount > 0 {
+			data.PrefillSubsampleEventCount = source.TrainingTask.SubsampleEventCount
+			data.PrefillEnableSubsample = true
+		}
 	}
 
 	err = h.ExecuteTemplate(w, "training-tasks_new", data)

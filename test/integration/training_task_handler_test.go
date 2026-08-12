@@ -223,12 +223,13 @@ func TestTrainingTaskHandler_Create_Success(t *testing.T) {
 	assert.NoError(t, ut.TrainingDataset.Create(&td))
 
 	trainingTask := &models.TrainingTask{
-		Name:              "TrainingTask3",
-		UserId:            user.ID,
-		TrainingDatasetId: td.ID,
-		TrainingMachineId: nil,
-		Status:            models.Completed, // it should be overwritten
-		Configuration:     "",
+		Name:                "TrainingTask3",
+		UserId:              user.ID,
+		TrainingDatasetId:   td.ID,
+		TrainingMachineId:   nil,
+		Status:              models.Completed, // it should be overwritten
+		Configuration:       "",
+		SubsampleEventCount: 400000,
 	}
 	body, err := json.Marshal(trainingTask)
 	assert.NoError(t, err)

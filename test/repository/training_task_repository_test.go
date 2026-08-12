@@ -51,7 +51,7 @@ func TestTrainingTaskRepository_Create(t *testing.T) {
 		WithArgs(AnyTime(), AnyTime(), AnyTime(), trainingDataset.Name, marshalAODFiles(t, trainingDataset), false, AnyTime(), AnyTime(), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery(`INSERT INTO "training_tasks" (.+) RETURNING "id"`).
-		WithArgs(AnyTime(), AnyTime(), AnyTime(), trainingTask.Name, trainingTask.Status, 1, 1, nil, marshalTrainingTaskConfig(t, trainingTask)).
+		WithArgs(AnyTime(), AnyTime(), AnyTime(), trainingTask.Name, trainingTask.Status, 1, 1, nil, marshalTrainingTaskConfig(t, trainingTask), trainingTask.SubsampleEventCount).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 
@@ -172,7 +172,7 @@ func TestTrainingTaskRepository_Update(t *testing.T) {
 	}
 	mock.ExpectBegin()
 	mock.ExpectQuery(`INSERT INTO "training_tasks" (.+) RETURNING "id"`).
-		WithArgs(AnyTime(), AnyTime(), AnyTime(), trainingTask.Name, trainingTask.Status, 1, 1, nil, marshalTrainingTaskConfig(t, trainingTask)).
+		WithArgs(AnyTime(), AnyTime(), AnyTime(), trainingTask.Name, trainingTask.Status, 1, 1, nil, marshalTrainingTaskConfig(t, trainingTask), trainingTask.SubsampleEventCount).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 	err := trainingTaskRepo.Update(trainingTask)

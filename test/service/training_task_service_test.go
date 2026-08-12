@@ -128,11 +128,12 @@ func TestTrainingTaskService_Create(t *testing.T) {
 	userId := uint(1)
 	tdId := uint(1)
 	tt := models.TrainingTask{
-		Name:              "task2",
-		UserId:            userId,
-		Status:            models.Failed, // must be changed to queued
-		TrainingDatasetId: tdId,
-		Configuration:     "",
+		Name:                "task2",
+		UserId:              userId,
+		Status:              models.Failed, // must be changed to queued
+		TrainingDatasetId:   tdId,
+		Configuration:       "",
+		SubsampleEventCount: 400000,
 	}
 	ut.TTRepo.On("Create", &tt).Return(nil)
 
