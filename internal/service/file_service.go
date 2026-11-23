@@ -7,11 +7,17 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/stretchr/testify/mock"
 )
+
+// DataURLPrefix is the URL path under which stored files are served.
+// File paths saved in the database are URLs starting with this prefix,
+// independently of the directory the files are stored in.
+const DataURLPrefix = "/data/"
 
 type IFileService interface {
 	SaveFile(file multipart.File, handler *multipart.FileHeader) (*models.File, error)
@@ -65,15 +71,18 @@ func (l *LocalFileService) SaveFile(file multipart.File, handler *multipart.File
 	filename := filepath.Base(tempFile.Name())
 	fileModel := &models.File{
 		Name: handler.Filename,
-		Path: fmt.Sprintf("/%s/%s", tempFolderPath, filename),
+		Path: DataURLPrefix + today + "/" + filename,
 		Size: uint64(handler.Size),
 	}
 
 	return fileModel, nil
 }
 
-func (l *LocalFileService) OpenFile(filepath string) (io.ReadCloser, func(io.ReadCloser), error) {
-	fileReader, err := os.Open(fmt.Sprintf(".%s", filepath))
+// OpenFile opens a file by its stored URL path (see DataURLPrefix).
+func (l *LocalFileService) OpenFile(p string) (io.ReadCloser, func(io.ReadCloser), error) {
+	// Clean as an absolute path, so that ".." cannot escape BasePath
+	rel := filepath.Clean("/" + strings.TrimPrefix(p, DataURLPrefix))
+	fileReader, err := os.Open(filepath.Join(l.BasePath, rel))
 	if err != nil {
 		return nil, func(r io.ReadCloser) {}, err
 	}
