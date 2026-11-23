@@ -33,12 +33,12 @@ func NewRouter(cfg *config.Config, repoContext *repository.RepositoryContext, au
 	nnArch := service.NewNNArchService(cfg.NNArchPath)
 	// local file storage
 	fileService := service.NewLocalFileService(cfg.DataDirPath)
-	fsData := http.FileServer(http.Dir("data"))
+	fsData := http.FileServer(http.Dir(cfg.DataDirPath))
 
 	// routes
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 	mux.Handle("GET /docs/static/", http.StripPrefix("/docs/static/", docsFs))
-	mux.Handle("GET /data/", middleware.Chain(http.StripPrefix("/data/", fsData), middleware.NewAuthMw(authService, false)))
+	mux.Handle("GET "+service.DataURLPrefix, middleware.Chain(http.StripPrefix(service.DataURLPrefix, fsData), middleware.NewAuthMw(authService, false)))
 	mux.HandleFunc("GET /login", authService.LoginHandler)
 	mux.HandleFunc("GET /callback", authService.CallbackHandler)
 
