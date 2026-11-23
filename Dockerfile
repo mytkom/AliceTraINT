@@ -86,6 +86,10 @@ RUN tailwindcss -i static/css/input.css -o static/css/output.css --minify
 
 COPY ./docs ./docs
 
+# Expose EOS storage as ./data, so that stored file paths (/data/...) match
+# the /data/ route; ALICETRAINT_DATA_DIR_PATH must stay unset (default "data")
+RUN ln -s /eos/user/a/altraint /app/data
+
 RUN mkdir -p . && \
     chgrp -R 0 . && \
     chmod -R g=u .
