@@ -23,22 +23,20 @@ func NewDocsHandler(env *environment.Env, svc service.IDocsService) *DocsHandler
 }
 
 func (h *DocsHandler) Index(w http.ResponseWriter, r *http.Request) {
-	docs, err := h.Service.ListDocs()
+	groups, err := h.Service.ListGroups()
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 
-	if len(docs) == 0 {
+	if len(groups) == 0 {
 		// No docs yet – fall back to the simple index page.
 		type TemplateData struct {
 			Title string
-			Docs  []service.DocMeta
 		}
 
 		err = h.ExecuteTemplate(w, "docs_index", TemplateData{
 			Title: "Documentation",
-			Docs:  docs,
 		})
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
@@ -46,15 +44,15 @@ func (h *DocsHandler) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Redirect to the first doc in alphabetical order.
-	http.Redirect(w, r, "/docs/"+docs[0].Slug, http.StatusTemporaryRedirect)
+	// Redirect to the first page of the first group. Empty groups are never listed.
+	http.Redirect(w, r, "/docs/"+groups[0].Pages[0].Slug, http.StatusTemporaryRedirect)
 }
 
 func (h *DocsHandler) Show(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
-		Title string
-		Doc   *service.Doc
-		Docs  []service.DocMeta
+		Title  string
+		Doc    *service.Doc
+		Groups []service.DocGroup
 	}
 
 	slug := r.PathValue("slug")
@@ -78,16 +76,16 @@ func (h *DocsHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	docs, err := h.Service.ListDocs()
+	groups, err := h.Service.ListGroups()
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
 	}
 
 	err = h.ExecuteTemplate(w, "docs_show", TemplateData{
-		Title: doc.Title,
-		Doc:   doc,
-		Docs:  docs,
+		Title:  doc.Title,
+		Doc:    doc,
+		Groups: groups,
 	})
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)

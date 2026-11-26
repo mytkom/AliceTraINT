@@ -13,3 +13,59 @@
 .htmx-request.display-htmx-indicator {
     display: inline;
 }
+
+/* Docs: inline code without literal backticks, set apart from bold interface words. */
+.prose :where(code):not(:where(pre *))::before,
+.prose :where(code):not(:where(pre *))::after {
+    content: none;
+}
+
+.prose :where(code):not(:where(pre *)) {
+    background-color: #bae6fd;
+    padding: 0.125em 0.375em;
+    border-radius: 0.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    .prose :where(code):not(:where(pre *)) {
+        background-color: #075985;
+    }
+}
+
+/* Docs: Mermaid diagrams draw their own colours, so drop the code block background. */
+.prose pre.mermaid {
+    background-color: transparent;
+    padding: 0;
+    text-align: center;
+}
+
+/* Docs: copy button added to code blocks by static/js/docs.js. */
+.prose pre {
+    position: relative;
+}
+
+.docs-copy-button {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    color: #e6edf3;
+    background-color: rgb(255 255 255 / 0.1);
+}
+
+.docs-copy-button:hover,
+.docs-copy-button:focus-visible {
+    background-color: rgb(255 255 255 / 0.2);
+}
+
+/* Docs: wide tables scroll sideways on phones instead of widening the page. */
+@media (max-width: 767px) {
+    .prose table {
+        display: block;
+        overflow-x: auto;
+    }
+}

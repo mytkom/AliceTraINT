@@ -31,3 +31,8 @@ css:
 .PHONY: css-watch
 css-watch:
 	tailwindcss -i static/css/input.css -o static/css/output.css --watch
+
+## chroma-css: generate the docs code highlighting stylesheet
+.PHONY: chroma-css
+chroma-css:
+	go run ./cmd/chroma-css -o static/css/chroma.css
