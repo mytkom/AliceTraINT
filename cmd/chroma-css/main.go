@@ -20,9 +20,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer f.Close()
 
 	if err := chromahtml.New(chromahtml.WithClasses(true)).WriteCSS(f, styles.Get(style)); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := f.Close(); err != nil {
 		log.Fatal(err)
 	}
 }
