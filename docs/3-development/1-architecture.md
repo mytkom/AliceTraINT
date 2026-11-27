@@ -11,7 +11,7 @@ The web app is the only part that users and training modules talk to. Training m
 ```mermaid
 flowchart TB
   accTitle: System architecture
-  accDescr: The browser and the training modules call the web app, and the browser logs in at CERN SSO. The web app stores data in PostgreSQL and result files on EOS, and calls CERN SSO, the GRID through JAliEn, MonALISA and CCDB. Training modules download AOD files from the GRID, read calibration from CCDB and keep prepared datasets as files in a dataset cache directory on the training machine.
+  accDescr: The browser and the training modules call the web app, and the browser logs in at CERN SSO. The web app stores data in PostgreSQL and result files on EOS, and calls CERN SSO, the GRID through JAliEn, MonALISA and CCDB. Training modules download AOD files from the GRID and keep prepared datasets as files in a dataset cache directory on the training machine.
 
   browser([Browser])
   subgraph machine[Training machine]
@@ -32,7 +32,6 @@ flowchart TB
   browser -->|pages| web
   browser -.->|login| sso
   module -->|poll, status, results| web
-  module -->|calibration| ccdb
   module -->|download AODs| grid
   web -->|token check| sso
   web -->|run lists| monalisa
@@ -53,7 +52,7 @@ The cache directory is set by `ALICETRAINT_DATASET_CACHE_DIR_PATH` in the traini
 | CERN SSO | Logging users in | OpenID Connect over HTTPS |
 | JAliEn | Browsing GRID directories and finding AOD files for a training dataset | WebSocket over TLS, authenticated with the GRID certificate |
 | MonALISA | Run lists of productions, anchored productions and period descriptions | HTTPS, authenticated with the GRID certificate |
-| CCDB | Start and end times of runs, and uploading ONNX models. The producer that the training module runs also reads calibration from it | HTTPS, authenticated with the GRID certificate |
+| CCDB | Start and end times of runs, and uploading ONNX models | HTTPS, authenticated with the GRID certificate |
 | GRID storage | Downloading AOD files (training module only) | `alien_cp` |
 
 The web app uses its GRID certificate for JAliEn, MonALISA and CCDB, and does not start without one.
