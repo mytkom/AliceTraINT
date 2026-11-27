@@ -393,10 +393,16 @@
 }
 
 .landing {
-    width: min(75rem, 100%);
+    width: min(88rem, 100%);
     margin-inline: auto;
-    padding: clamp(24px, 5.5vw, 64px) clamp(14px, 4.5vw, 54px) clamp(23px, 4vw, 46px);
+    padding: clamp(24px, 5.5vw, 64px) clamp(14px, 3.5vw, 42px) clamp(23px, 4vw, 46px);
     font-weight: 400;
+}
+
+.landing-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .75fr);
+    gap: clamp(24px, 5.5vw, 64px);
 }
 
 .landing-context {
@@ -458,12 +464,12 @@
 }
 
 .landing-workflow {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
     gap: 12px;
-    margin-top: clamp(24px, 5.5vw, 64px);
-    padding-top: 14px;
-    border-top: 1px solid var(--rule);
+    padding-inline-start: clamp(16px, 3vw, 36px);
+    border-inline-start: 1px solid var(--rule);
 }
 
 .landing-workflow h2 {
@@ -477,12 +483,16 @@
     font-size: .9375rem;
 }
 
+#main-content-container:has(> .docs-layout, > .docs-empty) {
+    max-width: 88rem;
+}
+
 .docs-layout {
     display: grid;
     grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
     align-items: start;
     gap: clamp(16px, 3vw, 36px);
-    max-width: 74rem;
+    max-width: 84rem;
     margin: 18px auto 32px;
 }
 
@@ -620,8 +630,15 @@
 }
 
 @media (max-width: 680px) {
-    .landing-workflow {
+    .landing-layout {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .landing-workflow {
+        padding-inline-start: 0;
+        border-inline-start: 0;
+        padding-top: 14px;
+        border-top: 1px solid var(--rule);
     }
 
     .landing h1 {
