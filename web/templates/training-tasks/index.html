@@ -25,10 +25,7 @@
                 {{ end }}
             </select>
         </label>
-        <label class="task-list-scope" for="userScoped">
-            <input id="userScoped" type="checkbox" name="userScoped"{{ if .Params.Get "userScoped" }} checked{{ end }}>
-            Show only mine
-        </label>
+        {{ template "dataset_select" .DatasetSelect }}
         <div class="task-list-actions">
             <button type="submit">Apply</button>
             <a href="/training-tasks">Clear</a>
@@ -39,13 +36,12 @@
         <div id="training-tasks-listing" hx-get="{{ .ListURL }}" hx-trigger="load" hx-indicator="#spinner"></div>
         <p id="task-list-error" class="task-list-notice" role="alert" hidden>Training tasks could not be loaded.</p>
     </div>
+    <script src="/static/js/dataset-select.js" defer></script>
     <script>
         (() => {
             const list = document.querySelector('.task-list');
-            const scope = document.getElementById('userScoped');
-            scope.addEventListener('change', () => scope.form.requestSubmit());
             window.addEventListener('pageshow', (event) => {
-                if (event.persisted) scope.form.reset();
+                if (event.persisted) list.querySelector('form').reset();
             });
             const error = document.getElementById('task-list-error');
             list.addEventListener('htmx:beforeRequest', () => { error.hidden = true; });

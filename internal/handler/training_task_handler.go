@@ -46,7 +46,7 @@ var taskListSortOptions = []taskListOption{
 func taskListFilters(r *http.Request) (repository.TrainingTaskListQuery, url.Values, []taskListOption) {
 	values := r.URL.Query()
 	params := url.Values{}
-	for _, key := range []string{"name", "author", "status", "from", "to", "sort", "userScoped"} {
+	for _, key := range []string{"name", "author", "status", "from", "to", "sort"} {
 		if value := strings.TrimSpace(values.Get(key)); value != "" {
 			params.Set(key, value)
 		}
@@ -58,6 +58,11 @@ func taskListFilters(r *http.Request) (repository.TrainingTaskListQuery, url.Val
 	if page, err := strconv.Atoi(values.Get("page")); err == nil && page > 1 && page <= int(^uint(0)>>1)/repository.TrainingTaskPageSize {
 		query.Page = page
 		params.Set("page", strconv.Itoa(page))
+	}
+
+	if id, err := strconv.ParseUint(values.Get("dataset"), 10, 32); err == nil && id > 0 {
+		query.DatasetID = uint(id)
+		params.Set("dataset", strconv.FormatUint(id, 10))
 	}
 
 	for _, option := range taskListSortOptions {
@@ -83,9 +88,6 @@ func taskListFilters(r *http.Request) (repository.TrainingTaskListQuery, url.Val
 	if query.Status == nil {
 		params.Del("status")
 	}
-	if !utils.IsUserScoped(r) {
-		params.Del("userScoped")
-	}
 	if from, err := time.Parse(time.DateOnly, params.Get("from")); err == nil {
 		query.CreatedFrom = from
 	} else {
@@ -99,6 +101,13 @@ func taskListFilters(r *http.Request) (repository.TrainingTaskListQuery, url.Val
 	return query, params, statuses
 }
 
+type datasetSelectData struct {
+	ID, Name, EmptyLabel, SearchURL string
+	Choices                         []repository.TrainingDatasetChoice
+	Selected                        uint
+	Required                        bool
+}
+
 func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
 		Title         string
@@ -107,17 +116,32 @@ func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
 		Sort          string
 		SortOptions   []taskListOption
 		StatusOptions []taskListOption
+		DatasetSelect datasetSelectData
 	}
 
 	query, params, statuses := taskListFilters(r)
+	choices, err := h.Service.DatasetChoices("", query.DatasetID)
+	if err != nil {
+		handleServiceError(w, r, err)
+		return
+	}
+	if query.DatasetID != 0 && (len(choices) == 0 || choices[0].ID != query.DatasetID) {
+		choices = append([]repository.TrainingDatasetChoice{
+			{ID: query.DatasetID, Name: fmt.Sprintf("Dataset #%d", query.DatasetID)},
+		}, choices...)
+	}
 	listURL := url.URL{Path: "/training-tasks/list", RawQuery: params.Encode()}
-	err := h.ExecuteTemplate(w, "training-tasks_index", TemplateData{
+	err = h.ExecuteTemplate(w, "training-tasks_index", TemplateData{
 		Title:         "Training Tasks",
 		Params:        params,
 		ListURL:       listURL.String(),
 		Sort:          query.Sort,
 		SortOptions:   taskListSortOptions,
 		StatusOptions: statuses,
+		DatasetSelect: datasetSelectData{
+			ID: "task-dataset", Name: "dataset", EmptyLabel: "All datasets",
+			SearchURL: "/training-tasks/dataset-choices", Choices: choices, Selected: query.DatasetID,
+		},
 	})
 
 	if err != nil {
@@ -140,9 +164,6 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query, params, _ := taskListFilters(r)
-	if utils.IsUserScoped(r) {
-		query.OwnerID = &user.ID
-	}
 	page, err := h.Service.List(query)
 	if err != nil {
 		handleServiceError(w, r, err)
@@ -173,6 +194,19 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return
+	}
+}
+
+func (h *TrainingTaskHandler) DatasetChoices(w http.ResponseWriter, r *http.Request) {
+	choices, err := h.Service.DatasetChoices(strings.TrimSpace(r.URL.Query().Get("q")), 0)
+	if err != nil {
+		handleServiceError(w, r, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(choices); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 	}
 }
 
@@ -360,6 +394,11 @@ func InitTrainingTaskRoutes(mux *http.ServeMux, env *environment.Env, ccdbServic
 	mux.Handle(fmt.Sprintf("GET /%s/list", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.List),
 		validateHtmxMw,
+		authMw,
+	))
+
+	mux.Handle(fmt.Sprintf("GET /%s/dataset-choices", prefix), middleware.Chain(
+		http.HandlerFunc(tjh.DatasetChoices),
 		authMw,
 	))
 

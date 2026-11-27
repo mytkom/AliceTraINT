@@ -111,6 +111,8 @@ func TestTrainingTaskListQuery(t *testing.T) {
 	dataset := models.TrainingDataset{Name: "Shared dataset", UserId: other.ID}
 	require.NoError(t, ut.TrainingDataset.Create(&dataset))
 	require.NoError(t, ut.TrainingDataset.Delete(other.ID, dataset.ID))
+	otherDataset := models.TrainingDataset{Name: "Other dataset", UserId: other.ID}
+	require.NoError(t, ut.TrainingDataset.Create(&otherDataset))
 
 	day := time.Date(2024, 11, 20, 0, 0, 0, 0, time.UTC)
 	create := func(name string, userID uint, created time.Time, status models.TrainingTaskStatus) uint {
@@ -135,10 +137,20 @@ func TestTrainingTaskListQuery(t *testing.T) {
 	create("Task_% 95", owner.ID, day, models.Queued)
 	deleted := create("Task_% 96", owner.ID, day, models.Failed)
 	require.NoError(t, ut.TrainingTask.Delete(owner.ID, deleted))
+	require.NoError(t, ut.TrainingTask.Create(&models.TrainingTask{
+		Model: gorm.Model{CreatedAt: day}, Name: "Task_% 97", UserId: owner.ID,
+		TrainingDatasetId: otherDataset.ID, Status: models.Failed,
+	}))
+
+	choices, err := ut.TrainingTask.DatasetChoices("OTHER", dataset.ID)
+	require.NoError(t, err)
+	assert.Equal(t, []repository.TrainingDatasetChoice{
+		{ID: dataset.ID, Name: dataset.Name}, {ID: otherDataset.ID, Name: otherDataset.Name},
+	}, choices)
 
 	failed := models.Failed
 	query := repository.TrainingTaskListQuery{
-		OwnerID: &owner.ID, Name: "TASK_%", Author: "bert Einstein", Status: &failed,
+		DatasetID: dataset.ID, Name: "TASK_%", Author: "bert Einstein", Status: &failed,
 		CreatedFrom: day, CreatedBefore: day.AddDate(0, 0, 1), Sort: "oldest", Page: 1,
 	}
 	first, err := ut.TrainingTask.List(query)
@@ -166,7 +178,7 @@ func TestTrainingTaskListQuery(t *testing.T) {
 	assert.Empty(t, empty.Tasks)
 	assert.False(t, empty.HasNext)
 
-	req, err := http.NewRequest("GET", "/training-tasks/list?name=TASK_%25&author=AEINSTEIN&status=0&from=2024-11-20&to=2024-11-20&sort=oldest&userScoped=on&page=2", nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("/training-tasks/list?name=TASK_%%25&author=AEINSTEIN&status=0&from=2024-11-20&to=2024-11-20&sort=oldest&dataset=%d&page=2", dataset.ID), nil)
 	require.NoError(t, err)
 	HTMXReq(req)
 	rr := addSessionCookie(t, ut.Auth, req, owner.ID)

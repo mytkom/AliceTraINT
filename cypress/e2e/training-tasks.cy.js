@@ -89,12 +89,6 @@ describe('Training Tasks Management', () => {
         cy.wait('@correctedTask').its('response.statusCode').should('be.within', 200, 299);
     });
 
-    it('userScoped', () => {
-        cy.contains('td', 'Niels Bohr').should('exist')
-        cy.get('input[name="userScoped"]').click();
-        cy.contains('td', 'Niels Bohr').should('not.exist')
-    });
-
     it('disallows submission without a name', () => {
         cy.get('main a')
             .contains('Create Training Task')
@@ -158,6 +152,7 @@ describe('Training Tasks Management', () => {
         cy.get('.task-list-filters [name="name"]').type('PAGING fixture');
         cy.get('.task-list-filters [name="status"]').select('Completed');
         cy.get('.task-list-filters [name="sort"]').select('Oldest first');
+        cy.get('#task-dataset').select('Mixed periods 2023');
         cy.contains('button', 'Apply').click();
         cy.wait('@taskPage').its('response.body').should(body => {
             expect(body.length).to.be.lessThan(30000);
@@ -166,7 +161,7 @@ describe('Training Tasks Management', () => {
         cy.get('.task-name').first().should('have.text', 'Paging fixture 0001');
         cy.get('.task-name').last().should('have.text', 'Paging fixture 0025');
         cy.contains('a', 'Next').click();
-        cy.location('search').should('include', 'page=2');
+        cy.location('search').should('include', 'page=2').and('include', 'dataset=1');
         cy.get('.task-list tbody tr').should('have.length', 25);
         cy.get('.task-name').first().should('have.text', 'Paging fixture 0026');
 
@@ -186,26 +181,28 @@ describe('Training Tasks Management', () => {
         cy.get('.task-name').first().should('have.text', 'Paging fixture 1000');
     });
 
-    it('keeps filters when showing only tasks created by the signed-in user', () => {
-        cy.visit('/training-tasks?name=Paging+fixture&status=4&sort=oldest&page=2');
-        cy.get('.task-name').first().should('have.text', 'Paging fixture 0026');
-        cy.get('#userScoped').check();
-        cy.location('search').should('include', 'userScoped=on').and('not.include', 'page=');
-        cy.get('.task-name').first().should('have.text', 'Paging fixture 0002');
-        cy.get('.task-list tbody').should('not.contain.text', 'Niels Bohr');
+    it('searches dataset choices and filters by the selected dataset and creator', () => {
+        cy.intercept('GET', '/training-tasks/dataset-choices*').as('datasetChoices');
+        cy.get('#task-dataset-search').type('LHC23C1');
+        cy.wait('@datasetChoices');
+        cy.get('#task-dataset option').should('have.length', 2);
+        cy.get('#task-dataset').select('LHC23c1');
+        cy.get('#task-dataset-search').clear().type('No matching fixture');
+        cy.contains('[role="status"]', 'No matching datasets.').should('be.visible');
+        cy.get('#task-dataset').should('have.value', '2');
+        cy.get('[name="author"]').type('Bohr');
+        cy.contains('button', 'Apply').click();
+        cy.location('search').should('include', 'dataset=2').and('not.include', 'page=');
+        cy.get('.task-list tbody tr').should('have.length', 1).and('contain.text', 'LHC24b1b Other Task');
+        cy.get('#task-dataset').should('have.value', '2');
         cy.reload();
-        cy.get('#userScoped').should('be.checked');
-        cy.get('.task-list-filters [name="name"]').should('have.value', 'Paging fixture');
-        cy.get('.task-name').first().should('have.text', 'Paging fixture 0002');
+        cy.get('#task-dataset').should('have.value', '2');
+        cy.get('[name="author"]').should('have.value', 'Bohr');
         cy.go('back');
-        cy.get('#userScoped').should('not.be.checked');
-        cy.get('.task-name').first().should('have.text', 'Paging fixture 0026');
+        cy.get('#task-dataset').should('have.value', '');
         cy.go('forward');
-        cy.get('#userScoped').should('be.checked');
-        cy.get('.task-name').first().should('have.text', 'Paging fixture 0002');
-        cy.get('#userScoped').uncheck();
-        cy.get('.task-name').first().should('have.text', 'Paging fixture 0001');
-        cy.get('.task-list tbody').should('contain.text', 'Niels Bohr');
+        cy.get('#task-dataset').should('have.value', '2');
+        cy.get('.task-list tbody tr').should('have.length', 1);
     });
 
     it('shows loading and failure feedback and recovers on the next request', () => {
@@ -217,7 +214,7 @@ describe('Training Tasks Management', () => {
         cy.contains('[role="status"]', 'Loading training tasks').should('be.visible');
         cy.wait('@failedList');
         cy.contains('[role="alert"]', 'Training tasks could not be loaded.').should('be.visible');
-        cy.contains('label', 'Show only mine').click();
+        cy.contains('button', 'Apply').click();
         cy.contains('a', 'LHC24b1b Task 2').should('be.visible');
         cy.get('#task-list-error').should('not.be.visible');
     });

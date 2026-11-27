@@ -242,7 +242,7 @@ try {
   const samples = [];
   for (let rep = 1; rep <= repetitions; rep++) {
     for (const taskPage of [1, 2]) {
-      await navigate(`/training-tasks?name=Paging+fixture&sort=oldest&page=${taskPage}`);
+      await navigate(`/training-tasks?name=Paging+fixture&dataset=1&sort=oldest&page=${taskPage}`);
       await until(() => evaluate('window.firstTaskFrameMs'), 'first task frame');
       const metrics = await evaluate(`(${taskListInBrowser})()`);
       if (metrics.rows !== 25 || metrics.listRequests !== 1 || metrics.listBodyBytes >= 30000) {

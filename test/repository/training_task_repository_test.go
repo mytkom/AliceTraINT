@@ -74,6 +74,20 @@ func TestTrainingTaskRepository_ListBoundsSQL(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestTrainingTaskRepository_DatasetChoicesBoundsSQL(t *testing.T) {
+	db, mock, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	mock.ExpectQuery(`SELECT "id","name" FROM "training_datasets".+LOWER\(name\) LIKE LOWER\(\$2\) ESCAPE '!'\) ORDER BY LOWER\(name\), id LIMIT \$3`).
+		WithArgs(uint(0), "%test!_%", repository.TrainingTaskPageSize).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "test_data"))
+
+	choices, err := repository.NewTrainingTaskRepository(db).DatasetChoices("test_", 0)
+	require.NoError(t, err)
+	require.Equal(t, []repository.TrainingDatasetChoice{{ID: 1, Name: "test_data"}}, choices)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestTrainingTaskRepository_GetAll(t *testing.T) {
 	db, mock, cleanup := setupTestDB(t)
 	defer cleanup()

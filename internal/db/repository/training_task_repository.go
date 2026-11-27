@@ -16,6 +16,7 @@ type TrainingTaskRepository interface {
 	GetAll() ([]models.TrainingTask, error)
 	GetAllUser(userId uint) ([]models.TrainingTask, error)
 	List(query TrainingTaskListQuery) (TrainingTaskPage, error)
+	DatasetChoices(search string, selected uint) ([]TrainingDatasetChoice, error)
 	GetFirstQueued() (*models.TrainingTask, error)
 	Update(trainingTask *models.TrainingTask) error
 	Restart(userId uint, id uint) error
@@ -25,7 +26,7 @@ type TrainingTaskRepository interface {
 const TrainingTaskPageSize = 25
 
 type TrainingTaskListQuery struct {
-	OwnerID                    *uint
+	DatasetID                  uint
 	Name, Author               string
 	Status                     *models.TrainingTaskStatus
 	CreatedFrom, CreatedBefore time.Time
@@ -36,6 +37,11 @@ type TrainingTaskListQuery struct {
 type TrainingTaskPage struct {
 	Tasks   []models.TrainingTask
 	HasNext bool
+}
+
+type TrainingDatasetChoice struct {
+	ID   uint   `json:"id,string"`
+	Name string `json:"name"`
 }
 
 type trainingTaskRepository struct {
@@ -99,8 +105,8 @@ func (r *trainingTaskRepository) List(query TrainingTaskListQuery) (TrainingTask
 			return db.Unscoped().Select("id", "name", "deleted_at")
 		})
 
-	if query.OwnerID != nil {
-		db = db.Where("training_tasks.user_id = ?", *query.OwnerID)
+	if query.DatasetID != 0 {
+		db = db.Where("training_tasks.training_dataset_id = ?", query.DatasetID)
 	}
 	if query.Name != "" {
 		db = db.Where("LOWER(training_tasks.name) LIKE LOWER(?) ESCAPE '!'", taskListPattern(query.Name))
@@ -142,6 +148,25 @@ func (r *trainingTaskRepository) List(query TrainingTaskListQuery) (TrainingTask
 
 func taskListPattern(value string) string {
 	return "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(value) + "%"
+}
+
+func (r *trainingTaskRepository) DatasetChoices(search string, selected uint) ([]TrainingDatasetChoice, error) {
+	// Include archived datasets while a visible task still references them.
+	db := r.db.Table("training_datasets").Select("id", "name").
+		Where(`EXISTS (SELECT 1 FROM training_tasks
+            WHERE training_tasks.training_dataset_id = training_datasets.id
+            AND training_tasks.deleted_at IS NULL)`)
+
+	choices := make([]TrainingDatasetChoice, 0)
+	if selected != 0 {
+		if err := db.Session(&gorm.Session{}).Where("id = ?", selected).Find(&choices).Error; err != nil {
+			return nil, err
+		}
+	}
+	var matches []TrainingDatasetChoice
+	err := db.Where("id <> ? AND LOWER(name) LIKE LOWER(?) ESCAPE '!'", selected, taskListPattern(search)).
+		Order("LOWER(name), id").Limit(TrainingTaskPageSize - len(choices)).Find(&matches).Error
+	return append(choices, matches...), err
 }
 
 func (r *trainingTaskRepository) Update(trainingTask *models.TrainingTask) error {
@@ -205,6 +230,14 @@ func (m *MockTrainingTaskRepository) GetAllUser(userId uint) ([]models.TrainingT
 func (m *MockTrainingTaskRepository) List(query TrainingTaskListQuery) (TrainingTaskPage, error) {
 	args := m.Called(query)
 	return args.Get(0).(TrainingTaskPage), args.Error(1)
+}
+
+func (m *MockTrainingTaskRepository) DatasetChoices(search string, selected uint) ([]TrainingDatasetChoice, error) {
+	args := m.Called(search, selected)
+	if args.Error(1) != nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]TrainingDatasetChoice), nil
 }
 
 func (m *MockTrainingTaskRepository) GetByID(id uint) (*models.TrainingTask, error) {

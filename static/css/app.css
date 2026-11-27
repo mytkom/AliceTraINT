@@ -242,13 +242,13 @@ html:has(> .app-shell) {
     }
 }
 
-.task-list-filters label:not(.task-list-scope) {
+.task-list-filters label {
     display: grid;
     gap: 4px;
     min-width: 0;
 }
 
-.task-list-filters input:not([type="checkbox"]),
+.task-list-filters input,
 .task-list-filters select {
     width: 100%;
     min-width: 0;
@@ -305,28 +305,25 @@ html:has(> .app-shell) {
     font-size: .875rem;
 }
 
-.task-list-scope {
-    min-height: 36px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--muted);
-    font-size: .875rem;
-    font-weight: 600;
+.dataset-select {
+    display: grid;
+    gap: 4px 12px;
+    min-width: 0;
 }
 
-.task-list-scope input {
-    border-radius: 4px;
-    background-color: var(--panel);
-    color: var(--accent);
+.dataset-select [role="status"] {
+    grid-column: 1 / -1;
 }
 
-.task-list-scope input:checked {
-    background-color: var(--accent);
+.dataset-select [role="status"]:empty {
+    display: none;
 }
 
-[data-theme="dark"] .task-list-scope input:checked {
-    background-color: #1755a3;
+@media (min-width: 350px) {
+    .task-list-filters .dataset-select {
+        grid-column: span 2;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 .task-list-panel {
