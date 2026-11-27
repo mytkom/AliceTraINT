@@ -27,15 +27,17 @@ Keep **Use subsample** ticked, with the default **Count** of 400000 or another v
 
 **Architecture** in the Model group selects one of seven models. The form then shows only the settings of that model.
 
-| Architecture | Kind | Description |
-|---|---|---|
-| MLP | Neural network | Fully connected layers; missing detector values are filled in as set by **Missing data strategy** |
-| Ensemble | Neural network | Fully connected layers, with the same settings as MLP except the missing-data strategy |
-| Attention | Neural network | Embeds the inputs, then combines them with multi-head attention blocks and attention pooling (the default) |
-| Attention DANN | Neural network | The attention network with a domain classifier trained adversarially (DANN) |
-| Attention CDAN | Neural network | The attention network with a conditional domain-adversarial classifier (CDAN) |
-| Boosting LightGBM | Gradient boosting | LightGBM trees; their hyperparameters are searched with Optuna in the given ranges |
-| Boosting XGBoost | Gradient boosting | XGBoost trees; their hyperparameters are searched with Optuna in the given ranges |
+Only Attention, the default, is currently supported. The other architectures are on the form but have not been verified with the current training module, so a task that uses one of them may fail or give wrong results.
+
+| Architecture | Kind | Support | Description |
+|---|---|---|---|
+| Attention | Neural network | Supported | Embeds the inputs, then combines them with multi-head attention blocks and attention pooling |
+| MLP | Neural network | Not verified | Fully connected layers; missing detector values are filled in as set by **Missing data strategy** |
+| Ensemble | Neural network | Not verified | Fully connected layers, with the same settings as MLP except the missing-data strategy |
+| Attention DANN | Neural network | Not verified | The attention network with a domain classifier trained adversarially (DANN) |
+| Attention CDAN | Neural network | Not verified | The attention network with a conditional domain-adversarial classifier (CDAN) |
+| Boosting LightGBM | Gradient boosting | Not verified | LightGBM trees; their hyperparameters are searched with Optuna in the given ranges |
+| Boosting XGBoost | Gradient boosting | Not verified | XGBoost trees; their hyperparameters are searched with Optuna in the given ranges |
 
 ## Reusing a configuration
 
