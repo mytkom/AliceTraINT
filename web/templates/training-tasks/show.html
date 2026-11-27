@@ -9,6 +9,11 @@
             <div class="rounded-full w-5 h-5 bg-{{ .TrainingTask.Status.Color }}"></div>
         </div>
     </div>
+    {{ if .CanRestart }}
+    <button type="button" class="bg-sky-800 hover:bg-sky-700 text-white rounded-lg font-bold py-1 px-3"
+        hx-post="/training-tasks/{{ .TrainingTask.ID }}/restart" hx-swap="none"
+        hx-disabled-elt="this" hx-confirm="Restart {{ .TrainingTask.Name }} with its saved configuration?">Restart task</button>
+    {{ end }}
     {{ if .ImageFiles }}
     <h1 class="text-xl font-bold">Image Results Gallery</h1>
     {{ template "training-tasks_image-slider" .ImageFiles }}

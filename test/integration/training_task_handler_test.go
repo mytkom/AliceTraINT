@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/mytkom/AliceTraINT/internal/jalien"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTrainingTaskHandler_Index(t *testing.T) {
@@ -420,4 +422,56 @@ func TestTrainingTaskHandler_Create_Unauthorized(t *testing.T) {
 }
 func TestTrainingTaskHandler_UploadToCCDB_Unauthorized(t *testing.T) {
 	testUnauthorized(t, "POST", "/training-tasks/1/upload-to-ccdb", nil)
+}
+
+func TestTrainingTaskHandler_Restart(t *testing.T) {
+	ut, cleanup := setupIntegrationTest(t)
+	defer cleanup()
+
+	owner := &models.User{CernPersonId: "12345", Username: "owner", Email: "owner@example.com"}
+	other := &models.User{CernPersonId: "67890", Username: "other", Email: "other@example.com"}
+	require.NoError(t, ut.User.Create(owner))
+	require.NoError(t, ut.User.Create(other))
+	dataset := &models.TrainingDataset{Name: "Restart dataset", UserId: owner.ID}
+	require.NoError(t, ut.TrainingDataset.Create(dataset))
+
+	machine := &models.TrainingMachine{Name: "Previous machine", UserId: owner.ID}
+	require.NoError(t, ut.TrainingMachine.Create(machine))
+	task := &models.TrainingTask{
+		Name: "Failed task", UserId: owner.ID, TrainingDatasetId: dataset.ID,
+		TrainingMachineId: &machine.ID, Status: models.Failed,
+		Configuration: map[string]interface{}{"data": map[string]interface{}{"use_event_data": false}},
+	}
+	require.NoError(t, ut.TrainingTask.Create(task))
+
+	taskURL := fmt.Sprintf("/training-tasks/%d", task.ID)
+	for _, attempt := range []struct {
+		userID     uint
+		canRestart bool
+		status     int
+	}{
+		{other.ID, false, http.StatusNotFound},
+		{owner.ID, true, http.StatusOK},
+		{owner.ID, false, http.StatusNotFound},
+	} {
+		req, err := http.NewRequest(http.MethodGet, taskURL, nil)
+		require.NoError(t, err)
+		rr := addSessionCookie(t, ut.Auth, req, attempt.userID)
+		ut.Router.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, attempt.canRestart, strings.Contains(rr.Body.String(), "Restart task"))
+
+		req, err = http.NewRequest(http.MethodPost, taskURL+"/restart", nil)
+		require.NoError(t, err)
+		HTMXReq(req)
+		rr = addSessionCookie(t, ut.Auth, req, attempt.userID)
+		ut.Router.ServeHTTP(rr, req)
+		assert.Equal(t, attempt.status, rr.Code)
+	}
+
+	queued, err := ut.TrainingTask.GetFirstQueued()
+	require.NoError(t, err)
+	assert.Equal(t, task.ID, queued.ID)
+	assert.Nil(t, queued.TrainingMachineId)
+	assert.Equal(t, task.Configuration, queued.Configuration)
 }
