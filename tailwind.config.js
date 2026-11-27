@@ -1,5 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: ['variant', [
+    '&:where([data-theme="dark"], [data-theme="dark"] *)',
+    '@media (prefers-color-scheme: dark) { &:where(:root:not([data-theme]), :root:not([data-theme]) *) }',
+  ]],
   content: ["./web/templates/**/*.{html,js}"],
   theme: {
     extend: {},

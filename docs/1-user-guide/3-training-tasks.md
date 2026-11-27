@@ -2,6 +2,15 @@
 
 A training task trains one configuration on one training dataset. It waits in a queue until a training machine takes it, and the machine sends back logs, ONNX models and plots.
 
+## Browsing training tasks
+
+Open **Tasks** in the navigation. On narrow screens, open the menu first.
+Select a task name to view its details. The **Status** column shows the current
+state. On narrow screens, scroll the table horizontally to see all columns.
+
+The theme follows your device until you use the **Dark mode** button. The app
+remembers your choice in the current browser.
+
 ## Creating a task
 
 Open **Tasks** and click **Create Training Task**. Enter a **Task name**, choose a **Training dataset** and adjust the configuration below, then click **Submit**. The new task is Queued.
