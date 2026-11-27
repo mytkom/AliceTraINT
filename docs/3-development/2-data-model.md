@@ -4,7 +4,7 @@ The web app stores its data in six PostgreSQL tables, defined as GORM models in 
 
 ## Tables
 
-Every table also has the columns `created_at`, `updated_at` and `deleted_at`, which GORM adds and which the diagram leaves out. A user owns training datasets, training tasks and training machines; a training task belongs to one training dataset and has many results, and each result points to one stored file.
+Every table also has the columns `created_at`, `updated_at` and `deleted_at`, which GORM adds and which the diagram leaves out. The types are the PostgreSQL column types that GORM creates. A user owns training datasets, training tasks and training machines; a training task belongs to one training dataset and has many results, and each result points to one stored file.
 
 ```mermaid
 erDiagram
@@ -20,51 +20,51 @@ erDiagram
   files ||--o| training_task_results : "is content of"
 
   users {
-    int id PK
-    text cern_person_id UK
-    text username
-    text first_name
-    text family_name
-    text email UK
+    bigint id PK
+    varchar cern_person_id UK
+    varchar username
+    varchar first_name
+    varchar family_name
+    varchar email UK
   }
   training_datasets {
-    int id PK
-    text name UK
-    json aod_files
-    bool is_o_ne
-    timestamp anchor_prod_timestamp_from
-    timestamp anchor_prod_timestamp_to
-    int user_id FK
+    bigint id PK
+    varchar name UK
+    text aod_files "JSON"
+    boolean is_o_ne
+    timestamptz anchor_prod_timestamp_from
+    timestamptz anchor_prod_timestamp_to
+    bigint user_id FK
   }
   training_tasks {
-    int id PK
-    text name "unique per dataset"
+    bigint id PK
+    varchar name "unique per dataset"
     smallint status
-    json configuration
-    int user_id FK
-    int training_dataset_id FK
-    int training_machine_id FK "null until assigned"
+    text configuration "JSON"
+    bigint user_id FK
+    bigint training_dataset_id FK
+    bigint training_machine_id FK "null until assigned"
   }
   training_machines {
-    int id PK
-    text name UK
-    timestamp last_activity_at
+    bigint id PK
+    varchar name UK
+    timestamptz last_activity_at
     text secret_key_hashed
-    int user_id FK
+    bigint user_id FK
   }
   training_task_results {
-    int id PK
+    bigint id PK
     text name
-    int type
+    bigint type
     text description
-    int file_id FK
-    int training_task_id FK
+    bigint file_id FK
+    bigint training_task_id FK
   }
   files {
-    int id PK
+    bigint id PK
     text path
     text name
-    int size
+    bigint size
   }
 ```
 
@@ -86,7 +86,7 @@ erDiagram
 
 `training_tasks.configuration` is the training configuration as submitted from the task form, stored as a JSON object. Its fields come from `web/nn_architectures/proposed.json`, and the training module reads it unchanged.
 
-Neither column is indexed or queried by its content.
+Both are `text` columns holding JSON, which GORM encodes and decodes, so PostgreSQL neither checks nor indexes their content.
 
 ## Removal
 

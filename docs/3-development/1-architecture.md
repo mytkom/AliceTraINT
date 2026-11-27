@@ -11,7 +11,7 @@ The web app is the only part that users and training modules talk to. Training m
 ```mermaid
 flowchart TB
   accTitle: System architecture
-  accDescr: The browser and the training modules call the web app. The web app stores data in PostgreSQL and result files on EOS, and calls CERN SSO, JAliEn on the GRID, MonALISA and CCDB. Training modules download AOD files from the GRID and keep prepared datasets as files in a dataset cache directory on the training machine.
+  accDescr: The browser and the training modules call the web app, and the browser logs in at CERN SSO. The web app stores data in PostgreSQL and result files on EOS, and calls CERN SSO, the GRID through JAliEn, MonALISA and CCDB. Training modules download AOD files from the GRID, read calibration from CCDB and keep prepared datasets as files in a dataset cache directory on the training machine.
 
   browser([Browser])
   web["Web app<br>(container on CERN PaaS)"]
@@ -26,15 +26,17 @@ flowchart TB
   monalisa[MonALISA]
   ccdb[CCDB]
 
-  browser -->|HTTPS| web
-  web -->|OpenID Connect| sso
-  web --> db
-  web --> eos
-  web -->|JAliEn WebSocket| grid
+  browser -->|pages| web
+  browser -.->|login| sso
+  web -->|token check| sso
+  web -->|data| db
+  web -->|result files| eos
+  web -->|browse, find AODs| grid
   web -->|run lists| monalisa
   web -->|run times, ONNX upload| ccdb
   module -->|poll, status, results| web
-  module -->|alien_cp| grid
+  module -->|download AODs| grid
+  module -->|calibration| ccdb
   module -->|prepared datasets| cache
 ```
 
@@ -49,7 +51,7 @@ The cache directory is set by `ALICETRAINT_DATASET_CACHE_DIR_PATH` in the traini
 | CERN SSO | Logging users in | OpenID Connect over HTTPS |
 | JAliEn | Browsing GRID directories and finding AOD files for a training dataset | WebSocket over TLS, authenticated with the GRID certificate |
 | MonALISA | Run lists of productions, anchored productions and period descriptions | HTTPS, authenticated with the GRID certificate |
-| CCDB | Start and end times of runs, and uploading ONNX models | HTTPS, authenticated with the GRID certificate |
+| CCDB | Start and end times of runs, and uploading ONNX models. The producer that the training module runs also reads calibration from it | HTTPS, authenticated with the GRID certificate |
 | GRID storage | Downloading AOD files (training module only) | `alien_cp` |
 
 The web app uses its GRID certificate for JAliEn, MonALISA and CCDB, and does not start without one.
@@ -78,27 +80,25 @@ Each group of routes (training datasets, training tasks, training machines, the 
 
 A middleware is a function that takes an HTTP handler and returns a new handler, which does its own work before or after calling the one it wraps (`internal/middleware/middleware.go`). Work that many routes share, such as logging, the login check, the HTMX checks and caching, is written once as a middleware. `middleware.Chain` wraps a handler in the middleware it needs, so each route states its checks in one place and handlers contain only the logic of their page.
 
-Every request passes through `LogMw` and `RecoverMw`, which log the request and turn a panic into a 500 response. The router then chooses the middleware for the route.
+Every request passes through `LogMw` and `RecoverMw`, which log the request and turn a panic into a 500 response. The router then chooses the middleware for the route. The diagram shows the routes that end in a handler; static files, stored results and login are described below it. The last three steps are the usual path, and some handlers skip them: the landing page and the docs never reach the database.
 
 ```mermaid
 flowchart TD
   accTitle: Request middleware
-  accDescr: A request passes LogMw and RecoverMw, then the router. Pages for training datasets, tasks and machines pass AuthMw, then BlockHTMXMw for full pages or ValidateHTMXMw for partials, then CacheMw on two JAliEn routes, then the handler. Public pages only block HTMX. Queue routes have no middleware of their own and go straight to the handler.
+  accDescr: A request passes LogMw and RecoverMw, then the router. Routes for training datasets, tasks and machines pass AuthMw, then BlockHTMXMw for full pages or ValidateHTMXMw for partials, and CacheMw on two JAliEn routes, before the handler. The landing page and the docs pass only BlockHTMXMw. Queue routes go straight to the handler. The handler calls a service, which uses a repository to reach the database.
 
   request([Request]) --> log[LogMw] --> recover[RecoverMw] --> router{Router}
-  router -->|"/ and /docs"| public[BlockHTMXMw]
   router -->|training datasets, tasks, machines| auth[AuthMw]
+  router -->|"/ and /docs"| block[BlockHTMXMw]
   router -->|queue routes| handler
-  auth -->|not logged in| redirect[Redirect to /]
-  auth -->|full page| block[BlockHTMXMw]
-  auth -->|partial| validate[ValidateHTMXMw]
+  auth -->|full-page routes| block
+  auth -->|partial routes| validate[ValidateHTMXMw]
   validate -->|explore-directory, find-aods| cachemw[CacheMw]
   block & validate & cachemw --> handler[Handler]
-  public --> handler
   handler --> service[Service] --> repository[Repository] --> db[(Database)]
 ```
 
-`AuthMw` checks the session and puts the logged-in user into the request context.
+`AuthMw` checks the session and puts the logged-in user into the request context. Without a login, it redirects to the landing page.
 
 The two HTMX middleware keep full pages and partials apart. HTMX marks every request it sends with the [request header](https://htmx.org/reference/#request_headers) `HX-Request: true`. A full page, such as `/training-tasks`, includes the header, the navigation and the footer, so loading one through HTMX would nest a second page inside the first. A partial, such as `/training-tasks/list`, is an HTML fragment meant to replace part of a page, so opening it directly in the browser shows an unstyled piece of a page. `BlockHTMXMw` therefore rejects HTMX requests on full pages, and `ValidateHTMXMw` accepts only HTMX requests on partials. Both answer a request of the wrong kind with status 422.
 
