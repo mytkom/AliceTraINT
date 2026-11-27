@@ -9,6 +9,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/mytkom/AliceTraINT/internal/ccdb"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
@@ -108,4 +109,19 @@ func seedGalleries(db *gorm.DB, dataDir string) error {
 		}
 	}
 	return nil
+}
+
+func seedTaskList(db *gorm.DB) error {
+	tasks := make([]models.TrainingTask, 1000)
+	// Shared timestamps exercise the ID tie-breaker. Existing demo tasks
+	// remain first on the default page.
+	created := time.Date(2024, 11, 20, 12, 0, 0, 0, time.UTC)
+	for i := range tasks {
+		tasks[i] = models.TrainingTask{
+			Model:  gorm.Model{CreatedAt: created, UpdatedAt: created},
+			Name:   fmt.Sprintf("Paging fixture %04d", i+1),
+			Status: models.Completed, UserId: uint(2 - i%2), TrainingDatasetId: 1,
+		}
+	}
+	return db.CreateInBatches(&tasks, 100).Error
 }

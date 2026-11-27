@@ -5,19 +5,48 @@
         <h1>Training tasks</h1>
         <a class="task-list-create" href="/training-tasks/new">Create Training Task</a>
     </header>
-    <form method="get" class="task-list-scope">
-        <label for="userScoped">Show only mine</label>
-        <input id="userScoped" type="checkbox" name="userScoped" hx-get="/training-tasks/list" hx-trigger="click"
-            hx-target="#training-tasks-listing" hx-indicator="#spinner">
+    <form method="get" action="/training-tasks" class="task-list-filters" autocomplete="off">
+        <label>Task name <input type="search" name="name" value="{{ .Params.Get "name" }}"></label>
+        <label>Created by <input type="search" name="author" value="{{ .Params.Get "author" }}"></label>
+        <label>Status
+            <select name="status">
+                <option value="">All statuses</option>
+                {{ range .StatusOptions }}
+                <option value="{{ .Value }}"{{ if eq .Value ($.Params.Get "status") }} selected{{ end }}>{{ .Label }}</option>
+                {{ end }}
+            </select>
+        </label>
+        <label>Created from (UTC) <input type="date" name="from" value="{{ .Params.Get "from" }}"></label>
+        <label>Created through (UTC) <input type="date" name="to" value="{{ .Params.Get "to" }}"></label>
+        <label>Sort by
+            <select name="sort">
+                {{ range .SortOptions }}
+                <option value="{{ .Value }}"{{ if eq .Value $.Sort }} selected{{ end }}>{{ .Label }}</option>
+                {{ end }}
+            </select>
+        </label>
+        <label class="task-list-scope" for="userScoped">
+            <input id="userScoped" type="checkbox" name="userScoped"{{ if .Params.Get "userScoped" }} checked{{ end }}>
+            Show only mine
+        </label>
+        <div class="task-list-actions">
+            <button type="submit">Apply</button>
+            <a href="/training-tasks">Clear</a>
+        </div>
     </form>
     <div class="task-list-panel">
         <div id="spinner" class="display-htmx-indicator task-list-notice" role="status">Loading training tasks…</div>
-        <div id="training-tasks-listing" hx-get="/training-tasks/list" hx-trigger="load" hx-indicator="#spinner"></div>
+        <div id="training-tasks-listing" hx-get="{{ .ListURL }}" hx-trigger="load" hx-indicator="#spinner"></div>
         <p id="task-list-error" class="task-list-notice" role="alert" hidden>Training tasks could not be loaded.</p>
     </div>
     <script>
         (() => {
             const list = document.querySelector('.task-list');
+            const scope = document.getElementById('userScoped');
+            scope.addEventListener('change', () => scope.form.requestSubmit());
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted) scope.form.reset();
+            });
             const error = document.getElementById('task-list-error');
             list.addEventListener('htmx:beforeRequest', () => { error.hidden = true; });
             list.addEventListener('htmx:afterRequest', (event) => { error.hidden = event.detail.successful; });

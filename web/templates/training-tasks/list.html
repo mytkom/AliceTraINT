@@ -33,4 +33,12 @@
 {{ else }}
 <p class="task-list-notice" role="status">No training tasks to show.</p>
 {{ end }}
+{{ if or .First .Next }}
+<nav class="task-list-pagination" aria-label="Training task pages">
+    <span>Page {{ .Page }}</span>
+    {{ if and .First (not .Previous) }}<a href="{{ .First }}">First page</a>{{ end }}
+    {{ if .Previous }}<a href="{{ .Previous }}" rel="prev">Previous</a>{{ end }}
+    {{ if .Next }}<a href="{{ .Next }}" rel="next">Next</a>{{ end }}
+</nav>
+{{ end }}
 {{ end }}

@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/mytkom/AliceTraINT/internal/db/models"
+	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/environment"
 	"github.com/mytkom/AliceTraINT/internal/middleware"
 	"github.com/mytkom/AliceTraINT/internal/service"
@@ -26,13 +30,94 @@ func NewTrainingTaskHandler(env *environment.Env, ttService service.ITrainingTas
 	}
 }
 
-func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
-	type TemplateData struct {
-		Title string
+type taskListOption struct {
+	Value string
+	Label string
+}
+
+var taskListSortOptions = []taskListOption{
+	{"newest", "Newest first"},
+	{"oldest", "Oldest first"},
+	{"updated", "Last updated"},
+	{"name-asc", "Name (A–Z)"},
+	{"name-desc", "Name (Z–A)"},
+}
+
+func taskListFilters(r *http.Request) (repository.TrainingTaskListQuery, url.Values, []taskListOption) {
+	values := r.URL.Query()
+	params := url.Values{}
+	for _, key := range []string{"name", "author", "status", "from", "to", "sort", "userScoped"} {
+		if value := strings.TrimSpace(values.Get(key)); value != "" {
+			params.Set(key, value)
+		}
 	}
 
+	query := repository.TrainingTaskListQuery{
+		Name: params.Get("name"), Author: params.Get("author"), Page: 1,
+	}
+	if page, err := strconv.Atoi(values.Get("page")); err == nil && page > 1 && page <= int(^uint(0)>>1)/repository.TrainingTaskPageSize {
+		query.Page = page
+		params.Set("page", strconv.Itoa(page))
+	}
+
+	for _, option := range taskListSortOptions {
+		if option.Value == params.Get("sort") {
+			query.Sort = option.Value
+			break
+		}
+	}
+	if query.Sort == "" {
+		query.Sort = "newest"
+		params.Del("sort")
+	}
+
+	var statuses []taskListOption
+	for status := models.Failed; status <= models.Uploaded; status++ {
+		value := strconv.FormatUint(uint64(status), 10)
+		statuses = append(statuses, taskListOption{value, status.String()})
+		if value == params.Get("status") {
+			selected := status
+			query.Status = &selected
+		}
+	}
+	if query.Status == nil {
+		params.Del("status")
+	}
+	if !utils.IsUserScoped(r) {
+		params.Del("userScoped")
+	}
+	if from, err := time.Parse(time.DateOnly, params.Get("from")); err == nil {
+		query.CreatedFrom = from
+	} else {
+		params.Del("from")
+	}
+	if to, err := time.Parse(time.DateOnly, params.Get("to")); err == nil {
+		query.CreatedBefore = to.AddDate(0, 0, 1)
+	} else {
+		params.Del("to")
+	}
+	return query, params, statuses
+}
+
+func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
+	type TemplateData struct {
+		Title         string
+		Params        url.Values
+		ListURL       string
+		Sort          string
+		SortOptions   []taskListOption
+		StatusOptions []taskListOption
+	}
+
+	query, params, statuses := taskListFilters(r)
+	listURL := url.URL{Path: "/training-tasks/list", RawQuery: params.Encode()}
 	err := h.ExecuteTemplate(w, "training-tasks_index", TemplateData{
-		Title: "Training Tasks",
+		Title:         "Training Tasks",
+		Params:        params,
+		ListURL:       listURL.String(),
+		Sort:          query.Sort,
+		SortOptions:   taskListSortOptions,
+		StatusOptions: statuses,
 	})
 
 	if err != nil {
@@ -43,7 +128,9 @@ func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
 
 func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
-		TrainingTasks []models.TrainingTask
+		TrainingTasks         []models.TrainingTask
+		Page                  int
+		First, Previous, Next string
 	}
 
 	user, ok := middleware.GetLoggedUser(r)
@@ -52,15 +139,37 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	trainingTasks, err := h.Service.GetAll(user.ID, utils.IsUserScoped(r))
+	query, params, _ := taskListFilters(r)
+	if utils.IsUserScoped(r) {
+		query.OwnerID = &user.ID
+	}
+	page, err := h.Service.List(query)
 	if err != nil {
 		handleServiceError(w, r, err)
 		return
 	}
 
-	err = h.ExecuteTemplate(w, "training-tasks_list", TemplateData{
-		TrainingTasks: trainingTasks,
-	})
+	pageURL := func(number int) string {
+		if number == 1 {
+			params.Del("page")
+		} else {
+			params.Set("page", strconv.Itoa(number))
+		}
+		link := url.URL{Path: "/training-tasks", RawQuery: params.Encode()}
+		return link.String()
+	}
+	data := TemplateData{TrainingTasks: page.Tasks, Page: query.Page}
+	if query.Page > 1 {
+		data.First = pageURL(1)
+		if len(page.Tasks) > 0 {
+			data.Previous = pageURL(query.Page - 1)
+		}
+	}
+	if page.HasNext {
+		data.Next = pageURL(query.Page + 1)
+	}
+
+	err = h.ExecuteTemplate(w, "training-tasks_list", data)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
 		return

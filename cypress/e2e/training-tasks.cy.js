@@ -153,6 +153,61 @@ describe('Training Tasks Management', () => {
         cy.get('.app-nav a[aria-current="page"]').should('have.text', 'Datasets');
     });
 
+    it('bounds the list and restores filter, sort and page from the URL', () => {
+        cy.intercept('GET', '/training-tasks/list*').as('taskPage');
+        cy.get('.task-list-filters [name="name"]').type('PAGING fixture');
+        cy.get('.task-list-filters [name="status"]').select('Completed');
+        cy.get('.task-list-filters [name="sort"]').select('Oldest first');
+        cy.contains('button', 'Apply').click();
+        cy.wait('@taskPage').its('response.body').should(body => {
+            expect(body.length).to.be.lessThan(30000);
+        });
+        cy.get('.task-list tbody tr').should('have.length', 25);
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0001');
+        cy.get('.task-name').last().should('have.text', 'Paging fixture 0025');
+        cy.contains('a', 'Next').click();
+        cy.location('search').should('include', 'page=2');
+        cy.get('.task-list tbody tr').should('have.length', 25);
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0026');
+
+        cy.reload();
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0026');
+        cy.get('.task-list-filters [name="name"]').should('have.value', 'PAGING fixture');
+        cy.get('.task-list-filters [name="status"]').should('have.value', '4');
+        cy.get('.task-list-filters [name="sort"]').should('have.value', 'oldest');
+        cy.go('back');
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0001');
+        cy.go('forward');
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0026');
+
+        cy.get('.task-list-filters [name="sort"]').select('Name (Z–A)');
+        cy.contains('button', 'Apply').click();
+        cy.location('search').should('not.include', 'page=');
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 1000');
+    });
+
+    it('keeps filters when showing only tasks created by the signed-in user', () => {
+        cy.visit('/training-tasks?name=Paging+fixture&status=4&sort=oldest&page=2');
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0026');
+        cy.get('#userScoped').check();
+        cy.location('search').should('include', 'userScoped=on').and('not.include', 'page=');
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0002');
+        cy.get('.task-list tbody').should('not.contain.text', 'Niels Bohr');
+        cy.reload();
+        cy.get('#userScoped').should('be.checked');
+        cy.get('.task-list-filters [name="name"]').should('have.value', 'Paging fixture');
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0002');
+        cy.go('back');
+        cy.get('#userScoped').should('not.be.checked');
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0026');
+        cy.go('forward');
+        cy.get('#userScoped').should('be.checked');
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0002');
+        cy.get('#userScoped').uncheck();
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0001');
+        cy.get('.task-list tbody').should('contain.text', 'Niels Bohr');
+    });
+
     it('shows loading and failure feedback and recovers on the next request', () => {
         cy.intercept({ pathname: '/training-tasks/list', times: 1 }, {
             statusCode: 500,

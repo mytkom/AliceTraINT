@@ -9,6 +9,7 @@ import (
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/jalien"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func marshalTrainingTaskConfig(t *testing.T, task *models.TrainingTask) string {
@@ -58,6 +59,19 @@ func TestTrainingTaskRepository_Create(t *testing.T) {
 	err := trainingTaskRepo.Create(trainingTask)
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTrainingTaskRepository_ListBoundsSQL(t *testing.T) {
+	db, mock, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	mock.ExpectQuery(`SELECT training_tasks.id, training_tasks.name, training_tasks.created_at, training_tasks.updated_at, training_tasks.status, training_tasks.training_dataset_id,.+ WHERE "training_tasks"."deleted_at" IS NULL ORDER BY "training_tasks"."created_at" DESC,"training_tasks"."id" DESC LIMIT \$1 OFFSET \$2`).
+		WithArgs(repository.TrainingTaskPageSize+1, repository.TrainingTaskPageSize).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
+
+	_, err := repository.NewTrainingTaskRepository(db).List(repository.TrainingTaskListQuery{Page: 2, Sort: "unknown"})
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestTrainingTaskRepository_GetAll(t *testing.T) {

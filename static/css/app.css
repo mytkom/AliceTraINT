@@ -226,7 +226,87 @@ html:has(> .app-shell) {
     text-decoration: underline;
 }
 
+.task-list-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+    align-items: end;
+    gap: 10px 12px;
+    color: var(--muted);
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+@media (min-width: 1024px) {
+    .task-list-filters {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+}
+
+.task-list-filters label:not(.task-list-scope) {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.task-list-filters input:not([type="checkbox"]),
+.task-list-filters select {
+    width: 100%;
+    min-width: 0;
+    min-height: 36px;
+    padding: 5px 8px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background-color: var(--panel);
+    color: var(--ink);
+    font: inherit;
+}
+
+.task-list-filters select {
+    padding-right: 28px;
+}
+
+.task-list-actions,
+.task-list-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.task-list-actions button,
+.task-list-actions a,
+.task-list-pagination a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 5px 10px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background-color: var(--panel);
+    color: var(--accent);
+    font-weight: 650;
+}
+
+.task-list-actions button {
+    background-color: var(--accent);
+    color: var(--on-accent);
+}
+
+.task-list-actions a:hover,
+.task-list-actions button:hover,
+.task-list-pagination a:hover {
+    text-decoration: underline;
+}
+
+.task-list-pagination {
+    justify-content: flex-end;
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: .875rem;
+}
+
 .task-list-scope {
+    min-height: 36px;
     display: flex;
     align-items: center;
     gap: 8px;

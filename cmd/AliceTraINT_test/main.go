@@ -77,6 +77,9 @@ func serve(root string, baseline bool) error {
 	if err := migrate.SeedDB(gormDB); err != nil {
 		return err
 	}
+	if err := seedTaskList(gormDB); err != nil {
+		return err
+	}
 	if baseline {
 		if err := seedGalleries(gormDB, dataDir); err != nil {
 			return err

@@ -8,6 +8,16 @@ Open **Tasks** in the navigation. On narrow screens, open the menu first.
 Select a task name to view its details. The **Status** column shows the current
 state. On narrow screens, scroll the table horizontally to see all columns.
 
+Tasks are shown 25 at a time, newest first. Use **Previous** and **Next** below
+the table to move between pages. You can filter by task name, creator, status,
+and an inclusive creation date range in UTC. Name and creator searches match
+part of the text. Choose a sort order and click **Apply** to start at the first
+page. **Show only mine** switches to tasks you created and keeps the other
+filters. **Clear** restores the default list.
+
+The address records your filters, sort order and page. You can reload the view,
+bookmark it, or return to it with the browser’s Back and Forward buttons.
+
 The theme follows your device until you use the **Dark mode** button. The app
 remembers your choice in the current browser.
 
