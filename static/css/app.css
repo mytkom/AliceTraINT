@@ -266,6 +266,48 @@ html:has(> .app-shell) {
     padding-right: 28px;
 }
 
+.task-list-date {
+    display: grid;
+    gap: 4px;
+}
+
+.task-list-date-field {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px;
+}
+
+.task-list-date-field button:not([hidden]) {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--panel);
+    color: var(--ink);
+}
+
+.task-list-date-field button::before {
+    content: "";
+    width: 14px;
+    height: 13px;
+    border: 1px solid currentColor;
+    border-top-width: 4px;
+    border-radius: 2px;
+}
+
+.task-list-date-field.has-calendar-button input[type="date"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.task-list-date-field:not(.has-calendar-button) input[type="date"] {
+    grid-column: 1 / -1;
+}
+
 .task-list-actions,
 .task-list-pagination {
     display: flex;

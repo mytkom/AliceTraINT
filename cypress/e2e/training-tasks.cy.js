@@ -153,7 +153,16 @@ describe('Training Tasks Management', () => {
         cy.get('.task-list-filters [name="status"]').select('Completed');
         cy.get('.task-list-filters [name="sort"]').select('Oldest first');
         cy.get('[name="from"]').type('20/11/2024');
-        cy.get('[name="to"]').type('20/11/2024');
+        cy.get('input[aria-label="Start date calendar"]').should('have.value', '2024-11-20');
+        cy.get('input[aria-label="End date calendar"]').then(([calendar]) => {
+            cy.stub(calendar, 'showPicker').callsFake(() => {
+                calendar.value = '2024-11-20';
+                calendar.dispatchEvent(new Event('change', { bubbles: true }));
+            }).as('openEndCalendar');
+        });
+        cy.get('button[aria-label="Open end date calendar"]').click();
+        cy.get('@openEndCalendar').should('have.been.calledOnce');
+        cy.get('[name="to"]').should('have.value', '20/11/2024');
         cy.get('#task-dataset-value').click();
         cy.contains('#task-dataset-choices button', 'Mixed periods 2023').click();
         cy.contains('button', 'Apply').click();
