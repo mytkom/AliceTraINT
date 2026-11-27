@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -16,7 +17,7 @@ type TrainingTaskRepository interface {
 	GetAll() ([]models.TrainingTask, error)
 	GetAllUser(userId uint) ([]models.TrainingTask, error)
 	List(query TrainingTaskListQuery) (TrainingTaskPage, error)
-	DatasetChoices(search string, selected uint) ([]TrainingDatasetChoice, error)
+	FilterChoices(filter, search string, selected uint) ([]TrainingTaskFilterChoice, error)
 	GetFirstQueued() (*models.TrainingTask, error)
 	Update(trainingTask *models.TrainingTask) error
 	Restart(userId uint, id uint) error
@@ -26,8 +27,8 @@ type TrainingTaskRepository interface {
 const TrainingTaskPageSize = 25
 
 type TrainingTaskListQuery struct {
-	DatasetID                  uint
-	Name, Author               string
+	DatasetID, OwnerID         uint
+	Name                       string
 	Status                     *models.TrainingTaskStatus
 	CreatedFrom, CreatedBefore time.Time
 	Sort                       string
@@ -39,7 +40,7 @@ type TrainingTaskPage struct {
 	HasNext bool
 }
 
-type TrainingDatasetChoice struct {
+type TrainingTaskFilterChoice struct {
 	ID   uint   `json:"id,string"`
 	Name string `json:"name"`
 }
@@ -111,9 +112,8 @@ func (r *trainingTaskRepository) List(query TrainingTaskListQuery) (TrainingTask
 	if query.Name != "" {
 		db = db.Where("LOWER(training_tasks.name) LIKE LOWER(?) ESCAPE '!'", taskListPattern(query.Name))
 	}
-	if query.Author != "" {
-		pattern := taskListPattern(query.Author)
-		db = db.Where(`(LOWER("User".first_name || ' ' || "User".family_name) LIKE LOWER(?) ESCAPE '!' OR LOWER("User".username) LIKE LOWER(?) ESCAPE '!')`, pattern, pattern)
+	if query.OwnerID != 0 {
+		db = db.Where("training_tasks.user_id = ?", query.OwnerID)
 	}
 	if query.Status != nil {
 		db = db.Where("training_tasks.status = ?", *query.Status)
@@ -150,22 +150,33 @@ func taskListPattern(value string) string {
 	return "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(value) + "%"
 }
 
-func (r *trainingTaskRepository) DatasetChoices(search string, selected uint) ([]TrainingDatasetChoice, error) {
-	// Include archived datasets while a visible task still references them.
-	db := r.db.Table("training_datasets").Select("id", "name").
-		Where(`EXISTS (SELECT 1 FROM training_tasks
-            WHERE training_tasks.training_dataset_id = training_datasets.id
-            AND training_tasks.deleted_at IS NULL)`)
+func (r *trainingTaskRepository) FilterChoices(filter, search string, selected uint) ([]TrainingTaskFilterChoice, error) {
+	table, taskColumn, label := "training_datasets", "training_dataset_id", "name"
+	switch filter {
+	case "dataset":
+		// Include archived datasets while a visible task still references them.
+	case "owner":
+		table, taskColumn = "users", "user_id"
+		label = "TRIM(first_name || ' ' || family_name || ' (' || username || ')')"
+	default:
+		return nil, fmt.Errorf("unknown training task filter %q", filter)
+	}
+	db := r.db.Table(table).Select("id, " + label + " AS name").
+		Where("EXISTS (SELECT 1 FROM training_tasks WHERE training_tasks." + taskColumn +
+			" = " + table + ".id AND training_tasks.deleted_at IS NULL)")
+	if filter == "owner" {
+		db = db.Where("users.deleted_at IS NULL")
+	}
 
-	choices := make([]TrainingDatasetChoice, 0)
+	choices := make([]TrainingTaskFilterChoice, 0)
 	if selected != 0 {
 		if err := db.Session(&gorm.Session{}).Where("id = ?", selected).Find(&choices).Error; err != nil {
 			return nil, err
 		}
 	}
-	var matches []TrainingDatasetChoice
-	err := db.Where("id <> ? AND LOWER(name) LIKE LOWER(?) ESCAPE '!'", selected, taskListPattern(search)).
-		Order("LOWER(name), id").Limit(TrainingTaskPageSize - len(choices)).Find(&matches).Error
+	var matches []TrainingTaskFilterChoice
+	err := db.Where("id <> ? AND LOWER("+label+") LIKE LOWER(?) ESCAPE '!'", selected, taskListPattern(search)).
+		Order("LOWER(" + label + "), id").Limit(TrainingTaskPageSize - len(choices)).Find(&matches).Error
 	return append(choices, matches...), err
 }
 
@@ -232,12 +243,12 @@ func (m *MockTrainingTaskRepository) List(query TrainingTaskListQuery) (Training
 	return args.Get(0).(TrainingTaskPage), args.Error(1)
 }
 
-func (m *MockTrainingTaskRepository) DatasetChoices(search string, selected uint) ([]TrainingDatasetChoice, error) {
-	args := m.Called(search, selected)
+func (m *MockTrainingTaskRepository) FilterChoices(filter, search string, selected uint) ([]TrainingTaskFilterChoice, error) {
+	args := m.Called(filter, search, selected)
 	if args.Error(1) != nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]TrainingDatasetChoice), nil
+	return args.Get(0).([]TrainingTaskFilterChoice), nil
 }
 
 func (m *MockTrainingTaskRepository) GetByID(id uint) (*models.TrainingTask, error) {

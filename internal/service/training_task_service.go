@@ -26,7 +26,7 @@ type ITrainingTaskService interface {
 	Create(tm *models.TrainingTask) error
 	GetAll(loggedUserId uint, userScoped bool) ([]models.TrainingTask, error)
 	List(query repository.TrainingTaskListQuery) (repository.TrainingTaskPage, error)
-	DatasetChoices(search string, selected uint) ([]repository.TrainingDatasetChoice, error)
+	FilterChoices(filter, search string, selected uint) ([]repository.TrainingTaskFilterChoice, error)
 	GetHelpers() (*TrainingTaskHelpers, error)
 	GetByID(id uint) (*TrainingTaskWithResults, error)
 	UploadOnnxResults(id uint) error
@@ -99,10 +99,10 @@ func (s *TrainingTaskService) List(query repository.TrainingTaskListQuery) (repo
 	return page, nil
 }
 
-func (s *TrainingTaskService) DatasetChoices(search string, selected uint) ([]repository.TrainingDatasetChoice, error) {
-	choices, err := s.TrainingTask.DatasetChoices(search, selected)
+func (s *TrainingTaskService) FilterChoices(filter, search string, selected uint) ([]repository.TrainingTaskFilterChoice, error) {
+	choices, err := s.TrainingTask.FilterChoices(filter, search, selected)
 	if err != nil {
-		return nil, InternalError("get task dataset choices", err)
+		return nil, InternalError("get task filter choices", err)
 	}
 	return choices, nil
 }

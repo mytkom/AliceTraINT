@@ -152,7 +152,8 @@ describe('Training Tasks Management', () => {
         cy.get('.task-list-filters [name="name"]').type('PAGING fixture');
         cy.get('.task-list-filters [name="status"]').select('Completed');
         cy.get('.task-list-filters [name="sort"]').select('Oldest first');
-        cy.get('#task-dataset').select('Mixed periods 2023');
+        cy.get('#task-dataset-value').click();
+        cy.contains('#task-dataset-choices button', 'Mixed periods 2023').click();
         cy.contains('button', 'Apply').click();
         cy.wait('@taskPage').its('response.body').should(body => {
             expect(body.length).to.be.lessThan(30000);
@@ -181,27 +182,40 @@ describe('Training Tasks Management', () => {
         cy.get('.task-name').first().should('have.text', 'Paging fixture 1000');
     });
 
-    it('searches dataset choices and filters by the selected dataset and creator', () => {
-        cy.intercept('GET', '/training-tasks/dataset-choices*').as('datasetChoices');
-        cy.get('#task-dataset-search').type('LHC23C1');
+    it('uses searchable dropdowns for the dataset and creator filters', () => {
+        cy.intercept('GET', '/training-tasks/filter-choices/dataset*').as('datasetChoices');
+        cy.get('#task-dataset-search').should('not.be.visible');
+        cy.get('#task-dataset-value').click();
+        cy.get('#task-dataset-search').should('be.focused').type('LHC23C1');
         cy.wait('@datasetChoices');
-        cy.get('#task-dataset option').should('have.length', 2);
-        cy.get('#task-dataset').select('LHC23c1');
+        cy.get('#task-dataset-choices button').should('have.length', 2);
+        cy.contains('#task-dataset-choices button', 'LHC23c1').click();
+        cy.get('#task-dataset-value').should('have.text', 'LHC23c1');
+        cy.get('#task-dataset-search').should('not.be.visible');
+        cy.get('#task-dataset-value').click();
         cy.get('#task-dataset-search').clear().type('No matching fixture');
-        cy.contains('[role="status"]', 'No matching datasets.').should('be.visible');
+        cy.contains('[role="status"]', 'No matches.').should('be.visible');
         cy.get('#task-dataset').should('have.value', '2');
-        cy.get('[name="author"]').type('Bohr');
+        cy.get('#task-dataset-search').trigger('keydown', { key: 'Escape' });
+        cy.get('#task-dataset-value').parent().should('be.focused');
+
+        cy.get('#task-owner-value').click();
+        cy.get('#task-owner-search').type('NBOHR');
+        cy.get('#task-owner-choices button').should('have.length', 2);
+        cy.contains('#task-owner-choices button', 'Niels Bohr (nbohr)').click();
+        cy.get('#task-owner-search').should('not.be.visible');
         cy.contains('button', 'Apply').click();
-        cy.location('search').should('include', 'dataset=2').and('not.include', 'page=');
+        cy.location('search').should('include', 'dataset=2').and('include', 'owner=2').and('not.include', 'page=');
         cy.get('.task-list tbody tr').should('have.length', 1).and('contain.text', 'LHC24b1b Other Task');
-        cy.get('#task-dataset').should('have.value', '2');
         cy.reload();
-        cy.get('#task-dataset').should('have.value', '2');
-        cy.get('[name="author"]').should('have.value', 'Bohr');
+        cy.get('#task-dataset-value').should('have.text', 'LHC23c1');
+        cy.get('#task-owner-value').should('have.text', 'Niels Bohr (nbohr)');
         cy.go('back');
-        cy.get('#task-dataset').should('have.value', '');
+        cy.get('#task-dataset-value').should('have.text', 'All datasets');
+        cy.get('#task-owner-value').should('have.text', 'Anyone');
         cy.go('forward');
-        cy.get('#task-dataset').should('have.value', '2');
+        cy.get('#task-dataset-value').should('have.text', 'LHC23c1');
+        cy.get('#task-owner-value').should('have.text', 'Niels Bohr (nbohr)');
         cy.get('.task-list tbody tr').should('have.length', 1);
     });
 

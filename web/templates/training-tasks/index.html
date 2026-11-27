@@ -7,7 +7,8 @@
     </header>
     <form method="get" action="/training-tasks" class="task-list-filters" autocomplete="off">
         <label>Task name <input type="search" name="name" value="{{ .Params.Get "name" }}"></label>
-        <label>Created by <input type="search" name="author" value="{{ .Params.Get "author" }}"></label>
+        {{ template "searchable_select" .OwnerSelect }}
+        {{ template "searchable_select" .DatasetSelect }}
         <label>Status
             <select name="status">
                 <option value="">All statuses</option>
@@ -25,7 +26,6 @@
                 {{ end }}
             </select>
         </label>
-        {{ template "dataset_select" .DatasetSelect }}
         <div class="task-list-actions">
             <button type="submit">Apply</button>
             <a href="/training-tasks">Clear</a>
@@ -36,7 +36,7 @@
         <div id="training-tasks-listing" hx-get="{{ .ListURL }}" hx-trigger="load" hx-indicator="#spinner"></div>
         <p id="task-list-error" class="task-list-notice" role="alert" hidden>Training tasks could not be loaded.</p>
     </div>
-    <script src="/static/js/dataset-select.js" defer></script>
+    <script src="/static/js/searchable-select.js" defer></script>
     <script>
         (() => {
             const list = document.querySelector('.task-list');

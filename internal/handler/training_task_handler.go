@@ -46,23 +46,25 @@ var taskListSortOptions = []taskListOption{
 func taskListFilters(r *http.Request) (repository.TrainingTaskListQuery, url.Values, []taskListOption) {
 	values := r.URL.Query()
 	params := url.Values{}
-	for _, key := range []string{"name", "author", "status", "from", "to", "sort"} {
+	for _, key := range []string{"name", "status", "from", "to", "sort"} {
 		if value := strings.TrimSpace(values.Get(key)); value != "" {
 			params.Set(key, value)
 		}
 	}
 
 	query := repository.TrainingTaskListQuery{
-		Name: params.Get("name"), Author: params.Get("author"), Page: 1,
+		Name: params.Get("name"), Page: 1,
 	}
 	if page, err := strconv.Atoi(values.Get("page")); err == nil && page > 1 && page <= int(^uint(0)>>1)/repository.TrainingTaskPageSize {
 		query.Page = page
 		params.Set("page", strconv.Itoa(page))
 	}
 
-	if id, err := strconv.ParseUint(values.Get("dataset"), 10, 32); err == nil && id > 0 {
-		query.DatasetID = uint(id)
-		params.Set("dataset", strconv.FormatUint(id, 10))
+	for key, target := range map[string]*uint{"dataset": &query.DatasetID, "owner": &query.OwnerID} {
+		if id, err := strconv.ParseUint(values.Get(key), 10, 32); err == nil && id > 0 {
+			*target = uint(id)
+			params.Set(key, strconv.FormatUint(id, 10))
+		}
 	}
 
 	for _, option := range taskListSortOptions {
@@ -101,11 +103,31 @@ func taskListFilters(r *http.Request) (repository.TrainingTaskListQuery, url.Val
 	return query, params, statuses
 }
 
-type datasetSelectData struct {
-	ID, Name, EmptyLabel, SearchURL string
-	Choices                         []repository.TrainingDatasetChoice
-	Selected                        uint
-	Required                        bool
+type searchableSelectData struct {
+	ID, Name, Label, SearchLabel, EmptyLabel, SelectedLabel, SearchURL string
+	Choices                                                            []repository.TrainingTaskFilterChoice
+	Selected                                                           uint
+}
+
+func (h *TrainingTaskHandler) taskFilterSelect(filter, label, searchLabel, emptyLabel string, selected uint) (searchableSelectData, error) {
+	choices, err := h.Service.FilterChoices(filter, "", selected)
+	if err != nil {
+		return searchableSelectData{}, err
+	}
+	selectedLabel := emptyLabel
+	if selected != 0 {
+		if len(choices) == 0 || choices[0].ID != selected {
+			choices = append([]repository.TrainingTaskFilterChoice{
+				{ID: selected, Name: fmt.Sprintf("%s #%d", label, selected)},
+			}, choices...)
+		}
+		selectedLabel = choices[0].Name
+	}
+	return searchableSelectData{
+		ID: "task-" + filter, Name: filter, Label: label, SearchLabel: searchLabel,
+		EmptyLabel: emptyLabel, SelectedLabel: selectedLabel, Choices: choices, Selected: selected,
+		SearchURL: "/training-tasks/filter-choices/" + filter,
+	}, nil
 }
 
 func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -116,20 +138,22 @@ func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
 		Sort          string
 		SortOptions   []taskListOption
 		StatusOptions []taskListOption
-		DatasetSelect datasetSelectData
+		DatasetSelect searchableSelectData
+		OwnerSelect   searchableSelectData
 	}
 
 	query, params, statuses := taskListFilters(r)
-	choices, err := h.Service.DatasetChoices("", query.DatasetID)
+	datasetSelect, err := h.taskFilterSelect("dataset", "Training dataset", "Search datasets", "All datasets", query.DatasetID)
 	if err != nil {
 		handleServiceError(w, r, err)
 		return
 	}
-	if query.DatasetID != 0 && (len(choices) == 0 || choices[0].ID != query.DatasetID) {
-		choices = append([]repository.TrainingDatasetChoice{
-			{ID: query.DatasetID, Name: fmt.Sprintf("Dataset #%d", query.DatasetID)},
-		}, choices...)
+	ownerSelect, err := h.taskFilterSelect("owner", "Created by", "Search people", "Anyone", query.OwnerID)
+	if err != nil {
+		handleServiceError(w, r, err)
+		return
 	}
+
 	listURL := url.URL{Path: "/training-tasks/list", RawQuery: params.Encode()}
 	err = h.ExecuteTemplate(w, "training-tasks_index", TemplateData{
 		Title:         "Training Tasks",
@@ -138,10 +162,8 @@ func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
 		Sort:          query.Sort,
 		SortOptions:   taskListSortOptions,
 		StatusOptions: statuses,
-		DatasetSelect: datasetSelectData{
-			ID: "task-dataset", Name: "dataset", EmptyLabel: "All datasets",
-			SearchURL: "/training-tasks/dataset-choices", Choices: choices, Selected: query.DatasetID,
-		},
+		DatasetSelect: datasetSelect,
+		OwnerSelect:   ownerSelect,
 	})
 
 	if err != nil {
@@ -197,8 +219,13 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *TrainingTaskHandler) DatasetChoices(w http.ResponseWriter, r *http.Request) {
-	choices, err := h.Service.DatasetChoices(strings.TrimSpace(r.URL.Query().Get("q")), 0)
+func (h *TrainingTaskHandler) FilterChoices(w http.ResponseWriter, r *http.Request) {
+	filter := r.PathValue("filter")
+	if filter != "dataset" && filter != "owner" {
+		http.NotFound(w, r)
+		return
+	}
+	choices, err := h.Service.FilterChoices(filter, strings.TrimSpace(r.URL.Query().Get("q")), 0)
 	if err != nil {
 		handleServiceError(w, r, err)
 		return
@@ -397,8 +424,8 @@ func InitTrainingTaskRoutes(mux *http.ServeMux, env *environment.Env, ccdbServic
 		authMw,
 	))
 
-	mux.Handle(fmt.Sprintf("GET /%s/dataset-choices", prefix), middleware.Chain(
-		http.HandlerFunc(tjh.DatasetChoices),
+	mux.Handle(fmt.Sprintf("GET /%s/filter-choices/{filter}", prefix), middleware.Chain(
+		http.HandlerFunc(tjh.FilterChoices),
 		authMw,
 	))
 

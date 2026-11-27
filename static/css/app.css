@@ -238,7 +238,7 @@ html:has(> .app-shell) {
 
 @media (min-width: 1024px) {
     .task-list-filters {
-        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
 
@@ -249,7 +249,8 @@ html:has(> .app-shell) {
 }
 
 .task-list-filters input,
-.task-list-filters select {
+.task-list-filters select,
+.searchable-select input[type="search"] {
     width: 100%;
     min-width: 0;
     min-height: 36px;
@@ -305,25 +306,98 @@ html:has(> .app-shell) {
     font-size: .875rem;
 }
 
-.dataset-select {
+.searchable-select {
     display: grid;
-    gap: 4px 12px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
     min-width: 0;
 }
 
-.dataset-select [role="status"] {
-    grid-column: 1 / -1;
+.searchable-select details {
+    position: relative;
 }
 
-.dataset-select [role="status"]:empty {
+.searchable-select summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 36px;
+    padding: 5px 8px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--panel);
+    color: var(--ink);
+    list-style: none;
+    cursor: pointer;
+}
+
+.searchable-select summary::-webkit-details-marker {
     display: none;
 }
 
-@media (min-width: 350px) {
-    .task-list-filters .dataset-select {
-        grid-column: span 2;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+.searchable-select summary::after {
+    content: "";
+    flex: none;
+    width: 7px;
+    height: 7px;
+    margin-right: 3px;
+    border-right: 1px solid currentColor;
+    border-bottom: 1px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+}
+
+.searchable-select summary span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.searchable-select-menu {
+    position: absolute;
+    z-index: 10;
+    inset: calc(100% + 4px) 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    padding: 6px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--panel);
+    box-shadow: 0 6px 18px #0002;
+}
+
+.searchable-select details:not([open]) .searchable-select-menu {
+    display: none;
+}
+
+.searchable-select-options {
+    max-height: 12rem;
+    overflow-y: auto;
+}
+
+.searchable-select-options button {
+    display: block;
+    width: 100%;
+    min-height: 34px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: var(--ink);
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.searchable-select-options button:hover {
+    background: var(--surface);
+}
+
+.searchable-select-options button[aria-pressed="true"] {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.searchable-select [role="status"]:empty {
+    display: none;
 }
 
 .task-list-panel {

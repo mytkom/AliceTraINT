@@ -10,10 +10,11 @@ state. On narrow screens, scroll the table horizontally to see all columns.
 
 Tasks are shown 25 at a time, newest first. Use **Previous** and **Next** below
 the table to move between pages. You can filter by task name, creator, training
-dataset, status, and an inclusive creation date range in UTC. Name and creator
-searches match part of the text. Use **Search datasets** to narrow the choices,
-then choose an exact match from **Training dataset**. Choose a sort order and
-click **Apply** to start at the first page. **Clear** restores the default list.
+dataset, status, and an inclusive creation date range in UTC. Open **Created by**
+or **Training dataset** to search and select an option. Creator search matches
+names and usernames. Task name searches match part of the name. Choose a sort
+order and click **Apply** to start at the first page. **Clear** restores the
+default list.
 
 The address records your filters, sort order and page. You can reload the view,
 bookmark it, or return to it with the browser’s Back and Forward buttons.

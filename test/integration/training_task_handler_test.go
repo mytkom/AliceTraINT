@@ -142,15 +142,21 @@ func TestTrainingTaskListQuery(t *testing.T) {
 		TrainingDatasetId: otherDataset.ID, Status: models.Failed,
 	}))
 
-	choices, err := ut.TrainingTask.DatasetChoices("OTHER", dataset.ID)
+	choices, err := ut.TrainingTask.FilterChoices("dataset", "OTHER", dataset.ID)
 	require.NoError(t, err)
-	assert.Equal(t, []repository.TrainingDatasetChoice{
+	assert.Equal(t, []repository.TrainingTaskFilterChoice{
 		{ID: dataset.ID, Name: dataset.Name}, {ID: otherDataset.ID, Name: otherDataset.Name},
 	}, choices)
 
+	owners, err := ut.TrainingTask.FilterChoices("owner", "EINSTEIN", 0)
+	require.NoError(t, err)
+	assert.Equal(t, []repository.TrainingTaskFilterChoice{
+		{ID: owner.ID, Name: "Albert Einstein (aeinstein)"},
+	}, owners)
+
 	failed := models.Failed
 	query := repository.TrainingTaskListQuery{
-		DatasetID: dataset.ID, Name: "TASK_%", Author: "bert Einstein", Status: &failed,
+		DatasetID: dataset.ID, OwnerID: owner.ID, Name: "TASK_%", Status: &failed,
 		CreatedFrom: day, CreatedBefore: day.AddDate(0, 0, 1), Sort: "oldest", Page: 1,
 	}
 	first, err := ut.TrainingTask.List(query)
@@ -178,7 +184,7 @@ func TestTrainingTaskListQuery(t *testing.T) {
 	assert.Empty(t, empty.Tasks)
 	assert.False(t, empty.HasNext)
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("/training-tasks/list?name=TASK_%%25&author=AEINSTEIN&status=0&from=2024-11-20&to=2024-11-20&sort=oldest&dataset=%d&page=2", dataset.ID), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("/training-tasks/list?name=TASK_%%25&owner=%d&status=0&from=2024-11-20&to=2024-11-20&sort=oldest&dataset=%d&page=2", owner.ID, dataset.ID), nil)
 	require.NoError(t, err)
 	HTMXReq(req)
 	rr := addSessionCookie(t, ut.Auth, req, owner.ID)
