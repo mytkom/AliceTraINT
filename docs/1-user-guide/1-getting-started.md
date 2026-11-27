@@ -4,7 +4,7 @@ AliceTraINT trains machine-learning models for particle identification (PIDML) i
 
 ## Access
 
-You need a CERN account that is a member of the `wut-alice-pidml` e-group. Click **Login with CERN SSO** on the landing page; the e-group membership is checked there.
+You need a CERN account that is a member of the `wut-alice-pidml` e-group. Click **Sign in with CERN SSO** on the landing page; the e-group membership is checked there.
 
 These docs are readable without logging in.
 

@@ -1,22 +1,21 @@
 {{ define "docs_show" }}
-{{ template "header" . }}
+{{ template "docs-header" . }}
 <link rel="stylesheet" href="/static/css/chroma.css">
-<div class="flex flex-col md:flex-row gap-8 my-4">
+<div class="docs-layout">
     <!-- Sidebar / section TOC + docs groups -->
-    <aside class="w-full md:w-64 lg:w-72 flex-shrink-0">
-        <div class="bg-sky-50 dark:bg-sky-900 rounded-lg p-3 shadow-sm md:sticky md:top-4">
-            <h2 class="text-xs font-semibold text-sky-900 dark:text-sky-100 uppercase tracking-wide mb-2">
+    <aside class="docs-sidebar">
+        <button class="docs-navigation-toggle" type="button" aria-controls="docs-navigation" aria-expanded="false">Browse documentation</button>
+        <nav id="docs-navigation" class="docs-navigation" aria-label="Documentation navigation">
+            <h2 class="docs-navigation-heading">
                 On this page
             </h2>
             {{ if .Doc.Sections }}
-            <ul class="space-y-1 text-sm">
+            <ul class="docs-navigation-list">
                 {{ range .Doc.Sections }}
                 {{ if le .Level 3 }}
                 <li>
                     <a href="#{{ .ID }}"
-                       class="block px-2 py-1 rounded
-                              hover:bg-sky-100 dark:hover:bg-sky-800
-                              {{ if eq .Level 3 }}pl-4{{ end }}">
+                       {{ if eq .Level 3 }}class="docs-subsection"{{ end }}>
                         {{ .Title }}
                     </a>
                 </li>
@@ -24,36 +23,34 @@
                 {{ end }}
             </ul>
             {{ else }}
-            <p class="text-xs text-gray-500 dark:text-gray-400">
+            <p class="docs-empty-sections">
                 No sections yet.
             </p>
             {{ end }}
 
-            <hr class="my-3 border-sky-200 dark:border-sky-800">
+            <hr>
 
             {{ range .Groups }}
-            <h3 class="text-xs font-semibold text-sky-900 dark:text-sky-100 uppercase tracking-wide mt-3 mb-2">
+            <h3 class="docs-navigation-heading">
                 {{ .Title }}
             </h3>
-            <ul class="space-y-1 text-sm">
+            <ul class="docs-navigation-list">
                 {{ range .Pages }}
                 <li>
                     <a href="/docs/{{ .Slug }}"
-                       class="block px-2 py-1 rounded
-                              hover:bg-sky-100 dark:hover:bg-sky-800
-                              {{ if eq $.Doc.Slug .Slug }}bg-sky-100 dark:bg-sky-800 font-semibold border-l-4 border-sky-500{{ end }}">
+                       {{ if eq $.Doc.Slug .Slug }}aria-current="page"{{ end }}>
                         {{ .Title }}
                     </a>
                 </li>
                 {{ end }}
             </ul>
             {{ end }}
-        </div>
+        </nav>
     </aside>
 
     <!-- Main doc content -->
-    <article class="prose prose-sky prose-lg max-w-full md:max-w-5xl mx-auto flex-1 min-w-0 dark:prose-invert prose-img:mx-auto prose-img:rounded-lg prose-img:shadow">
-        <div class="mt-4">
+    <article class="docs-article prose prose-lg min-w-0 prose-img:mx-auto prose-img:rounded-lg prose-img:shadow">
+        <div>
             {{ safeHTML .Doc.HTML }}
         </div>
     </article>

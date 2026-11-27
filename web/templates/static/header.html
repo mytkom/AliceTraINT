@@ -1,10 +1,36 @@
 {{ define "header" }}
+{{ template "shell-start" . }}
+{{ template "shell-body" false }}
+{{ template "app-bar" false }}
+{{ template "shell-main" }}
+{{ end }}
+
+{{ define "docs-header" }}
+{{ template "shell-start" . }}
+{{ template "shell-body" true }}
+{{ template "app-bar" false }}
+{{ template "shell-main" }}
+{{ end }}
+
+{{ define "shell-main" }}
+        <main class="flex-grow min-w-0 text-sm lg:text-md">
+            <div class="container mx-auto p-2" id="main-content-container">
+
+{{end}}
+
+{{ define "shell-start" }}
 {{ template "head-start" . }}
     <link rel="preload" href="/static/fonts/instrument-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/static/fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
 {{ template "head-end" . }}
-<body class="app-shell">
+{{ end }}
+
+{{ define "shell-body" }}
+<body class="app-shell{{ if . }} public-page{{ end }}">
     <div class="font-bold flex flex-col min-h-screen">
+{{ end }}
+
+{{ define "app-bar" }}
         <header class="app-header">
             <div class="app-bar">
                 <!-- Logo -->
@@ -22,10 +48,15 @@
                 </a>
 
                 <nav id="app-navigation" class="app-nav" aria-label="Main navigation">
+                    {{ if not . }}
                     <a href="/training-tasks">Tasks</a>
                     <a href="/training-datasets">Datasets</a>
                     <a href="/training-machines">Machines</a>
+                    {{ end }}
                     <a href="/docs">Docs</a>
+                    {{ if . }}
+                    <a class="app-sign-in" href="/login">Sign in</a>
+                    {{ end }}
                 </nav>
 
                 <div class="app-tools">
@@ -45,7 +76,4 @@
             <script src="/static/js/app-navigation.js"></script>
         </header>
 
-        <main class="flex-grow min-w-0 text-sm lg:text-md">
-            <div class="container mx-auto p-2" id="main-content-container">
-
-{{end}}
+{{ end }}
