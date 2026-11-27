@@ -1,20 +1,24 @@
 {{ define "landing" }}
-{{ template "head" . }}
-<body class="flex flex-col justify-stretch items-stretch w-full min-h-screen">
-      <div class="flex flex-col justify-stretch items-stretch w-full min-h-screen">
-            <main class="flex flex-grow justify-center h-full items-center bg-sky-100 dark:bg-sky-800 shadow-md">
-                  <div
-                        class="flex flex-col gap-5 rounded-lg items-center p-5 text-gray-800 dark:text-gray-50 bg-sky-50 dark:bg-sky-700">
-                        <div class="flex text-sky-900 dark:text-sky-50 gap-0 justify-start text-3xl font-extrabold">
-                              <div class="flex">
-                                    <p class="font-bold">Alice</p>
-                                    <p class="">Tra</p>
-                                    <p class="font-sans font-medium">INT</p>
-                              </div>
+{{ template "shell-start" . }}
+{{ template "shell-body" true }}
+{{ template "app-bar" true }}
+        <main class="landing flex-grow">
+            <div class="landing-layout">
+                <section class="landing-hero">
+                    <div>
+                        <p class="landing-context">Particle identification for the ALICE experiment</p>
+                        <h1>Train and review PID models</h1>
+                        <p class="landing-lede">Build training datasets from AOD files on the GRID, run training tasks, and review results before uploading models to CCDB.</p>
+                        <div class="landing-actions">
+                            <a class="landing-primary" href="/login">Sign in with CERN SSO</a>
+                            <a href="/docs">Read the docs</a>
                         </div>
-                        <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-lg font-bold py-2 px-4"
-                              href="/login">Login with CERN SSO</a>
-                        <a class="bg-sky-100 dark:bg-sky-700 dark:text-gray-50 rounded-lg text-lg font-bold py-2 px-2"
-                              href="/docs">or browse Docs</a>
+                    </div>
+                </section>
+                <section class="landing-workflow" aria-label="Training workflow">
+                    <section><h2>Build a training dataset</h2><p>Select simulated AOD files from one or more GRID productions.</p></section>
+                    <section><h2>Queue a training task</h2><p>Choose a configuration and track the task as it runs on a training machine.</p></section>
+                    <section><h2>Review results</h2><p>Inspect plots and logs, download ONNX files, and upload trained models to CCDB.</p></section>
+                </section>
 {{ template "footer" . }}
 {{ end }}
