@@ -1,6 +1,8 @@
 # Architecture
 
-AliceTraINT has two programs: the web app, which users log in to, and the training module, which runs on training machines and does the training. Everything else is an external service at CERN that one of the two calls.
+AliceTraINT has two programs: the [web app](https://github.com/mytkom/AliceTraINT), which users log in to, and the [training module](https://github.com/mytkom/AliceTraINT_pidml_training_module), which runs on training machines and does the training. Everything else is an external service at CERN that one of the two calls.
+
+Today there is one kind of training module, for PIDML. The web app could later serve more kinds, including modules for other projects. That needs changes to the current design, because the web app has a single configuration form and one shared queue from which any training machine takes any task. Each kind of module would need its own configuration, and the queue would need to give a machine only the tasks its module can run. Neither change is large.
 
 ## The parts
 
