@@ -6,7 +6,18 @@ Open **Tasks** and click a task's name. Results appear step by step while the ta
 
 ## Plots
 
-**Image Results Gallery** shows every image the training module uploaded, such as precision-recall, purity and efficiency plots for each particle. Click a name in the list to show the plot, or use the arrows to move through them.
+**Image Results Gallery** shows every image the training module uploaded. Click a name in the list to show the plot, or use the arrows to move through them.
+
+![Image Results Gallery showing the purity of protons against momentum](/docs/static/1-user-guide/4-results-and-ccdb-upload/gallery.png)
+
+For each particle, the gallery has:
+
+- the model's performance against momentum: purity, efficiency and F1 score, and a precision-recall curve;
+- the importance of each input variable, for each combination of detectors (for example `TPC_TOF.png`);
+- the distributions of the input variables, as histograms, box plots, density plots and 2D plots;
+- the share of each particle species and of tracks with missing detectors.
+
+The plots of every particle have the same file names, so the title inside a plot, such as "Purity vs p (proton)", says which particle it belongs to.
 
 ## ONNX files
 

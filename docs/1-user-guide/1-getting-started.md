@@ -36,17 +36,17 @@ A training dataset is a fixed list of simulated AOD files. A training task train
 
 ## Your first run
 
-<!-- First-run example: replace the generic steps with the named production task, dataset and screenshot of its task page. -->
+This example trains models with the default settings on a small dataset: six files of the LHC26e9 production, two from each of three runs. It follows the task `lhc26e9_task0` on the dataset `26e9_test`.
 
-This run trains models with the default settings on a small dataset.
-
-1. Open **Datasets** and click **Create Training Dataset**. In the directory list, open a simulated production, then click **Select Random Subset** with the default settings ([Training datasets](/docs/training-datasets)).
-2. Enter a name and click **Submit**.
-3. Open **Tasks** and click **Create Training Task**. Enter a name, choose your dataset and keep the default configuration. Click **Submit**; the task is Queued.
+1. Open **Datasets** and click **Create Training Dataset**. In the directory list, open `/alice/sim/2026/LHC26e9/`. Under **Choose random subset**, set **Run count** to 3 and **Files per run** to 2, keep the minimum file size and click **Select Random Subset** ([Training datasets](/docs/training-datasets)).
+2. Enter the name `26e9_test` and click **Submit**.
+3. Open **Tasks** and click **Create Training Task**. Enter the name `lhc26e9_task0`, choose `26e9_test` and keep the default configuration. Click **Submit**; the task is Queued.
 4. Wait until a training machine takes the task. Its status changes to Training, then Benchmarking and finally Completed.
-5. Open the task and check the plots and logs ([Results and CCDB upload](/docs/results-and-ccdb-upload)).
+5. Open the task. The page shows the plots, the six ONNX files and the logs of each step ([Results and CCDB upload](/docs/results-and-ccdb-upload)).
 
-Uploading the models to CCDB is the last step of a real run, and is not part of this example.
+![Task page of lhc26e9_task0 with status Completed and the plot gallery](/docs/static/1-user-guide/1-getting-started/task-page.png)
+
+The next step of a real run is uploading the models to CCDB, which this example leaves out.
 
 ## Where to go next
 
