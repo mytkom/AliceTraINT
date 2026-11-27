@@ -134,13 +134,7 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 		PrefillEnableSubsample     bool
 	}
 
-	user, ok := middleware.GetLoggedUser(r)
-	if !ok || user == nil {
-		writeError(w, r, http.StatusUnauthorized, errMsgUserUnauthorized, nil)
-		return
-	}
-
-	ttHelpers, err := h.Service.GetHelpers(user.ID)
+	ttHelpers, err := h.Service.GetHelpers()
 	if err != nil {
 		handleServiceError(w, r, err)
 		return

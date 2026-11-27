@@ -25,7 +25,7 @@ type TrainingTaskHelpers struct {
 type ITrainingTaskService interface {
 	Create(tm *models.TrainingTask) error
 	GetAll(loggedUserId uint, userScoped bool) ([]models.TrainingTask, error)
-	GetHelpers(loggedUserId uint) (*TrainingTaskHelpers, error)
+	GetHelpers() (*TrainingTaskHelpers, error)
 	GetByID(id uint) (*TrainingTaskWithResults, error)
 	UploadOnnxResults(id uint) error
 }
@@ -88,8 +88,8 @@ func (s *TrainingTaskService) GetAll(loggedUserId uint, userScoped bool) ([]mode
 	return trainingTasks, nil
 }
 
-func (s *TrainingTaskService) GetHelpers(loggedUserId uint) (*TrainingTaskHelpers, error) {
-	trainingDatasets, err := s.TrainingDataset.GetAllUser(loggedUserId)
+func (s *TrainingTaskService) GetHelpers() (*TrainingTaskHelpers, error) {
+	trainingDatasets, err := s.TrainingDataset.GetAll()
 	if err != nil {
 		return nil, InternalError("get training task helpers", err)
 	}
