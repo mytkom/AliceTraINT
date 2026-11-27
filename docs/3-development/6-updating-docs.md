@@ -73,7 +73,7 @@ flowchart LR
 
 - A diagram lives in the one page it belongs to; other pages link to that page.
 - It shows what is in the code when the page is written. A pull request that changes what a diagram shows updates the diagram.
-- Names follow `GLOSSARY.md`. Do not use "GUI", "Backend" or "Queue System" as component names.
+- Use the component names from these docs, such as web app, training module, training machine, GRID and JAliEn. Do not use "GUI", "Backend" or "Queue System".
 - Keep a diagram to about 15 nodes, and split a larger one.
 - Write at least one sentence before the diagram that says what to take from it, and set `accTitle` and `accDescr` for screen readers.
 - Do not set a theme or an `%%{init}%%` block. The look comes from the page.
