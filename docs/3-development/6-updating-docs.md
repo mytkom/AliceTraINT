@@ -28,28 +28,6 @@ docs/
 
 Startup logs an error when two pages share a URL or a number, and a warning when a page in a group has no number. Markdown files directly in `docs/` are not loaded.
 
-## Style guide
-
-Write plainly and slightly formally. Address the reader as "you" and use the present tense; use "we" only for decisions of the team. Avoid contractions, jokes, "simply", "just" and sales words. Use the terms from `GLOSSARY.md` in the repository root, such as web app, training module, training machine and training task.
-
-Start a page with one or two sentences on what the subject is and why it matters, without a heading. Then order the sections by what the reader wants to do. The only worked example belongs in Getting started.
-
-| Element | Rule |
-|---|---|
-| Headings | One `#` heading, the page title. Sections use `##` and `###`, in sentence case, with neutral wording ("Choosing individual files", not "I know which files I want") |
-| Paragraphs | At most about four sentences. Split a page that grows past about 1,000 words, except reference pages such as Configuration |
-| Steps | A numbered list only when the order matters and there are more than three steps; otherwise short paragraphs |
-| Tables | For settings, messages and reference, never for explanations |
-| Interface words | Bold, exactly as shown on screen: **Create Training Dataset** |
-| Code style | Paths, values, commands, variables and messages |
-| Screenshots | At most one per task, only where words would be slower, always with alt text. Retake them when the interface changes |
-| Warnings | A blockquote that starts with a bold sentence, only for lost data, leaked secrets or anything that cannot be undone |
-| Troubleshooting | The last section of a page, as a table of messages and solutions |
-
-Never write secret values, and keep personal EOS paths generic. Every page is public.
-
-Agents that write or edit a page run the `humanizer` skill on it before committing. Human authors do not have to.
-
 ## Markdown features
 
 The docs use GitHub Flavored Markdown: tables, strikethrough, task lists and links written as bare URLs work.
