@@ -11,7 +11,7 @@ The web app is the only part that users and training modules talk to. Training m
 ```mermaid
 flowchart TB
   accTitle: System architecture
-  accDescr: The browser and the training modules call the web app, and the browser logs in at CERN SSO. The web app stores data in PostgreSQL and result files on EOS, and calls CERN SSO, the GRID through JAliEn, MonALISA and CCDB. Training modules download AOD files from the GRID and keep prepared datasets as files in a dataset cache directory on the training machine.
+  accDescr: The browser and the training modules call the web app. The web app stores data in PostgreSQL and result files on EOS, and calls CERN SSO, the GRID through JAliEn, MonALISA and CCDB. Training modules download AOD files from the GRID and keep prepared datasets as files in a dataset cache directory on the training machine.
 
   browser([Browser])
   subgraph machine[Training machine]
@@ -30,7 +30,6 @@ flowchart TB
   end
 
   browser -->|pages| web
-  browser -.->|login| sso
   module -->|poll, status, results| web
   module -->|download AODs| grid
   web -->|token check| sso
