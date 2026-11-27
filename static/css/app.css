@@ -12,7 +12,13 @@
     font-display: optional;
 }
 
+html:has(> .app-shell) {
+    scrollbar-gutter: stable;
+}
+
 .app-shell {
+    --app-width: 82rem;
+    --app-gutter: clamp(24px, 4vw, 48px);
     --surface: #e5edf8;
     --panel: #f8fbff;
     --ink: #142a46;
@@ -79,9 +85,16 @@
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 12px 20px;
-    max-width: 96rem;
     margin-inline: auto;
-    padding: 12px 20px;
+    padding-block: 12px;
+}
+
+.app-bar,
+.landing,
+.app-shell #main-content-container {
+    width: 100%;
+    max-width: var(--app-width);
+    padding-inline: var(--app-gutter);
 }
 
 .app-brand {
@@ -342,10 +355,13 @@
 }
 
 @media (max-width: 680px) {
+    .app-shell {
+        --app-gutter: 12px;
+    }
+
     .app-bar {
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 0 8px;
-        padding-inline: 12px;
     }
 
     .app-tools {
@@ -379,6 +395,10 @@
         display: inline-flex;
     }
 
+    .dataset-list-summary {
+        flex-basis: 100%;
+    }
+
     .task-list {
         margin-inline: 4px;
     }
@@ -386,23 +406,6 @@
     .task-list-panel {
         padding: 10px;
     }
-}
-
-html:has(> .public-page) {
-    scrollbar-gutter: stable;
-}
-
-.public-page {
-    --public-page-width: 82rem;
-    --public-page-gutter: clamp(24px, 4vw, 48px);
-}
-
-.public-page .app-bar,
-.landing,
-.public-page #main-content-container {
-    width: 100%;
-    max-width: var(--public-page-width);
-    padding-inline: var(--public-page-gutter);
 }
 
 .public-page .app-nav a,
@@ -650,10 +653,6 @@ html:has(> .public-page) {
 }
 
 @media (max-width: 680px) {
-    .public-page {
-        --public-page-gutter: 12px;
-    }
-
     .landing-layout {
         grid-template-columns: minmax(0, 1fr);
     }
