@@ -1,4 +1,3 @@
-// AliceTraINT_test serves production handlers with local browser fixtures.
 package main
 
 import (
@@ -35,6 +34,7 @@ func main() {
 }
 
 func serve(root string, baseline bool) error {
+	// Load configuration
 	absRoot, err := filepath.EvalSymlinks(root)
 	if err != nil {
 		return err
@@ -56,36 +56,48 @@ func serve(root string, baseline bool) error {
 		DocsDirPath: "docs",
 		NNArchPath:  "web/nn_architectures/proposed.json",
 	}
+
+	// Initialize GORM with PostgreSQL driver
 	dsn := fmt.Sprintf("host=%s port=5432 user=browser_fixture dbname=alicetraint_browser_fixture sslmode=disable", filepath.Join(absRoot, "socket"))
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
+	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to initialize GORM: %w", err)
 	}
 	var cluster string
-	if err := db.Raw("SHOW data_directory").Scan(&cluster).Error; err != nil {
+	if err := gormDB.Raw("SHOW data_directory").Scan(&cluster).Error; err != nil {
 		return err
 	}
 	if cluster != filepath.Join(absRoot, "pg") {
 		return fmt.Errorf("refusing to migrate unexpected PostgreSQL cluster %q", cluster)
 	}
 	log.Printf("Using fixture PostgreSQL cluster %s and file storage %s", cluster, cfg.DataDirPath)
-	migrate.MigrateDB(db)
-	if err := migrate.SeedDB(db); err != nil {
+
+	// Run database migrations
+	migrate.MigrateDB(gormDB)
+	if err := migrate.SeedDB(gormDB); err != nil {
 		return err
 	}
 	if baseline {
-		if err := seedGalleries(db, dataDir); err != nil {
+		if err := seedGalleries(gormDB, dataDir); err != nil {
 			return err
 		}
 	}
 
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	// Setup and start the HTTP server
+	repoContext := repository.NewRepositoryContext(gormDB)
+	authService := auth.MockAuthService(repoContext.User)
+	r, err := fixtureRouter(cfg, repoContext, authService)
 	if err != nil {
 		return err
 	}
-	router, err := fixtureRouter(cfg, repository.NewRepositoryContext(db))
+
+	// Add logging middleware
+	logMw := middleware.NewLogMw()
+	loggedR := logMw(r)
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		return errors.Join(err, listener.Close())
+		return err
 	}
 	url := "http://" + listener.Addr().String()
 	if err := os.WriteFile(filepath.Join(absRoot, "url.pending"), []byte(url), 0600); err != nil {
@@ -95,10 +107,10 @@ func serve(root string, baseline bool) error {
 		return errors.Join(err, listener.Close())
 	}
 	log.Printf("Browser fixture ready at %s", url)
-	return http.Serve(listener, middleware.NewLogMw()(router))
+	return http.Serve(listener, loggedR)
 }
 
-func fixtureRouter(cfg *config.Config, repos *repository.RepositoryContext) (*http.ServeMux, error) {
+func fixtureRouter(cfg *config.Config, repos *repository.RepositoryContext, authService auth.IAuthService) (*http.ServeMux, error) {
 	templates := utils.BaseTemplate()
 	// Serve the same pinned browser libraries locally to keep the browser offline.
 	for _, path := range []string{"web/templates/static/head.html", "web/templates/training-tasks/show.html"} {
@@ -117,7 +129,6 @@ func fixtureRouter(cfg *config.Config, repos *repository.RepositoryContext) (*ht
 		}
 	}
 
-	authService := auth.MockAuthService(repos.User)
 	env := environment.NewEnv(repos, authService, templates, cfg)
 	files := service.NewLocalFileService(cfg.DataDirPath)
 	jalienService, ccdbService, monalisaService := fixtureServices()
