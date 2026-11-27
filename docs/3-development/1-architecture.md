@@ -38,7 +38,7 @@ flowchart TB
 
 The web app runs as one container on CERN PaaS (OpenShift). It keeps its data in a PostgreSQL database on CERN DB-on-Demand and stores the files that training tasks upload (logs, plots, ONNX models) in a directory on EOS.
 
-Each training machine runs a training module with its own dataset cache, which is a directory on the machine's disk rather than a database. Before a task can train, the module prepares its dataset: it downloads the AOD files from the GRID in batches of up to 10, runs the PIDML producer on each batch and subsamples the output into one ROOT file. This is slow, so the module keeps the file in the cache as `<checksum>.root`, with a `<checksum>.meta.json` next to it. The checksum is a SHA-256 of the sorted AOD file paths, `IsONe`, `IsData` and the subsample event count, so a later task with the same dataset and settings finds the file and skips straight to training.
+Each training machine runs a training module with its own dataset cache, which is a directory on the machine's disk rather than a database. Before a task can train, the module prepares its dataset: it downloads the AOD files from the GRID in batches of up to 10, runs the [PIDML producer](https://github.com/AliceO2Group/O2Physics/blob/master/Tools/PIDML/pidMlProducer.cxx) (`o2-analysis-pid-ml-producer` in O2Physics) on each batch and subsamples the output into one ROOT file. This is slow, so the module keeps the file in the cache as `<checksum>.root`, with a `<checksum>.meta.json` next to it. The checksum is a SHA-256 of the sorted AOD file paths, `IsONe`, `IsData` and the subsample event count, so a later task with the same dataset and settings finds the file and skips straight to training.
 
 The cache directory is set by `ALICETRAINT_DATASET_CACHE_DIR_PATH` in the training module. With Docker it is mounted as a volume, so it survives a new container. The module never deletes cached files. If you delete one, the next task on that dataset prepares it again.
 
@@ -73,6 +73,8 @@ The web app is a Go program that renders HTML on the server. Pages are Go templa
 Each group of routes (training datasets, training tasks, training machines, the machine queue, docs) has its own handler file with an `Init…Routes` function that registers its routes.
 
 ## A request from browser to database
+
+A middleware is a function that takes an HTTP handler and returns a new handler, which does its own work before or after calling the one it wraps (`internal/middleware/middleware.go`). Work that many routes share, such as logging, the login check, the HTMX checks and caching, is written once as a middleware. `middleware.Chain` wraps a handler in the middleware it needs, so each route states its checks in one place and handlers contain only the logic of their page.
 
 Every request passes through `LogMw` and `RecoverMw`, which log the request and turn a panic into a 500 response. The router then chooses the middleware for the route.
 
