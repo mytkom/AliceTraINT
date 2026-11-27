@@ -1,6 +1,18 @@
 {{ define "header" }}
 {{ template "shell-start" . }}
+{{ template "shell-body" false }}
 {{ template "app-bar" false }}
+{{ template "shell-main" }}
+{{ end }}
+
+{{ define "docs-header" }}
+{{ template "shell-start" . }}
+{{ template "shell-body" true }}
+{{ template "app-bar" false }}
+{{ template "shell-main" }}
+{{ end }}
+
+{{ define "shell-main" }}
         <main class="flex-grow min-w-0 text-sm lg:text-md">
             <div class="container mx-auto p-2" id="main-content-container">
 
@@ -11,7 +23,10 @@
     <link rel="preload" href="/static/fonts/instrument-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/static/fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
 {{ template "head-end" . }}
-<body class="app-shell">
+{{ end }}
+
+{{ define "shell-body" }}
+<body class="app-shell{{ if . }} public-page{{ end }}">
     <div class="font-bold flex flex-col min-h-screen">
 {{ end }}
 

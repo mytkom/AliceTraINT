@@ -388,21 +388,25 @@
     }
 }
 
-.app-shell:has(.landing, .docs-layout, .docs-empty) {
+html:has(> .public-page) {
+    scrollbar-gutter: stable;
+}
+
+.public-page {
     --public-page-width: 82rem;
     --public-page-gutter: clamp(24px, 4vw, 48px);
 }
 
-.app-shell:has(.landing, .docs-layout, .docs-empty) .app-bar,
+.public-page .app-bar,
 .landing,
-#main-content-container:has(> .docs-layout, > .docs-empty) {
+.public-page #main-content-container {
     width: 100%;
     max-width: var(--public-page-width);
     padding-inline: var(--public-page-gutter);
 }
 
-.app-shell:has(.landing, .docs-layout, .docs-empty) .app-nav a,
-.app-shell:has(.landing, .docs-layout, .docs-empty) .app-tools button {
+.public-page .app-nav a,
+.public-page .app-tools button {
     font-size: 1rem;
 }
 
@@ -646,7 +650,7 @@
 }
 
 @media (max-width: 680px) {
-    .app-shell:has(.landing, .docs-layout, .docs-empty) {
+    .public-page {
         --public-page-gutter: 12px;
     }
 
