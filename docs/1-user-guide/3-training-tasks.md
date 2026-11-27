@@ -21,7 +21,9 @@ Task names are unique within a dataset, so the same name can be used again on an
 
 ## Configuration
 
-The form groups its settings as follows. Every setting has a short description on the form, and the defaults are a reasonable start.
+Select a group heading to expand or collapse its settings. Data starts open, and you can keep several groups open at once. Collapsing a group keeps its current values. If a field in a collapsed group needs a correction, submitting the form opens that group and takes you to the field.
+
+Every setting has a short description on the form, and the defaults are a reasonable start.
 
 | Group | What it sets |
 |---|---|

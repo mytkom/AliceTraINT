@@ -52,7 +52,7 @@ This example trains models with the default settings on a small dataset: six fil
 
    ![Datasets list with 26e9_test, 6 files, 18.92 GB](/docs/static/1-user-guide/1-getting-started/datasets.png)
 
-3. Open **Tasks** and click **Create Training Task**. Enter the name `lhc26e9_task0`, choose `26e9_test`, tick **Use subsample** and keep the rest of the default configuration. Click **Submit**; the task is Queued ([Training tasks](/docs/training-tasks)).
+3. Open **Tasks** and click **Create Training Task**. Enter the name `lhc26e9_task0`, choose `26e9_test`, expand **Events**, tick **Use subsample** and keep the rest of the default configuration. Click **Submit**; the task is Queued ([Training tasks](/docs/training-tasks)).
 
    ![Task form with the name lhc26e9_task0, the dataset 26e9_test and Use subsample ticked](/docs/static/1-user-guide/1-getting-started/task-new.png)
 

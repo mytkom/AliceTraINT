@@ -25,6 +25,70 @@ describe('Training Tasks Management', () => {
         tmObject.should('exist')
     });
 
+    it('submits edited collapsed groups and restores them when reusing a configuration', () => {
+        cy.contains('main a', 'Create Training Task').click();
+
+        const taskName = generateUniqueName('configured');
+        cy.get('#name').type(taskName);
+        cy.get('#trainingDatasetId').select('1');
+        cy.contains('summary', /^Events$/).click();
+        cy.get('#enableSubsampleEventCount').check();
+        cy.get('#subsampleEventCountInput').clear().type('12345');
+        cy.contains('summary', /^Model$/).click();
+        cy.get('#subsampleEventCountInput').should('be.visible');
+
+        const architecture = '[name="configuration.model.architecture"]';
+        const dropout = '[name="configuration.model.mlp.dropout"]';
+        cy.get(architecture).select('mlp');
+        cy.get('[name="configuration.model.attention.dropout"]').should('be.disabled');
+        cy.get(dropout).clear().type('0.25');
+        cy.contains('summary', /^Model$/).click();
+        cy.contains('summary', /^Events$/).click();
+        cy.contains('summary', /^Model$/).parent().should('have.prop', 'open', false);
+        cy.contains('summary', /^Events$/).parent().should('have.prop', 'open', false);
+        cy.get(dropout).should('be.enabled');
+
+        cy.intercept('POST', '/training-tasks').as('createConfiguredTask');
+        cy.contains('button', 'Submit').click();
+        cy.wait('@createConfiguredTask').its('request.body').should(body => {
+            expect(body.subsampleEventCount).to.eq(12345);
+            expect(body.configuration.model.architecture).to.eq('mlp');
+            expect(body.configuration.model.mlp.dropout).to.eq(0.25);
+            expect(body.configuration.model).not.to.have.property('attention');
+        });
+        cy.contains('a', taskName).click();
+        cy.contains('a', 'Reuse in new task').click();
+        cy.get('#name').should('have.value', taskName + ' (copy)');
+        cy.get('#trainingDatasetId').should('have.value', '1');
+        cy.get('#enableSubsampleEventCount').should('be.checked');
+        cy.get('#subsampleEventCountInput').should('have.value', '12345');
+        cy.contains('summary', /^Model$/).click();
+        cy.get(architecture).should('have.value', 'mlp');
+        cy.get(dropout).should('be.visible').and('have.value', '0.25');
+    });
+
+    it('reveals invalid fields in collapsed nested groups on submit', () => {
+        cy.contains('main a', 'Create Training Task').click();
+
+        cy.get('#name').type(generateUniqueName('invalid'));
+        cy.get('#trainingDatasetId').select('1');
+        cy.contains('summary', /^Model$/).click();
+        const dropout = '[name="configuration.model.attention.dropout"]';
+        cy.get(dropout).clear().type('2');
+        cy.contains('summary', /^Attention$/).click();
+        cy.contains('summary', /^Model$/).click();
+
+        cy.contains('button', 'Submit').click();
+        cy.get(dropout).should('be.visible').and('be.focused').then($field => {
+            expect($field[0].validity.rangeOverflow).to.be.true;
+        });
+        cy.get(dropout).clear().type('0.4');
+        cy.contains('summary', /^Model$/).click();
+        cy.intercept('POST', '/training-tasks').as('correctedTask');
+        cy.contains('button', 'Submit').click();
+        cy.wait('@correctedTask').its('response.statusCode').should('be.within', 200, 299);
+    });
+
     it('userScoped', () => {
         cy.contains('td', 'Niels Bohr').should('exist')
         cy.get('input[name="userScoped"]').click();
