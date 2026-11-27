@@ -30,7 +30,7 @@ Click a file to select it. To remove a file, click it under **Selected files**. 
 
 Enter a name in **Training dataset name** and click **Submit**. Dataset names are unique across all users, so choose a descriptive one such as `LHC24d1-526641`.
 
-Submission takes a moment, because AliceTraINT looks up the production's runs to work out the validity period of models uploaded to CCDB later. The new dataset then appears in the list and can be used in a training task.
+Submission takes a moment, because AliceTraINT looks up the production's runs to work out the validity period of models uploaded to CCDB later. The new dataset then appears in the list and can be used in a [training task](/docs/training-tasks).
 
 ## Simulated data and O-O / Ne-Ne
 
