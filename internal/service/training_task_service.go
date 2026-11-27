@@ -28,6 +28,7 @@ type ITrainingTaskService interface {
 	GetHelpers() (*TrainingTaskHelpers, error)
 	GetByID(id uint) (*TrainingTaskWithResults, error)
 	UploadOnnxResults(id uint) error
+	Restart(userId uint, id uint) error
 }
 
 type TrainingTaskService struct {
@@ -140,6 +141,17 @@ func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error)
 		OnnxFiles:    onnxFiles,
 		LogFiles:     logFiles,
 	}, nil
+}
+
+func (s *TrainingTaskService) Restart(userId uint, id uint) error {
+	err := s.TrainingTask.Restart(userId, id)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return NewErrHandlerNotFound("Failed training task owned by the current user")
+	}
+	if err != nil {
+		return InternalError("restart training task", err)
+	}
+	return nil
 }
 
 func (s *TrainingTaskService) UploadOnnxResults(id uint) error {

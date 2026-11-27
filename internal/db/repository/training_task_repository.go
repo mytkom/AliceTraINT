@@ -13,6 +13,7 @@ type TrainingTaskRepository interface {
 	GetAllUser(userId uint) ([]models.TrainingTask, error)
 	GetFirstQueued() (*models.TrainingTask, error)
 	Update(trainingTask *models.TrainingTask) error
+	Restart(userId uint, id uint) error
 	Delete(userId uint, id uint) error
 }
 
@@ -73,6 +74,23 @@ func (r *trainingTaskRepository) Update(trainingTask *models.TrainingTask) error
 	return r.db.Save(trainingTask).Error
 }
 
+func (r *trainingTaskRepository) Restart(userId uint, id uint) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&models.TrainingTask{}).
+			Where("id = ? AND user_id = ? AND status = ?", id, userId, models.Failed).
+			Updates(map[string]interface{}{"status": models.Queued, "training_machine_id": nil})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
+		}
+
+		return tx.Where("training_task_id = ? AND type IN ?", id, []models.TrainingTaskResultType{models.Image, models.Onnx}).
+			Delete(&models.TrainingTaskResult{}).Error
+	})
+}
+
 func (r *trainingTaskRepository) Delete(userId uint, id uint) error {
 	return r.db.Where("\"user_id\" = ?", userId).Delete(&models.TrainingTask{}, id).Error
 }
@@ -131,6 +149,11 @@ func (m *MockTrainingTaskRepository) GetFirstQueued() (*models.TrainingTask, err
 
 func (m *MockTrainingTaskRepository) Update(trainingTask *models.TrainingTask) error {
 	args := m.Called(trainingTask)
+	return args.Error(0)
+}
+
+func (m *MockTrainingTaskRepository) Restart(userId uint, id uint) error {
+	args := m.Called(userId, id)
 	return args.Error(0)
 }
 

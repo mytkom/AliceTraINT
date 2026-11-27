@@ -85,6 +85,28 @@ func (h *TrainingTaskHandler) UploadToCCDB(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
+func (h *TrainingTaskHandler) Restart(w http.ResponseWriter, r *http.Request) {
+	user, ok := middleware.GetLoggedUser(r)
+	if !ok || user == nil {
+		writeError(w, r, http.StatusUnauthorized, errMsgUserUnauthorized, nil)
+		return
+	}
+
+	id, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
+	if err != nil {
+		writeError(w, r, http.StatusUnprocessableEntity, "invalid training task id", err)
+		return
+	}
+
+	if err := h.Service.Restart(user.ID, uint(id)); err != nil {
+		handleServiceError(w, r, err)
+		return
+	}
+
+	utils.HTMXRefresh(w)
+	w.WriteHeader(http.StatusOK)
+}
+
 func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
 		Title            string
@@ -93,6 +115,7 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 		OnnxFiles        []models.TrainingTaskResult
 		LogFiles         []models.TrainingTaskResult
 		HasConfiguration bool
+		CanRestart       bool
 	}
 
 	idStr := r.PathValue("id")
@@ -108,6 +131,7 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, _ := middleware.GetLoggedUser(r)
 	err = h.ExecuteTemplate(w, "training-tasks_show", TemplateData{
 		Title:            "Training Tasks",
 		TrainingTask:     *tt.TrainingTask,
@@ -115,6 +139,7 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 		OnnxFiles:        tt.OnnxFiles,
 		LogFiles:         tt.LogFiles,
 		HasConfiguration: utils.HasConfiguration(tt.TrainingTask.Configuration),
+		CanRestart:       user != nil && tt.TrainingTask.UserId == user.ID && tt.TrainingTask.Status == models.Failed,
 	})
 
 	if err != nil {
@@ -243,6 +268,12 @@ func InitTrainingTaskRoutes(mux *http.ServeMux, env *environment.Env, ccdbServic
 
 	mux.Handle(fmt.Sprintf("POST /%s/{id}/upload-to-ccdb", prefix), middleware.Chain(
 		http.HandlerFunc(tjh.UploadToCCDB),
+		validateHtmxMw,
+		authMw,
+	))
+
+	mux.Handle(fmt.Sprintf("POST /%s/{id}/restart", prefix), middleware.Chain(
+		http.HandlerFunc(tjh.Restart),
 		validateHtmxMw,
 		authMw,
 	))
