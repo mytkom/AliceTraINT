@@ -26,10 +26,8 @@
     border-radius: 0.25rem;
 }
 
-@media (prefers-color-scheme: dark) {
-    .prose :where(code):not(:where(pre *)) {
-        background-color: #075985;
-    }
+[data-theme="dark"] .prose :where(code):not(:where(pre *)) {
+    background-color: #075985;
 }
 
 /* Docs: Mermaid diagrams draw their own colours, so drop the code block background. */
