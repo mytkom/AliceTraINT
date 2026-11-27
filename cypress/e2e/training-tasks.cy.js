@@ -118,7 +118,7 @@ describe('Training Tasks Management', () => {
             cy.get('.task-status[data-status="Completed"]').first()
                 .should('have.css', 'background-color', 'rgb(32, 61, 57)');
             cy.document().then(doc => {
-                expect(doc.documentElement.scrollWidth).to.equal(doc.documentElement.clientWidth);
+                expect(doc.documentElement.scrollWidth).to.be.at.most(doc.body.clientWidth);
             });
         });
     }
