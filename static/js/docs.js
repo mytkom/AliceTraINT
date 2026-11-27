@@ -29,6 +29,9 @@
         const root = document.documentElement;
         const nodes = Array.from(document.querySelectorAll('article pre.mermaid'));
         const sources = nodes.map(node => node.textContent);
+        const staging = document.createElement('div');
+        staging.className = 'docs-diagram-staging';
+        staging.setAttribute('aria-hidden', 'true');
         const fontFamily = getComputedStyle(document.querySelector('article')).fontFamily;
         let renderedTheme;
         let renderID = 0;
@@ -43,8 +46,13 @@
 
                 mermaid.initialize({ startOnLoad: false, theme, layout: 'elk', fontFamily });
                 const diagrams = [];
-                for (const source of sources) {
-                    diagrams.push(await mermaid.render(`docs-mermaid-${++renderID}`, source));
+                document.body.append(staging);
+                try {
+                    for (const source of sources) {
+                        diagrams.push(await mermaid.render(`docs-mermaid-${++renderID}`, source, staging));
+                    }
+                } finally {
+                    staging.remove();
                 }
                 if ((root.dataset.theme === 'dark') !== (theme === 'redux-dark-color')) {
                     return;
@@ -60,6 +68,15 @@
 
         new MutationObserver(syncTheme).observe(root, { attributeFilter: ['data-theme'] });
         syncTheme();
+    }
+
+    const navigationToggle = document.querySelector('.docs-navigation-toggle');
+    if (navigationToggle) {
+        navigationToggle.dataset.ready = '';
+        navigationToggle.addEventListener('click', () => {
+            const open = navigationToggle.getAttribute('aria-expanded') === 'true';
+            navigationToggle.setAttribute('aria-expanded', String(!open));
+        });
     }
 
     addCopyButtons();
