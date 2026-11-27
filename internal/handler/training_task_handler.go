@@ -105,9 +105,7 @@ func taskListFilters(r *http.Request) (repository.TrainingTaskListQuery, url.Val
 		params.Del("status")
 	}
 	query.CreatedFrom = parseTaskListDate(params, "from")
-	if to := parseTaskListDate(params, "to"); !to.IsZero() {
-		query.CreatedBefore = to.AddDate(0, 0, 1)
-	}
+	query.CreatedBefore = parseTaskListDate(params, "to")
 	return query, params, statuses
 }
 
