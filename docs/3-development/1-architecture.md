@@ -100,7 +100,9 @@ flowchart TD
   handler --> service[Service and repository] --> db[(Database)]
 ```
 
-`AuthMw` checks the session and puts the logged-in user into the request context. Full pages, such as `/training-tasks`, refuse HTMX requests, and partials, such as `/training-tasks/list`, accept only HTMX requests. Either check answers a request of the wrong kind with status 422.
+`AuthMw` checks the session and puts the logged-in user into the request context.
+
+The two HTMX middleware keep full pages and partials apart. HTMX marks every request it sends with the header `HX-Request: true`. A full page, such as `/training-tasks`, includes the header, the navigation and the footer, so loading one through HTMX would nest a second page inside the first. A partial, such as `/training-tasks/list`, is an HTML fragment meant to replace part of a page, so opening it directly in the browser shows an unstyled piece of a page. `BlockHTMXMw` therefore rejects HTMX requests on full pages, and `ValidateHTMXMw` accepts only HTMX requests on partials. Both answer a request of the wrong kind with status 422.
 
 The routes that training modules call (`/training-machines/{id}/training-task` and the `/training-tasks/{id}/…` status and result routes) have no middleware of their own. Their handler checks the machine's secret key from the `Secret-Id` header and answers 401 if it does not match.
 
