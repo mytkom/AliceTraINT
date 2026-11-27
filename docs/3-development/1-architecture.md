@@ -9,17 +9,15 @@ The web app is the only part that users and training modules talk to. Training m
 ```mermaid
 flowchart TB
   accTitle: System architecture
-  accDescr: The browser and the training modules call the web app. The web app stores data in PostgreSQL and result files on EOS, and calls CERN SSO, JAliEn on the GRID, MonALISA and CCDB. Training modules download AOD files from the GRID and keep prepared datasets in a local dataset cache.
+  accDescr: The browser and the training modules call the web app. The web app stores data in PostgreSQL and result files on EOS, and calls CERN SSO, JAliEn on the GRID, MonALISA and CCDB. Training modules download AOD files from the GRID and keep prepared datasets as files in a dataset cache directory on the training machine.
 
   browser([Browser])
-  subgraph paas[CERN PaaS]
-    web[Web app]
-  end
+  web["Web app<br>(container on CERN PaaS)"]
   db[(PostgreSQL on DBoD)]
   eos[(Results storage on EOS)]
   subgraph machine[Training machine]
     module[Training module]
-    cache[(Dataset cache)]
+    cache@{ shape: docs, label: "Dataset cache directory" }
   end
   sso[CERN SSO]
   grid[(GRID)]
@@ -35,10 +33,14 @@ flowchart TB
   web -->|run times, ONNX upload| ccdb
   module -->|poll, status, results| web
   module -->|alien_cp| grid
-  module --> cache
+  module -->|prepared datasets| cache
 ```
 
 The web app runs as one container on CERN PaaS (OpenShift). It keeps its data in a PostgreSQL database on CERN DB-on-Demand and stores the files that training tasks upload (logs, plots, ONNX models) in a directory on EOS.
+
+Each training machine runs a training module with its own dataset cache, which is a directory on the machine's disk rather than a database. Before a task can train, the module prepares its dataset: it downloads the AOD files from the GRID in batches of up to 10, runs the PIDML producer on each batch and subsamples the output into one ROOT file. This is slow, so the module keeps the file in the cache as `<checksum>.root`, with a `<checksum>.meta.json` next to it. The checksum is a SHA-256 of the sorted AOD file paths, `IsONe`, `IsData` and the subsample event count, so a later task with the same dataset and settings finds the file and skips straight to training.
+
+The cache directory is set by `ALICETRAINT_DATASET_CACHE_DIR_PATH` in the training module. With Docker it is mounted as a volume, so it survives a new container. The module never deletes cached files. If you delete one, the next task on that dataset prepares it again.
 
 | Service | Used for | Protocol |
 |---|---|---|
