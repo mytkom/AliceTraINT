@@ -1,97 +1,156 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
+	"path/filepath"
+	"strings"
+	"time"
 
-	"github.com/mytkom/AliceTraINT/internal"
 	"github.com/mytkom/AliceTraINT/internal/auth"
 	"github.com/mytkom/AliceTraINT/internal/config"
 	"github.com/mytkom/AliceTraINT/internal/db/migrate"
 	"github.com/mytkom/AliceTraINT/internal/db/repository"
+	"github.com/mytkom/AliceTraINT/internal/environment"
+	"github.com/mytkom/AliceTraINT/internal/handler"
 	"github.com/mytkom/AliceTraINT/internal/middleware"
+	"github.com/mytkom/AliceTraINT/internal/service"
+	"github.com/mytkom/AliceTraINT/internal/utils"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-func createDatabase(cfg *config.Config) func() {
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=disable database=postgres", cfg.Database.Host, cfg.Database.Port, cfg.Database.User, cfg.Database.Password)
-	DB, _ := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
-
-	createDatabaseCommand := fmt.Sprintf(`CREATE DATABASE "%s"`, cfg.Database.DBName)
-	deleteDatabaseCommand := fmt.Sprintf(`DROP DATABASE "%s" WITH (FORCE)`, cfg.Database.DBName)
-
-	err := DB.Exec(createDatabaseCommand).Error
-	if err != nil {
-		if err := DB.Exec(deleteDatabaseCommand).Error; err != nil {
-			log.Panic(err)
-		}
-		if err := DB.Exec(createDatabaseCommand).Error; err != nil {
-			log.Panic(err)
-		}
-	}
-
-	return func() {
-		if err := DB.Exec(deleteDatabaseCommand).Error; err != nil {
-			log.Panic(err)
-		}
-	}
-}
-
-func gracefulShutdown(cleanup func()) {
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	s := <-quit
-	fmt.Println("interrupted:", s)
-	cleanup()
-	os.Exit(0)
-}
-
 func main() {
-	// Load configuration
-	cfg := config.LoadConfig()
+	if len(os.Args) != 3 || (os.Args[2] != "e2e" && os.Args[2] != "baseline" && os.Args[2] != "serve") {
+		log.Fatal("start this fixture server with test/browser/run.sh")
+	}
+	if err := serve(os.Args[1], os.Args[2] == "baseline"); err != nil {
+		log.Fatal(err)
+	}
+}
 
-	// Suffix DB Name with test (it will be created and deleted )
-	cfg.Database.DBName = fmt.Sprintf("%s_test", cfg.Database.DBName)
-	deleteDatabase := createDatabase(cfg)
-	defer deleteDatabase()
-	go gracefulShutdown(deleteDatabase)
+func serve(root string, baseline bool) error {
+	// Load configuration
+	absRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return err
+	}
+	if filepath.Dir(absRoot) != "/tmp" || !strings.HasPrefix(filepath.Base(absRoot), "alicetraint-browser.") {
+		return fmt.Errorf("expected a private browser fixture directory, got %q", absRoot)
+	}
+	dataDir := filepath.Join(absRoot, "fixtures")
+	resolvedDataDir, err := filepath.EvalSymlinks(dataDir)
+	if err != nil {
+		return err
+	}
+	if resolvedDataDir != dataDir {
+		return fmt.Errorf("fixture directory resolves outside its launcher path: %s", resolvedDataDir)
+	}
+
+	cfg := &config.Config{
+		DataDirPath: dataDir,
+		DocsDirPath: "docs",
+		NNArchPath:  "web/nn_architectures/proposed.json",
+	}
 
 	// Initialize GORM with PostgreSQL driver
-	dsn := cfg.Database.ConnectionString()
-	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger:         logger.Default.LogMode(logger.Info),
-		TranslateError: true,
-	})
+	dsn := fmt.Sprintf("host=%s port=5432 user=browser_fixture dbname=alicetraint_browser_fixture sslmode=disable", filepath.Join(absRoot, "socket"))
+	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
 	if err != nil {
-		log.Fatalf("Failed to initialize GORM: %v", err)
+		return fmt.Errorf("failed to initialize GORM: %w", err)
 	}
+	var cluster string
+	if err := gormDB.Raw("SHOW data_directory").Scan(&cluster).Error; err != nil {
+		return err
+	}
+	if cluster != filepath.Join(absRoot, "pg") {
+		return fmt.Errorf("refusing to migrate unexpected PostgreSQL cluster %q", cluster)
+	}
+	log.Printf("Using fixture PostgreSQL cluster %s and file storage %s", cluster, cfg.DataDirPath)
 
 	// Run database migrations
 	migrate.MigrateDB(gormDB)
-	err = migrate.SeedDB(gormDB)
-	if err != nil {
-		log.Println(err.Error())
-		return
+	if err := migrate.SeedDB(gormDB); err != nil {
+		return err
+	}
+	if baseline {
+		if err := seedGalleries(gormDB, dataDir); err != nil {
+			return err
+		}
 	}
 
 	// Setup and start the HTTP server
 	repoContext := repository.NewRepositoryContext(gormDB)
 	authService := auth.MockAuthService(repoContext.User)
-	r := internal.NewRouter(cfg, repoContext, authService)
+	r, err := fixtureRouter(cfg, repoContext, authService)
+	if err != nil {
+		return err
+	}
 
 	// Add logging middleware
 	logMw := middleware.NewLogMw()
 	loggedR := logMw(r)
 
-	portString := fmt.Sprintf(":%s", cfg.Port)
-	log.Printf("Starting server on %s\n", portString)
-	log.Fatal(http.ListenAndServe(portString, loggedR))
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return err
+	}
+	url := "http://" + listener.Addr().String()
+	if err := os.WriteFile(filepath.Join(absRoot, "url.pending"), []byte(url), 0600); err != nil {
+		return errors.Join(err, listener.Close())
+	}
+	if err := os.Rename(filepath.Join(absRoot, "url.pending"), filepath.Join(absRoot, "url")); err != nil {
+		return errors.Join(err, listener.Close())
+	}
+	log.Printf("Browser fixture ready at %s", url)
+	return http.Serve(listener, loggedR)
+}
+
+func fixtureRouter(cfg *config.Config, repos *repository.RepositoryContext, authService auth.IAuthService) (*http.ServeMux, error) {
+	templates := utils.BaseTemplate()
+	// Serve the same pinned browser libraries locally to keep the browser offline.
+	for _, path := range []string{"web/templates/static/head.html", "web/templates/training-tasks/show.html"} {
+		source, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		localize := strings.NewReplacer(
+			"https://unpkg.com/htmx.org@1.9.12/dist/", "/test-assets/htmx/",
+			"https://unpkg.com/htmx.org@1.9.12", "/test-assets/htmx/htmx.min.js",
+			"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/", "/test-assets/highlight/",
+		)
+		_, err = templates.New(filepath.Base(path)).Parse(localize.Replace(string(source)))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	env := environment.NewEnv(repos, authService, templates, cfg)
+	files := service.NewLocalFileService(cfg.DataDirPath)
+	jalienService, ccdbService, monalisaService := fixtureServices()
+	mux := http.NewServeMux()
+	serveDirectory := func(prefix, directory string) http.Handler {
+		return http.StripPrefix(prefix, http.FileServer(http.Dir(directory)))
+	}
+	mux.Handle("GET /static/", serveDirectory("/static/", "static"))
+	mux.Handle("GET /docs/static/", serveDirectory("/docs/static/", cfg.DocsDirPath))
+	mux.Handle("GET /test-assets/htmx/", serveDirectory("/test-assets/htmx/", "node_modules/htmx.org/dist"))
+	mux.Handle("GET /test-assets/highlight/", serveDirectory("/test-assets/highlight/", "node_modules/@highlightjs/cdn-assets"))
+	mux.Handle("GET "+service.DataURLPrefix, middleware.Chain(
+		serveDirectory(service.DataURLPrefix, cfg.DataDirPath), middleware.NewAuthMw(authService, false)))
+	mux.HandleFunc("GET /login", authService.LoginHandler)
+	mux.HandleFunc("GET /callback", authService.CallbackHandler)
+
+	handler.InitLandingRoutes(mux, env)
+	handler.InitDocsRoutes(mux, env)
+	handler.InitTrainingDatasetRoutes(mux, env, jalienService, ccdbService, monalisaService, utils.NewCache(30*time.Minute))
+	handler.InitTrainingTaskRoutes(mux, env, ccdbService, monalisaService, files, service.NewNNArchService(cfg.NNArchPath))
+	hasher := service.NewArgon2Hasher()
+	handler.InitTrainingMachineRoutes(mux, env, hasher)
+	handler.InitQueueRoutes(mux, env, files, hasher)
+	return mux, nil
 }

@@ -1,10 +1,8 @@
 /// <reference types="cypress" />
 
 describe('Training Dataset Management', () => {
-    const baseUrl = 'http://localhost:8088/login';
-
     beforeEach(() => {
-        cy.visit(baseUrl);
+        cy.visit('/login');
     });
 
     const generateUniqueName = (prefix) => {
@@ -12,13 +10,20 @@ describe('Training Dataset Management', () => {
         return `${prefix}_${uuid}`;
     };
 
-    const selectFiles = (selectors) => {
-        selectors.forEach(selector => {
-            cy.get(selector).click();
-        });
+    const selectFiles = () => {
+        cy.contains('#file-tree button', 'Small fixture run').click();
+        cy.get('#tree-current-path').should('have.text', '/alice/sim/2024/LHC24f3/0/523397');
+        cy.get('#switch-to-find-button').click();
+
+        const rows = '#find-panel:visible [id="file-list"] li';
+        cy.get(rows).should('have.length', 8);
+        for (let i = 0; i < 5; i++) {
+            cy.get(rows).first().click();
+        }
+        cy.get('#selected-files li').should('have.length', 5);
     };
 
-    it('creates a dataset and remove it', () => {
+    it('creates and removes a dataset', () => {
         cy.get('main a')
             .contains('Create Training Dataset')
             .click();
@@ -26,24 +31,13 @@ describe('Training Dataset Management', () => {
         const testName = generateUniqueName('LHC24f3');
         cy.get('#train-dataset-name').type(testName);
 
-        cy.get('#find-aods-form input').type('/alice/sim/2024/LHC24f3/0/523397');
-        cy.get('#find-aods-form button').click();
-
-        cy.get('#file-list ul').children().its('length').should('be.gt', 0);
-
-        selectFiles([
-            '#file-list li:first-child',
-            '#file-list li:first-child',
-            '#file-list li:first-child',
-            '#file-list li:first-child',
-            '#file-list li:last-child'
-        ]);
+        selectFiles();
 
         cy.get('#submit-dataset-form button[type="submit"]')
             .contains('Submit')
             .click();
 
-        let datasetEntry = cy.get('#training-datasets-listing').children('div', testName).first()
+        const datasetEntry = cy.contains('#training-datasets-listing a', testName).closest('#training-datasets-listing > div')
         datasetEntry.should('exist')
         datasetEntry.within(() => cy.get('button').contains('Remove').click())
 
@@ -72,9 +66,9 @@ describe('Training Dataset Management', () => {
     });
 
     it('validation error for duplicated name', () => {
-        cy.get('#training-datasets-listing div div a div').first().invoke('text').then(name => {
+        cy.get('#training-datasets-listing > div > a').first().invoke('text').then(name => {
             let alreadyExisting = name
-            cy.wrap(alreadyExisting).as('alreadyExisting')
+            cy.wrap(alreadyExisting.trim()).as('alreadyExisting')
         })
         cy.get('main a')
             .contains('Create Training Dataset')
@@ -84,23 +78,12 @@ describe('Training Dataset Management', () => {
             cy.get('#train-dataset-name').type(alreadyExisting);
         })
 
-        cy.get('#find-aods-form input').type('/alice/sim/2024/LHC24f3/0/523397');
-        cy.get('#find-aods-form button').click();
-
-        cy.get('#file-list ul').children().its('length').should('be.gt', 0);
-
-        selectFiles([
-            '#file-list li:first-child',
-            '#file-list li:first-child',
-            '#file-list li:first-child',
-            '#file-list li:first-child',
-            '#file-list li:last-child'
-        ]);
+        selectFiles();
 
         cy.get('#submit-dataset-form button[type="submit"]')
             .contains('Submit')
             .click();
 
-        cy.get('#errors').invoke('text').should('eq', 'Name must be unique\n')
+        cy.get('#errors').should('contain.text', 'Name must be unique')
     });
 });
