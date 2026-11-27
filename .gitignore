@@ -5,3 +5,5 @@ data
 **/__debug*
 .vscode
 docker-for-azure/activate
+node_modules/
+artifacts/browser/

@@ -1,11 +1,9 @@
 /// <reference types="cypress" />
 
 describe('Training Tasks Management', () => {
-    const baseUrl = 'http://localhost:8088';
-
     beforeEach(() => {
-        cy.visit(`${baseUrl}/login`);
-        cy.visit(`${baseUrl}/training-tasks`);
+        cy.visit('/login');
+        cy.visit('/training-tasks');
     });
 
     const generateUniqueName = (prefix) => {
@@ -13,7 +11,7 @@ describe('Training Tasks Management', () => {
         return `${prefix}_${uuid}`;
     };
 
-    it('creates a task and remove it', () => {
+    it('creates a task', () => {
         cy.get('main a')
             .contains('Create Training Task')
             .click();
@@ -41,7 +39,7 @@ describe('Training Tasks Management', () => {
         cy.get('button[type="submit"]')
             .click();
 
-        cy.get('input').should(($input) => {
+        cy.get('input[name="name"]').should(($input) => {
             expect($input[0].checkValidity()).to.be.false;
             expect($input[0].validationMessage).to.contain('Please fill out this field.');
         });
@@ -50,7 +48,7 @@ describe('Training Tasks Management', () => {
     it('validation error for duplicated name', () => {
         cy.get('tbody tr').first().children().first().invoke('text').then(name => {
             let alreadyExisting = name
-            cy.wrap(alreadyExisting).as('alreadyExisting')
+            cy.wrap(alreadyExisting.trim()).as('alreadyExisting')
         })
 
         cy.get('main a')
@@ -63,6 +61,6 @@ describe('Training Tasks Management', () => {
         cy.get('select[name="trainingDatasetId"]').select('1');
         cy.get('button[type="submit"]').click();
 
-        cy.get('#errors').invoke('text').should('eq', 'Name must be unique\n')
+        cy.get('#errors').should('contain.text', 'Name must be unique')
     });
 });
