@@ -8,7 +8,7 @@ run:
 
 .PHONY: run-test
 run-test:
-	go run ./cmd/AliceTraINT_test
+	bash test/browser/run.sh serve
 
 .PHONY: lint
 lint:

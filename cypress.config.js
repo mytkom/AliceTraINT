@@ -1,7 +1,8 @@
 module.exports = {
+  video: true,
+  videosFolder: 'artifacts/browser/videos',
+  screenshotsFolder: 'artifacts/browser/screenshots',
   e2e: {
-    setupNodeEvents(on, config) {
-      // implement node event listeners here
-    },
+    supportFile: false,
   },
 };
