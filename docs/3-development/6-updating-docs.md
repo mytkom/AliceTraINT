@@ -71,15 +71,7 @@ flowchart LR
 ```
 ````
 
-- A diagram lives in the one page it belongs to; other pages link to that page.
-- It shows what is in the code when the page is written. A pull request that changes what a diagram shows updates the diagram.
-- Use the component names from these docs, such as web app, training module, training machine, GRID and JAliEn. Do not use "GUI", "Backend" or "Queue System".
-- Keep a diagram to about 15 nodes, and split a larger one.
-- Write at least one sentence before the diagram that says what to take from it, and set `accTitle` and `accDescr` for screen readers.
-- Do not set a theme or an `%%{init}%%` block. The look comes from the page.
-- Screenshots stay images; everything else is Mermaid.
-
-The database diagram on [Data model](/docs/data-model) shows every column except `created_at`, `updated_at` and `deleted_at`.
+Update a diagram in the same pull request as the code change that makes it outdated. Set `accTitle` and `accDescr` so screen readers can describe it, and do not set a theme: the look comes from the page.
 
 ## Checking a page
 
