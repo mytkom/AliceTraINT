@@ -6,21 +6,10 @@
     </div>
 
     <div class="flex flex-col gap-2">
-        {{ if .Docs }}
-        <ul class="list-disc list-inside space-y-1">
-            {{ range .Docs }}
-            <li>
-                <a href="/docs/{{ .Slug }}" class="text-sky-900 hover:text-sky-700 dark:text-sky-200 dark:hover:text-sky-100 underline">
-                    {{ .Title }}
-                </a>
-            </li>
-            {{ end }}
-        </ul>
-        {{ else }}
         <p class="text-gray-600 dark:text-gray-300">
-            No documentation pages found. Add <code>.md</code> files to the configured docs directory to get started.
+            No documentation pages found. Add pages in numbered group folders of the configured docs directory,
+            for example <code>docs/1-user-guide/1-getting-started.md</code>.
         </p>
-        {{ end }}
     </div>
 </div>
 {{ template "footer" . }}
