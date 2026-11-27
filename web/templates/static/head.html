@@ -1,4 +1,9 @@
 {{ define "head" }}
+{{ template "head-start" . }}
+{{ template "head-end" . }}
+{{ end }}
+
+{{ define "head-start" }}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -21,6 +26,9 @@
             document.documentElement.dataset.theme = theme;
         })();
     </script>
+{{ end }}
+
+{{ define "head-end" }}
     <link href="/static/css/output.css" rel="stylesheet" />
     <link href="/static/css/app.css" rel="stylesheet" />
     <link href="/static/img/favicon/favicon.ico" rel="icon" type="image/x-icon">

@@ -1,5 +1,8 @@
 {{ define "header" }}
-{{ template "head" . }}
+{{ template "head-start" . }}
+    <link rel="preload" href="/static/fonts/instrument-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+{{ template "head-end" . }}
 <body class="app-shell">
     <div class="font-bold flex flex-col min-h-screen">
         <header class="app-header">
