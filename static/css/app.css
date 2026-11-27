@@ -393,22 +393,10 @@
 }
 
 .landing {
-    --plot-secondary: #386c64;
     width: min(75rem, 100%);
     margin-inline: auto;
     padding: clamp(24px, 5.5vw, 64px) clamp(14px, 4.5vw, 54px) clamp(23px, 4vw, 46px);
     font-weight: 400;
-}
-
-[data-theme="dark"] .landing {
-    --plot-secondary: #8ad7c9;
-}
-
-.landing-hero {
-    display: grid;
-    grid-template-columns: minmax(0, .94fr) minmax(0, 1fr);
-    align-items: center;
-    gap: clamp(18px, 4.5vw, 54px);
 }
 
 .landing-context {
@@ -467,102 +455,6 @@
 .docs-layout :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
-}
-
-.landing-sample {
-    min-width: 0;
-    padding: 15px;
-    border: 1px solid var(--rule);
-    border-radius: var(--radius);
-    background: var(--panel);
-}
-
-.landing-sample-head,
-.landing-sample-meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: start;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.landing-sample-head h2 {
-    font-size: 1.35rem;
-    font-weight: 650;
-    letter-spacing: -.025em;
-}
-
-.landing-sample .task-status {
-    font-size: .875rem;
-}
-
-.landing-plot {
-    margin-top: 11px;
-    padding: 9px;
-    border: 1px solid var(--rule);
-    border-radius: var(--radius);
-    background: var(--surface);
-}
-
-.landing-plot h3 {
-    font-size: .875rem;
-    font-weight: 650;
-}
-
-.landing-plot svg {
-    display: block;
-    width: 100%;
-    height: auto;
-}
-
-.landing-plot-grid {
-    stroke: var(--rule);
-}
-
-.landing-plot-labels {
-    fill: var(--muted);
-    font-size: 12px;
-}
-
-.landing-training,
-.landing-validation {
-    fill: none;
-    stroke: var(--accent);
-    stroke-width: 2.2;
-}
-
-.landing-validation {
-    stroke: var(--plot-secondary);
-    stroke-dasharray: 5 3;
-}
-
-.landing-plot-key {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 13px;
-}
-
-.landing-plot-key,
-.landing-sample-meta {
-    color: var(--muted);
-    font-size: .875rem;
-}
-
-.landing-plot-key span::before {
-    display: inline-block;
-    width: 13px;
-    margin-right: 4px;
-    border-top: 2px solid var(--accent);
-    vertical-align: middle;
-    content: "";
-}
-
-.landing-plot-key span:last-child::before {
-    border-top: 2px dashed var(--plot-secondary);
-}
-
-.landing-sample-meta {
-    margin-top: 10px;
 }
 
 .landing-workflow {
@@ -728,16 +620,11 @@
 }
 
 @media (max-width: 680px) {
-    .landing-hero,
     .landing-workflow {
         grid-template-columns: minmax(0, 1fr);
     }
 
     .landing h1 {
         max-width: 17ch;
-    }
-
-    .landing-sample {
-        padding: 12px;
     }
 }

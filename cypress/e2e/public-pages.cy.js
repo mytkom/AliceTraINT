@@ -4,7 +4,7 @@ describe('Public landing and documentation', () => {
     it('signs in through the fixture SSO and redirects signed-in visitors from home', () => {
         cy.visit('/', { onBeforeLoad: setLightTheme });
         cy.contains('h1', 'Train and review PID models').should('be.visible');
-        cy.get('[aria-label="Example training task"]').should('contain.text', 'Completed');
+        cy.contains('Example training task').should('not.exist');
         cy.contains('a', 'Sign in with CERN SSO').should('have.attr', 'href', '/login').click();
         cy.location('pathname').should('eq', '/training-datasets');
         cy.visit('/');
