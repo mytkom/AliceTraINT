@@ -1,102 +1,75 @@
-# Getting Started
+# Getting started
 
-## Who can use AliceTraINT
+AliceTraINT trains machine-learning models for particle identification (PIDML) in ALICE. You choose simulated AOD files, queue a training task, and a training machine prepares the data, trains the models and sends back plots and ONNX files that you can upload to CCDB.
 
-To use this application you need a CERN account and you must log in through CERN SSO.  
-Your account also has to be a member of the `wut-alice-pidml` group.
+## Access
 
-## What AliceTraINT is for
+You need a CERN account that is a member of the `wut-alice-pidml` e-group. Click **Login with CERN SSO** on the landing page; the e-group membership is checked there.
 
-AliceTraINT is a simple web application that helps the ALICE WUT team manage training runs
-for PID (Particle Identification) machine‑learning models.
+These docs are readable without logging in.
 
-In one place you can:
+## How it works
 
-- create training datasets from AOD files chosen in JAliEn,
-- create and queue training tasks that will run on external machines (clusters, servers),
-- keep logs, evaluation metrics and plots together with the exact dataset and config,
-- browse the full history of training runs and share results with others.
+A training run passes through four places: the GRID, where the AOD files are; the web app, where you choose them and review results; a training machine, which does the work; and CCDB, from which O2Physics analyses read the trained models. The steps from the PIDML producer to training run in the training module on the training machine.
 
-## How it works (high level)
+```mermaid
+flowchart TB
+  accTitle: PIDML workflow
+  accDescr: A training dataset lists AOD files on the GRID. A training module downloads them, runs the PIDML producer, subsamples the output into the dataset cache and trains the models. The plots and ONNX models are reviewed in the web app and uploaded to CCDB, valid for the runs of the anchored production, where O2Physics analyses read them.
 
-1. You log in to the web app from any device (desktop or mobile).
-2. You create a **dataset** and then a **training task** in the UI.
-3. A separate **training machine** runs the training module and regularly asks the web app:
-   “Is there a job for me?”
-4. When a job is available, the training machine:
-   - downloads all dataset files,
-   - prepares the dataset using the O2Physics task,
-   - trains the model,
-   - evaluates it and uploads logs, plots and metrics back to the web app.
-5. The web app shows the status of the task at every stage and lets you review results.
-6. When you are happy with the model, you can upload it to the production CCDB for use
-   in O2Physics tasks with a single click.
+  dataset[Training dataset in the web app]
+  grid[(GRID)]
+  producer[PIDML producer]
+  subsample[Subsampling]
+  cache@{ shape: docs, label: "Dataset cache" }
+  train[Training]
+  results[Plots and ONNX models in the web app]
+  ccdb["CCDB → O2Physics analyses"]
 
-The code is open source:
+  dataset -->|file list| producer
+  grid -->|AOD files| producer
+  producer --> subsample --> cache --> train --> results
+  results -->|upload, valid for the anchored runs| ccdb
+```
 
-- [AliceTraINT web app](https://github.com/mytkom/AliceTraINT)
-- [AliceTraINT training module](https://github.com/mytkom/AliceTraINT_pidml_training_module)
+A training dataset is a fixed list of simulated AOD files. A training task trains one configuration on one dataset; it waits in a queue until a registered training machine takes it. The training module on that machine prepares the dataset, trains one model per particle and uploads the results. You then review the plots and upload the models to CCDB.
 
-## Creating a dataset
+## Your first run
 
-1. Go to the **Datasets** section.
-2. Click **Create Training Dataset**. You will see a view similar to this:
+This example trains models with the default settings on a small dataset: six files of the LHC26e9 production, two from each of three runs. It follows the task `lhc26e9_task0` on the dataset `26e9_test`.
 
-   ![Create dataset view](/docs/static/1-user-guide/1-getting-started/training-task-new.png)
+1. Open **Datasets** and click **Create Training Dataset**. In the directory list, open `/alice/sim/2026/LHC26e9/`. Under **Choose random subset**, set **Run count** to 3 and **Files per run** to 2, keep the minimum file size and click **Select Random Subset** ([Training datasets](/docs/training-datasets)).
 
-   On the left there is the ALICE file browser. On the right you will see AOD files
-   found under the selected directory (initially it is empty).
+   ![Choose random subset with Run count 3, Files per run 2 and the directory /alice/sim/2026/LHC26e9/ open](/docs/static/1-user-guide/1-getting-started/dataset-random-subset.png)
 
-3. AOD files are usually nested in many directories, so manually browsing the full tree
-   would be slow. Instead:
-   - navigate to the directory that represents your data taking period or run, then
-   - click **Find AO2Ds** above the explorer.
+   The six selected files appear under **Selected files**. Enter the name `26e9_test`.
 
-   The application will search for AODs in the current directory and show them on the right:
+   ![New dataset page with six files of LHC26e9 selected, in light mode on the left and dark mode on the right](/docs/static/1-user-guide/1-getting-started/dataset-new.png)
 
-   ![Create dataset after finding AO2Ds](/docs/static/1-user-guide/1-getting-started/training-task-new-2.png)
+   The app follows the colour mode of your system; the picture shows both.
 
-4. Click on an AOD file to add it to your dataset. Selected files appear in the list below.
-   You can:
-   - pick AODs from different directories (e.g. different LHC periods or runs),
-   - remove a file from the selection by clicking it again in the selected list.
+2. Click **Submit**. After the lookup in MonALISA and CCDB, the dataset appears in the list.
 
-   ![Create dataset with AO2Ds and title](/docs/static/1-user-guide/1-getting-started/training-task-new-3.png)
+   ![Datasets list with 26e9_test, 6 files, 18.92 GB](/docs/static/1-user-guide/1-getting-started/datasets.png)
 
-5. When you are satisfied with the selection:
-   - enter a **title** for the dataset,
-   - make sure at least one AOD is selected,
-   - click **Submit**.
+3. Open **Tasks** and click **Create Training Task**. Enter the name `lhc26e9_task0`, choose `26e9_test` and keep the default configuration. Click **Submit**; the task is Queued.
 
-   The title must be unique in the whole application.
+   ![Task form with the name lhc26e9_task0 and the dataset 26e9_test](/docs/static/1-user-guide/1-getting-started/task-new.png)
 
+4. Wait until a training machine takes the task. Its status changes to Training, then Benchmarking and finally Completed.
 
-## Queueing a training task
+   ![Tasks list with lhc26e9_task0 in status Training](/docs/static/1-user-guide/1-getting-started/tasks-training.png)
 
-This part of the documentation will be updated after the new training module and its
-configuration are finalized.
+5. Open the task. The page shows the plots, the six ONNX files and the logs of each step ([Results and CCDB upload](/docs/results-and-ccdb-upload)).
 
-## Registering a new training machine
+   ![Task page of lhc26e9_task0 with status Completed and the plot gallery](/docs/static/1-user-guide/1-getting-started/task-page.png)
 
-To register a new training machine:
+The next step of a real run is uploading the models to CCDB, which this example leaves out.
 
-1. Go to the **Training Machines** section.
+## Where to go next
 
-   ![Training machines listing](/docs/static/1-user-guide/1-getting-started/register-machine-0.png)
+- Machine owners: [Setting up a training machine](/docs/setting-up-a-training-machine).
+- Developers: [Architecture](/docs/architecture) and [Local development](/docs/local-development).
+- Operators: [Configuration](/docs/configuration).
 
-2. Click **Register Training Machine**.
-
-   ![Training machine name form](/docs/static/1-user-guide/1-getting-started/register-machine-1.png)
-
-3. Fill in the **name** of the machine and submit the form. The application will show:
-   - the **machine ID**,
-   - the **secret key**.
-
-   ![Training machine ID and secret key](/docs/static/1-user-guide/1-getting-started/register-machine-2.png)
-
-4. Copy these values and configure your training module:
-   - set `MACHINE_ID` and `MACHINE_SECRET_KEY` in the `.env` file or as environment variables,
-   - make sure `ALICETRAINT_BASE_URL` points to `https://alicetraint.app.cern.ch`
-     in the training environment.
-
-After that, the training machine can securely request jobs from the web app and run them. 
+The code is open source: the [web app](https://github.com/mytkom/AliceTraINT) and the [training module](https://github.com/mytkom/AliceTraINT_pidml_training_module).
