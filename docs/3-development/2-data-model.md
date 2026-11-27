@@ -41,6 +41,7 @@ erDiagram
     varchar name "unique per dataset"
     smallint status
     text configuration "JSON"
+    bigint subsample_event_count
     bigint user_id FK
     bigint training_dataset_id FK
     bigint training_machine_id FK "null until assigned"
@@ -72,7 +73,7 @@ erDiagram
 
 `training_datasets` have a name that is unique across all users. `is_o_ne` is true when the MonALISA description of one of the dataset's periods mentions O-O or Ne-Ne. The two `anchor_prod_timestamp_…` columns hold the time range of the anchored production's runs, looked up in MonALISA and CCDB when the dataset is created; they become the validity period of ONNX models uploaded to CCDB.
 
-`training_tasks` have a name that is unique within their dataset. `status` is a number from 0 to 5; the statuses and their order are described on the Training tasks page. A new task is Queued and has no machine. When a training module asks for work, the oldest queued task is assigned to its machine by setting `training_machine_id`.
+`training_tasks` have a name that is unique within their dataset. `status` is a number from 0 to 5; the statuses and their order are described on the Training tasks page. A new task is Queued and has no machine. When a training module asks for work, the oldest queued task is assigned to its machine by setting `training_machine_id`. `subsample_event_count` is the number of events the dataset is subsampled to, from **Use subsample** on the task form; 0 means the box was not ticked, which the training module currently refuses.
 
 `training_machines` store only an Argon2 hash of the secret key, so the key is shown once, when the machine is registered. `last_activity_at` is updated on every request the machine makes.
 
