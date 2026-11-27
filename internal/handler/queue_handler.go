@@ -101,17 +101,19 @@ func (qh *QueueHandler) QueryTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := struct {
-		ID            uint
-		AODFiles      []jalien.AODFile
-		IsONe         bool
-		IsData        bool
-		Configuration interface{}
+		ID                  uint
+		AODFiles            []jalien.AODFile
+		IsONe               bool
+		IsData              bool
+		SubsampleEventCount uint
+		Configuration       interface{}
 	}{
-		ID:            tt.ID,
-		AODFiles:      tt.TrainingDataset.AODFiles,
-		IsONe:         tt.TrainingDataset.IsONe,
-		IsData:        false, // For now we don't use any real experimental data (simulated data only).
-		Configuration: tt.Configuration,
+		ID:                  tt.ID,
+		AODFiles:            tt.TrainingDataset.AODFiles,
+		IsONe:               tt.TrainingDataset.IsONe,
+		IsData:              false, // For now we don't use any real experimental data (simulated data only).
+		SubsampleEventCount: tt.SubsampleEventCount,
+		Configuration:       tt.Configuration,
 	}
 
 	w.WriteHeader(http.StatusOK)

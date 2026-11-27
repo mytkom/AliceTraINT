@@ -82,6 +82,8 @@ func (s TrainingTaskStatus) Color() string {
 	}
 }
 
+const DefaultSubsampleEventCount uint = 400000
+
 type TrainingTask struct {
 	gorm.Model
 	Name                string             `gorm:"type:varchar(255);not null;uniqueIndex:idx_unique_name_for_dataset;index"`
@@ -94,4 +96,5 @@ type TrainingTask struct {
 	TrainingMachineId   *uint
 	TrainingMachine     TrainingMachine
 	Configuration       interface{} `gorm:"serializer:json"`
+	SubsampleEventCount uint
 }
