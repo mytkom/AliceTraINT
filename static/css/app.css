@@ -203,7 +203,10 @@ html:has(> .app-shell) {
     gap: 10px;
 }
 
-.task-list-heading h1 {
+.task-list-heading h1,
+.docs-article h1,
+.docs-empty h1,
+.task-config-title {
     font-size: clamp(1.65rem, 3.6vw, 2.15rem);
     font-weight: 650;
     line-height: 1.13;
@@ -408,11 +411,6 @@ html:has(> .app-shell) {
     }
 }
 
-.public-page .app-nav a,
-.public-page .app-tools button {
-    font-size: 1rem;
-}
-
 .app-nav .app-sign-in {
     border: 1px solid #6683a8;
 }
@@ -604,14 +602,7 @@ html:has(> .app-shell) {
 }
 
 .docs-article {
-    font-size: 1.1875rem;
-}
-
-.docs-article h1,
-.docs-empty h1 {
-    font-size: clamp(1.8rem, 4vw, 2.65rem);
-    font-weight: 650;
-    letter-spacing: -.025em;
+    font-size: inherit;
 }
 
 .docs-empty {
@@ -646,10 +637,6 @@ html:has(> .app-shell) {
     .docs-navigation-toggle[data-ready][aria-expanded="false"] + .docs-navigation {
         display: none;
     }
-
-    .docs-article {
-        font-size: 1.0625rem;
-    }
 }
 
 @media (max-width: 680px) {
@@ -666,5 +653,142 @@ html:has(> .app-shell) {
 
     .landing h1 {
         max-width: 17ch;
+    }
+}
+
+.task-config {
+    display: grid;
+    gap: 16px;
+    padding-block: 24px;
+    font-weight: 400;
+}
+
+.task-config h3,
+.task-config summary {
+    font-size: 1.125rem;
+    font-weight: 650;
+}
+
+.task-config-basic,
+#nn-config-groups > .task-config-group {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+}
+
+.task-config-basic {
+    padding: 16px;
+}
+
+#nn-config-groups {
+    display: grid;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.task-config summary {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-radius: var(--radius);
+}
+
+.task-config summary::marker {
+    color: var(--accent);
+}
+
+.task-config-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 18px;
+}
+
+.task-config-basic > .task-config-fields {
+    margin-top: 12px;
+}
+
+.task-config-group > .task-config-fields {
+    padding: 4px 16px 16px;
+}
+
+.task-config-group > .task-config-group {
+    margin: 0 16px 12px;
+    border-inline-start: 2px solid var(--rule);
+}
+
+.task-config-group > .task-config-group > summary {
+    font-size: 1rem;
+}
+
+.task-config-control {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.task-config label,
+.task-config-label {
+    font-size: .875rem;
+    font-weight: 650;
+}
+
+.task-config input:not([type="checkbox"]),
+.task-config select {
+    width: 100%;
+    min-width: 0;
+    background-color: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+}
+
+.task-config input[type="checkbox"] {
+    appearance: auto;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+}
+
+.task-config-help {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: .875rem;
+}
+
+.task-config-range {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 7px;
+}
+
+.task-config-submit {
+    justify-self: end;
+    background: var(--accent);
+    color: var(--on-accent);
+    border-radius: var(--radius);
+    padding: 8px 16px;
+    font-weight: 650;
+}
+
+.task-config-errors:empty {
+    display: none;
+}
+
+.task-config-errors {
+    background: var(--failed);
+    color: var(--failed-ink);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+}
+
+.task-config :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+    .task-config-fields {
+        grid-template-columns: minmax(0, 1fr);
     }
 }

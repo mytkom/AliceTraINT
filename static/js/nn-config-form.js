@@ -189,6 +189,14 @@
             }
             refreshShowWhen(form);
         });
+        form.addEventListener('invalid', function (event) {
+            // Reveal the field before the browser tries to focus it.
+            let group = event.target.closest('details.task-config-group');
+            while (group) {
+                group.open = true;
+                group = group.parentElement.closest('details.task-config-group');
+            }
+        }, true);
         form.addEventListener('submit', function () {
             form.querySelectorAll('input[type="checkbox"][data-bool-target]').forEach(function (checkbox) {
                 if (window.AliceTraINTForm) {
