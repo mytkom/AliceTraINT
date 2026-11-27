@@ -50,7 +50,7 @@ When a task fails, the last log uploaded belongs to the step that failed. Its er
 
 ## Uploading to CCDB
 
-**Upload to CCDB** appears under the ONNX files once the task is Completed. Click it and confirm, and AliceTraINT uploads all six models to CCDB under the path the operator configured (see [Configuration](/docs/configuration#sec-ccdb)). The task's status then changes to Uploaded.
+**Upload to CCDB** appears under the ONNX files once the task is Completed ([Task statuses](/docs/training-tasks#sec-task-statuses)). Click it and confirm, and AliceTraINT uploads all six models to CCDB under the path the operator configured (see [Configuration](/docs/configuration#sec-ccdb)). The task's status then changes to Uploaded.
 
 On an uploaded task the button reads **Reupload to CCDB** and uploads the six models again, with the same validity period.
 
