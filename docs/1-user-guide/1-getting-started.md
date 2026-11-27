@@ -38,7 +38,11 @@ A training dataset is a fixed list of simulated AOD files. A training task train
 
 This example trains models with the default settings on a small dataset: six files of the LHC26e9 production, two from each of three runs. It follows the task `lhc26e9_task0` on the dataset `26e9_test`.
 
-1. Open **Datasets** and click **Create Training Dataset**. In the directory list, open `/alice/sim/2026/LHC26e9/`. Under **Choose random subset**, set **Run count** to 3 and **Files per run** to 2, keep the minimum file size and click **Select Random Subset** ([Training datasets](/docs/training-datasets)). The six selected files appear under **Selected files**. Enter the name `26e9_test`.
+1. Open **Datasets** and click **Create Training Dataset**. In the directory list, open `/alice/sim/2026/LHC26e9/`. Under **Choose random subset**, set **Run count** to 3 and **Files per run** to 2, keep the minimum file size and click **Select Random Subset** ([Training datasets](/docs/training-datasets)).
+
+   ![Choose random subset with Run count 3, Files per run 2 and the directory /alice/sim/2026/LHC26e9/ open](/docs/static/1-user-guide/1-getting-started/dataset-random-subset.png)
+
+   The six selected files appear under **Selected files**. Enter the name `26e9_test`.
 
    ![New dataset page with six files of LHC26e9 selected, in light mode on the left and dark mode on the right](/docs/static/1-user-guide/1-getting-started/dataset-new.png)
 

@@ -8,6 +8,8 @@ To create a dataset, open **Datasets** and click **Create Training Dataset**. Th
 
 Use **Choose random subset** on the right when the dataset should cover several runs. Enter the settings below and click **Select Random Subset**.
 
+![Choose random subset with Run count 3 and Files per run 2 for the production LHC26e9](/docs/static/1-user-guide/2-training-datasets/random-subset.png)
+
 | Setting | Default | Meaning |
 |---|---|---|
 | Run count | 10 | Number of runs to include |
