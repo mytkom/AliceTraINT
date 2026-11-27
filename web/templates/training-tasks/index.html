@@ -17,8 +17,14 @@
                 {{ end }}
             </select>
         </label>
-        <label>Created from (UTC) <input type="date" name="from" value="{{ .Params.Get "from" }}"></label>
-        <label>Created through (UTC) <input type="date" name="to" value="{{ .Params.Get "to" }}"></label>
+        <label>Created from (UTC)
+            <input type="text" name="from" placeholder="DD/MM/YYYY" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}"
+                   title="Use DD/MM/YYYY" maxlength="10" value="{{ .Params.Get "from" }}">
+        </label>
+        <label>Created through (UTC)
+            <input type="text" name="to" placeholder="DD/MM/YYYY" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}"
+                   title="Use DD/MM/YYYY" maxlength="10" value="{{ .Params.Get "to" }}">
+        </label>
         <label>Sort by
             <select name="sort">
                 {{ range .SortOptions }}

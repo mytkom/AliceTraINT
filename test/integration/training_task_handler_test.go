@@ -184,7 +184,7 @@ func TestTrainingTaskListQuery(t *testing.T) {
 	assert.Empty(t, empty.Tasks)
 	assert.False(t, empty.HasNext)
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("/training-tasks/list?name=TASK_%%25&owner=%d&status=0&from=2024-11-20&to=2024-11-20&sort=oldest&dataset=%d&page=2", owner.ID, dataset.ID), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("/training-tasks/list?name=TASK_%%25&owner=%d&status=0&from=20/11/2024&to=2024-11-20&sort=oldest&dataset=%d&page=2", owner.ID, dataset.ID), nil)
 	require.NoError(t, err)
 	HTMXReq(req)
 	rr := addSessionCookie(t, ut.Auth, req, owner.ID)
@@ -194,6 +194,8 @@ func TestTrainingTaskListQuery(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), ">Task_% 25<")
 	assert.Contains(t, rr.Body.String(), ">Task_% 26<")
 	assert.Contains(t, rr.Body.String(), `rel="prev"`)
+	assert.Contains(t, rr.Body.String(), `from=20%2F11%2F2024`)
+	assert.Contains(t, rr.Body.String(), `to=20%2F11%2F2024`)
 	assert.NotContains(t, rr.Body.String(), `rel="next"`)
 }
 

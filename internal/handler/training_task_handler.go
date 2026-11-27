@@ -43,6 +43,20 @@ var taskListSortOptions = []taskListOption{
 	{"name-desc", "Name (Z–A)"},
 }
 
+const taskListDateFormat = "02/01/2006"
+
+func parseTaskListDate(params url.Values, key string) time.Time {
+	value := params.Get(key)
+	for _, layout := range []string{taskListDateFormat, time.DateOnly} {
+		if date, err := time.Parse(layout, value); err == nil {
+			params.Set(key, date.Format(taskListDateFormat))
+			return date
+		}
+	}
+	params.Del(key)
+	return time.Time{}
+}
+
 func taskListFilters(r *http.Request) (repository.TrainingTaskListQuery, url.Values, []taskListOption) {
 	values := r.URL.Query()
 	params := url.Values{}
@@ -90,15 +104,9 @@ func taskListFilters(r *http.Request) (repository.TrainingTaskListQuery, url.Val
 	if query.Status == nil {
 		params.Del("status")
 	}
-	if from, err := time.Parse(time.DateOnly, params.Get("from")); err == nil {
-		query.CreatedFrom = from
-	} else {
-		params.Del("from")
-	}
-	if to, err := time.Parse(time.DateOnly, params.Get("to")); err == nil {
+	query.CreatedFrom = parseTaskListDate(params, "from")
+	if to := parseTaskListDate(params, "to"); !to.IsZero() {
 		query.CreatedBefore = to.AddDate(0, 0, 1)
-	} else {
-		params.Del("to")
 	}
 	return query, params, statuses
 }

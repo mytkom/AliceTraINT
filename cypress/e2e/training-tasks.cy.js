@@ -152,6 +152,8 @@ describe('Training Tasks Management', () => {
         cy.get('.task-list-filters [name="name"]').type('PAGING fixture');
         cy.get('.task-list-filters [name="status"]').select('Completed');
         cy.get('.task-list-filters [name="sort"]').select('Oldest first');
+        cy.get('[name="from"]').type('20/11/2024');
+        cy.get('[name="to"]').type('20/11/2024');
         cy.get('#task-dataset-value').click();
         cy.contains('#task-dataset-choices button', 'Mixed periods 2023').click();
         cy.contains('button', 'Apply').click();
@@ -171,6 +173,9 @@ describe('Training Tasks Management', () => {
         cy.get('.task-list-filters [name="name"]').should('have.value', 'PAGING fixture');
         cy.get('.task-list-filters [name="status"]').should('have.value', '4');
         cy.get('.task-list-filters [name="sort"]').should('have.value', 'oldest');
+        cy.get('[name="from"]').should('have.value', '20/11/2024');
+        cy.get('[name="to"]').should('have.value', '20/11/2024');
+        cy.get('.task-list tbody time').first().should('contain.text', '20/11/2024');
         cy.go('back');
         cy.get('.task-name').first().should('have.text', 'Paging fixture 0001');
         cy.go('forward');
