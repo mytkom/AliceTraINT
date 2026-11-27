@@ -203,7 +203,10 @@ html:has(> .app-shell) {
     gap: 10px;
 }
 
-.task-list-heading h1 {
+.task-list-heading h1,
+.docs-article h1,
+.docs-empty h1,
+.task-config-title {
     font-size: clamp(1.65rem, 3.6vw, 2.15rem);
     font-weight: 650;
     line-height: 1.13;
@@ -408,11 +411,6 @@ html:has(> .app-shell) {
     }
 }
 
-.public-page .app-nav a,
-.public-page .app-tools button {
-    font-size: 1rem;
-}
-
 .app-nav .app-sign-in {
     border: 1px solid #6683a8;
 }
@@ -607,13 +605,6 @@ html:has(> .app-shell) {
     font-size: inherit;
 }
 
-.docs-article h1,
-.docs-empty h1 {
-    font-size: clamp(1.8rem, 4vw, 2.65rem);
-    font-weight: 650;
-    letter-spacing: -.025em;
-}
-
 .docs-empty {
     margin: 18px auto;
 }
@@ -670,12 +661,6 @@ html:has(> .app-shell) {
     gap: 16px;
     padding-block: 24px;
     font-weight: 400;
-}
-
-.task-config-title {
-    font-size: clamp(1.65rem, 3.6vw, 2.15rem);
-    font-weight: 650;
-    line-height: 1.15;
 }
 
 .task-config h3,
