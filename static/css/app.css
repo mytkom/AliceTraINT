@@ -388,6 +388,21 @@
     }
 }
 
+.app-shell:has(.landing, .docs-layout, .docs-empty) .app-bar {
+    max-width: 82rem;
+}
+
+.app-shell:has(.landing, .docs-layout, .docs-empty) .app-nav a,
+.app-shell:has(.landing, .docs-layout, .docs-empty) .app-tools button {
+    font-size: 1rem;
+}
+
+@media (min-width: 681px) {
+    .app-shell:has(.landing, .docs-layout, .docs-empty) .app-bar {
+        padding-inline: clamp(24px, 4vw, 48px);
+    }
+}
+
 .app-nav .app-sign-in {
     border: 1px solid #6683a8;
 }
@@ -407,7 +422,7 @@
 
 .landing-context {
     color: var(--muted);
-    font-size: .875rem;
+    font-size: 1rem;
     font-weight: 650;
     letter-spacing: .035em;
 }
@@ -424,7 +439,7 @@
 .landing-lede {
     max-width: 45ch;
     color: var(--muted);
-    font-size: clamp(1rem, 1.55vw, 1.2rem);
+    font-size: clamp(1.0625rem, 1.7vw, 1.25rem);
 }
 
 .landing-actions {
@@ -473,14 +488,14 @@
 }
 
 .landing-workflow h2 {
-    font-size: 1.06rem;
+    font-size: 1.1875rem;
     font-weight: 650;
 }
 
 .landing-workflow p {
     margin-top: 3px;
     color: var(--muted);
-    font-size: .9375rem;
+    font-size: 1.0625rem;
 }
 
 #main-content-container:has(> .docs-layout, > .docs-empty) {
@@ -502,6 +517,7 @@
     max-height: calc(100vh - 32px);
     overflow: auto;
     padding: 12px;
+    font-size: 1rem;
 }
 
 .docs-sidebar,
@@ -527,7 +543,7 @@
 .docs-navigation-heading {
     padding: 4px 8px;
     color: var(--muted);
-    font-size: .875rem;
+    font-size: 1rem;
     font-weight: 650;
 }
 
@@ -583,6 +599,10 @@
     overflow-wrap: anywhere;
 }
 
+.docs-article {
+    font-size: 1.1875rem;
+}
+
 .docs-article h1,
 .docs-empty h1 {
     font-size: clamp(1.8rem, 4vw, 2.65rem);
@@ -625,7 +645,7 @@
     }
 
     .docs-article {
-        font-size: 1rem;
+        font-size: 1.0625rem;
     }
 }
 
