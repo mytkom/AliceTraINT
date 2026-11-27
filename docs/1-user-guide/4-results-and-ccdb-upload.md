@@ -23,6 +23,8 @@ The plots of every particle have the same file names, so the title inside a plot
 
 **ONNX Files** lists one model per particle, six in total. Click **Download** to save a model.
 
+![ONNX Files with six models and Upload to CCDB, and Log Files with two logs for each step](/docs/static/1-user-guide/4-results-and-ccdb-upload/onnx-and-logs.png)
+
 | File | Particle | Name in CCDB |
 |---|---|---|
 | `pion.onnx` | π⁺ | `simple_model_211` |

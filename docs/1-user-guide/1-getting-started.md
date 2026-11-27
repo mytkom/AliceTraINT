@@ -38,13 +38,27 @@ A training dataset is a fixed list of simulated AOD files. A training task train
 
 This example trains models with the default settings on a small dataset: six files of the LHC26e9 production, two from each of three runs. It follows the task `lhc26e9_task0` on the dataset `26e9_test`.
 
-1. Open **Datasets** and click **Create Training Dataset**. In the directory list, open `/alice/sim/2026/LHC26e9/`. Under **Choose random subset**, set **Run count** to 3 and **Files per run** to 2, keep the minimum file size and click **Select Random Subset** ([Training datasets](/docs/training-datasets)).
-2. Enter the name `26e9_test` and click **Submit**.
+1. Open **Datasets** and click **Create Training Dataset**. In the directory list, open `/alice/sim/2026/LHC26e9/`. Under **Choose random subset**, set **Run count** to 3 and **Files per run** to 2, keep the minimum file size and click **Select Random Subset** ([Training datasets](/docs/training-datasets)). The six selected files appear under **Selected files**. Enter the name `26e9_test`.
+
+   ![New dataset page with six files of LHC26e9 selected, in light mode on the left and dark mode on the right](/docs/static/1-user-guide/1-getting-started/dataset-new.png)
+
+   The app follows the colour mode of your system; the picture shows both.
+
+2. Click **Submit**. After the lookup in MonALISA and CCDB, the dataset appears in the list.
+
+   ![Datasets list with 26e9_test, 6 files, 18.92 GB](/docs/static/1-user-guide/1-getting-started/datasets.png)
+
 3. Open **Tasks** and click **Create Training Task**. Enter the name `lhc26e9_task0`, choose `26e9_test` and keep the default configuration. Click **Submit**; the task is Queued.
+
+   ![Task form with the name lhc26e9_task0 and the dataset 26e9_test](/docs/static/1-user-guide/1-getting-started/task-new.png)
+
 4. Wait until a training machine takes the task. Its status changes to Training, then Benchmarking and finally Completed.
+
+   ![Tasks list with lhc26e9_task0 in status Training](/docs/static/1-user-guide/1-getting-started/tasks-training.png)
+
 5. Open the task. The page shows the plots, the six ONNX files and the logs of each step ([Results and CCDB upload](/docs/results-and-ccdb-upload)).
 
-![Task page of lhc26e9_task0 with status Completed and the plot gallery](/docs/static/1-user-guide/1-getting-started/task-page.png)
+   ![Task page of lhc26e9_task0 with status Completed and the plot gallery](/docs/static/1-user-guide/1-getting-started/task-page.png)
 
 The next step of a real run is uploading the models to CCDB, which this example leaves out.
 
