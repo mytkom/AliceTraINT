@@ -438,6 +438,10 @@ html:has(> .app-shell) {
     font-weight: 700;
 }
 
+.searchable-select-error {
+    color: var(--failed-ink);
+}
+
 .searchable-select [role="status"]:empty {
     display: none;
 }
@@ -857,7 +861,7 @@ html:has(> .app-shell) {
 }
 
 .task-config h3,
-.task-config summary {
+.task-config-group > summary {
     font-size: 1.125rem;
     font-weight: 650;
 }
@@ -879,13 +883,13 @@ html:has(> .app-shell) {
     margin-top: 8px;
 }
 
-.task-config summary {
+.task-config-group > summary {
     padding: 12px 16px;
     cursor: pointer;
     border-radius: var(--radius);
 }
 
-.task-config summary::marker {
+.task-config-group > summary::marker {
     color: var(--accent);
 }
 
@@ -919,6 +923,7 @@ html:has(> .app-shell) {
 }
 
 .task-config label,
+.task-config .searchable-select-label,
 .task-config-label {
     font-size: .875rem;
     font-weight: 650;
@@ -933,6 +938,11 @@ html:has(> .app-shell) {
     border: 1px solid var(--rule);
     border-radius: var(--radius);
     padding: 7px 10px;
+}
+
+.task-config .searchable-select summary {
+    padding: 7px 10px;
+    background-color: var(--surface);
 }
 
 .task-config input[type="checkbox"] {

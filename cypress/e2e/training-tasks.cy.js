@@ -11,6 +11,11 @@ describe('Training Tasks Management', () => {
         return `${prefix}_${uuid}`;
     };
 
+    const chooseTrainingDataset = () => {
+        cy.get('#trainingDatasetId-value').click();
+        cy.contains('#trainingDatasetId-choices button', 'Mixed periods 2023').click();
+    };
+
     it('creates a task', () => {
         cy.get('main a')
             .contains('Create Training Task')
@@ -18,8 +23,21 @@ describe('Training Tasks Management', () => {
 
         const testName = generateUniqueName('tm');
         cy.get('input[name="name"]').type(testName);
-        cy.get('select[name="trainingDatasetId"]').select('1');
+        cy.intercept('POST', '/training-tasks').as('createTask');
         cy.get('button[type="submit"]').click();
+        cy.get('#trainingDatasetId-required').should('be.visible');
+        cy.get('#trainingDatasetId-value').parent().should('be.focused');
+        cy.get('@createTask.all').should('have.length', 0);
+
+        cy.intercept('GET', '/training-tasks/filter-choices/new-task-dataset*').as('findDatasets');
+        cy.get('#trainingDatasetId-value').click();
+        cy.get('#trainingDatasetId-search').type('MIXED periods');
+        cy.wait('@findDatasets');
+        cy.get('#trainingDatasetId-choices [data-select-options] button').should('have.length', 1);
+        cy.contains('#trainingDatasetId-choices button', 'Mixed periods 2023').click();
+        cy.get('#trainingDatasetId-required').should('not.be.visible');
+        cy.get('button[type="submit"]').click();
+        cy.wait('@createTask').its('request.body.trainingDatasetId').should('eq', 1);
 
         let tmObject = cy.contains('tr', testName)
         tmObject.should('exist')
@@ -30,7 +48,7 @@ describe('Training Tasks Management', () => {
 
         const taskName = generateUniqueName('configured');
         cy.get('#name').type(taskName);
-        cy.get('#trainingDatasetId').select('1');
+        chooseTrainingDataset();
         cy.contains('summary', /^Events$/).click();
         cy.get('#enableSubsampleEventCount').check();
         cy.get('#subsampleEventCountInput').clear().type('12345');
@@ -60,6 +78,7 @@ describe('Training Tasks Management', () => {
         cy.contains('a', 'Reuse in new task').click();
         cy.get('#name').should('have.value', taskName + ' (copy)');
         cy.get('#trainingDatasetId').should('have.value', '1');
+        cy.get('#trainingDatasetId-value').should('have.text', 'Mixed periods 2023');
         cy.get('#enableSubsampleEventCount').should('be.checked');
         cy.get('#subsampleEventCountInput').should('have.value', '12345');
         cy.contains('summary', /^Model$/).click();
@@ -71,7 +90,7 @@ describe('Training Tasks Management', () => {
         cy.contains('main a', 'Create Training Task').click();
 
         cy.get('#name').type(generateUniqueName('invalid'));
-        cy.get('#trainingDatasetId').select('1');
+        chooseTrainingDataset();
         cy.contains('summary', /^Model$/).click();
         const dropout = '[name="configuration.model.attention.dropout"]';
         cy.get(dropout).clear().type('2');
@@ -116,7 +135,7 @@ describe('Training Tasks Management', () => {
         cy.get('@alreadyExisting').then(alreadyExisting => {
             cy.get('input[name="name"]').type(alreadyExisting);
         })
-        cy.get('select[name="trainingDatasetId"]').select('1');
+        chooseTrainingDataset();
         cy.get('button[type="submit"]').click();
 
         cy.get('#errors').should('contain.text', 'Name must be unique')

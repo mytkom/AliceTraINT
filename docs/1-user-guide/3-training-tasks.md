@@ -26,11 +26,11 @@ remembers your choice in the current browser.
 
 ## Creating a task
 
-Open **Tasks** and click **Create Training Task**. Enter a **Task name**, choose a **Training dataset** and adjust the configuration below, then click **Submit**. The new task is Queued.
+Open **Tasks** and click **Create Training Task**. Enter a **Task name**, search for and select a **Training dataset** and adjust the configuration below, then click **Submit**. The new task is Queued.
 
 ![Task form with the name, the dataset, the Events group with Use subsample ticked, and the Data group](/docs/static/1-user-guide/3-training-tasks/task-form.png)
 
-Task names are unique within a dataset, so the same name can be used again on another dataset. You can choose only your own datasets.
+Task names are unique within a dataset, so the same name can be used again on another dataset. You can choose from active datasets.
 
 ## Configuration
 

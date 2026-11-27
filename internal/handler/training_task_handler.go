@@ -113,27 +113,30 @@ type searchableSelectData struct {
 	ID, Name, Label, SearchLabel, EmptyLabel, SelectedLabel, SearchURL string
 	Choices                                                            []repository.TrainingTaskFilterChoice
 	Selected                                                           uint
+	Required                                                           bool
 }
 
-func (h *TrainingTaskHandler) taskFilterSelect(filter, label, searchLabel, emptyLabel string, selected uint) (searchableSelectData, error) {
-	choices, err := h.Service.FilterChoices(filter, "", selected)
+func (h *TrainingTaskHandler) taskFilterSelect(filter string, field searchableSelectData) (searchableSelectData, error) {
+	choices, err := h.Service.FilterChoices(filter, "", field.Selected)
 	if err != nil {
 		return searchableSelectData{}, err
 	}
-	selectedLabel := emptyLabel
-	if selected != 0 {
-		if len(choices) == 0 || choices[0].ID != selected {
+	field.SelectedLabel = field.EmptyLabel
+	if field.Selected != 0 {
+		if len(choices) > 0 && choices[0].ID == field.Selected {
+			field.SelectedLabel = choices[0].Name
+		} else if field.Required {
+			field.Selected = 0
+		} else {
+			field.SelectedLabel = fmt.Sprintf("%s #%d", field.Label, field.Selected)
 			choices = append([]repository.TrainingTaskFilterChoice{
-				{ID: selected, Name: fmt.Sprintf("%s #%d", label, selected)},
+				{ID: field.Selected, Name: field.SelectedLabel},
 			}, choices...)
 		}
-		selectedLabel = choices[0].Name
 	}
-	return searchableSelectData{
-		ID: "task-" + filter, Name: filter, Label: label, SearchLabel: searchLabel,
-		EmptyLabel: emptyLabel, SelectedLabel: selectedLabel, Choices: choices, Selected: selected,
-		SearchURL: "/training-tasks/filter-choices/" + filter,
-	}, nil
+	field.Choices = choices
+	field.SearchURL = "/training-tasks/filter-choices/" + filter
+	return field, nil
 }
 
 func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -149,12 +152,18 @@ func (h *TrainingTaskHandler) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query, params, statuses := taskListFilters(r)
-	datasetSelect, err := h.taskFilterSelect("dataset", "Training dataset", "Search datasets", "All datasets", query.DatasetID)
+	datasetSelect, err := h.taskFilterSelect("dataset", searchableSelectData{
+		ID: "task-dataset", Name: "dataset", Label: "Training dataset", SearchLabel: "Search datasets",
+		EmptyLabel: "All datasets", Selected: query.DatasetID,
+	})
 	if err != nil {
 		handleServiceError(w, r, err)
 		return
 	}
-	ownerSelect, err := h.taskFilterSelect("owner", "Created by", "Search people", "Anyone", query.OwnerID)
+	ownerSelect, err := h.taskFilterSelect("owner", searchableSelectData{
+		ID: "task-owner", Name: "owner", Label: "Created by", SearchLabel: "Search people",
+		EmptyLabel: "Anyone", Selected: query.OwnerID,
+	})
 	if err != nil {
 		handleServiceError(w, r, err)
 		return
@@ -227,7 +236,7 @@ func (h *TrainingTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *TrainingTaskHandler) FilterChoices(w http.ResponseWriter, r *http.Request) {
 	filter := r.PathValue("filter")
-	if filter != "dataset" && filter != "owner" {
+	if filter != "dataset" && filter != "owner" && filter != "new-task-dataset" {
 		http.NotFound(w, r)
 		return
 	}
@@ -326,7 +335,7 @@ func (h *TrainingTaskHandler) Show(w http.ResponseWriter, r *http.Request) {
 func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 	type TemplateData struct {
 		Title                      string
-		TrainingDatasets           []models.TrainingDataset
+		DatasetSelect              searchableSelectData
 		FieldGroups                []service.NNFieldGroup
 		PrefillConfig              template.JS
 		PrefillDatasetId           uint
@@ -335,16 +344,9 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 		PrefillEnableSubsample     bool
 	}
 
-	ttHelpers, err := h.Service.GetHelpers()
-	if err != nil {
-		handleServiceError(w, r, err)
-		return
-	}
-
 	data := TemplateData{
 		Title:                      "Create New Training Task!",
-		TrainingDatasets:           ttHelpers.TrainingDatasets,
-		FieldGroups:                ttHelpers.FieldGroups,
+		FieldGroups:                h.Service.GetFieldGroups(),
 		PrefillConfig:              "null",
 		PrefillSubsampleEventCount: models.DefaultSubsampleEventCount,
 		PrefillEnableSubsample:     false,
@@ -370,6 +372,16 @@ func (h *TrainingTaskHandler) New(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	datasetSelect, err := h.taskFilterSelect("new-task-dataset", searchableSelectData{
+		ID: "trainingDatasetId", Name: "trainingDatasetId", Label: "Training dataset", SearchLabel: "Search datasets",
+		EmptyLabel: "Choose a training dataset", Selected: data.PrefillDatasetId, Required: true,
+	})
+	if err != nil {
+		handleServiceError(w, r, err)
+		return
+	}
+	data.DatasetSelect = datasetSelect
+
 	err = h.ExecuteTemplate(w, "training-tasks_new", data)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "unexpected internal server error", err)
@@ -388,6 +400,10 @@ func (h *TrainingTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetLoggedUser(r)
 	if !ok || user == nil {
 		writeError(w, r, http.StatusUnauthorized, errMsgUserUnauthorized, nil)
+		return
+	}
+	if trainingTask.TrainingDatasetId == 0 {
+		writeError(w, r, http.StatusUnprocessableEntity, "Choose a training dataset.", nil)
 		return
 	}
 	trainingTask.UserId = user.ID

@@ -1,7 +1,7 @@
 {{ define "searchable_select" }}
 <div class="searchable-select">
-    <span id="{{ .ID }}-label">{{ .Label }}</span>
-    <details data-searchable-select="{{ .SearchURL }}">
+    <span class="searchable-select-label" id="{{ .ID }}-label">{{ .Label }}</span>
+    <details data-searchable-select="{{ .SearchURL }}"{{ if .Required }} data-required{{ end }}>
         <summary aria-labelledby="{{ .ID }}-label {{ .ID }}-value">
             <span id="{{ .ID }}-value">{{ .SelectedLabel }}</span>
         </summary>
@@ -18,7 +18,8 @@
             </div>
             <small role="status"></small>
         </div>
-        <input type="hidden" id="{{ .ID }}" name="{{ .Name }}" value="{{ if .Selected }}{{ .Selected }}{{ end }}">
+        <input type="hidden" id="{{ .ID }}" name="{{ .Name }}" data-json-type="uint" value="{{ if .Selected }}{{ .Selected }}{{ end }}">
     </details>
+    {{ if .Required }}<small id="{{ .ID }}-required" class="searchable-select-error" role="alert" hidden>{{ .EmptyLabel }}.</small>{{ end }}
 </div>
 {{ end }}

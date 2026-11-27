@@ -17,17 +17,12 @@ type TrainingTaskWithResults struct {
 	LogFiles     []models.TrainingTaskResult
 }
 
-type TrainingTaskHelpers struct {
-	TrainingDatasets []models.TrainingDataset
-	FieldGroups      []NNFieldGroup
-}
-
 type ITrainingTaskService interface {
 	Create(tm *models.TrainingTask) error
 	GetAll(loggedUserId uint, userScoped bool) ([]models.TrainingTask, error)
 	List(query repository.TrainingTaskListQuery) (repository.TrainingTaskPage, error)
 	FilterChoices(filter, search string, selected uint) ([]repository.TrainingTaskFilterChoice, error)
-	GetHelpers() (*TrainingTaskHelpers, error)
+	GetFieldGroups() []NNFieldGroup
 	GetByID(id uint) (*TrainingTaskWithResults, error)
 	UploadOnnxResults(id uint) error
 	Restart(userId uint, id uint) error
@@ -107,16 +102,8 @@ func (s *TrainingTaskService) FilterChoices(filter, search string, selected uint
 	return choices, nil
 }
 
-func (s *TrainingTaskService) GetHelpers() (*TrainingTaskHelpers, error) {
-	trainingDatasets, err := s.TrainingDataset.GetAll()
-	if err != nil {
-		return nil, InternalError("get training task helpers", err)
-	}
-
-	return &TrainingTaskHelpers{
-		TrainingDatasets: trainingDatasets,
-		FieldGroups:      s.NNArch.GetFieldGroups(),
-	}, nil
+func (s *TrainingTaskService) GetFieldGroups() []NNFieldGroup {
+	return s.NNArch.GetFieldGroups()
 }
 
 func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error) {

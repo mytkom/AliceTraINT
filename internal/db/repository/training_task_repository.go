@@ -155,17 +155,22 @@ func (r *trainingTaskRepository) FilterChoices(filter, search string, selected u
 	switch filter {
 	case "dataset":
 		// Include archived datasets while a visible task still references them.
+	case "new-task-dataset":
+		// The creation form can use any active dataset, including unused ones.
+		taskColumn = ""
 	case "owner":
 		table, taskColumn = "users", "user_id"
 		label = "TRIM(first_name || ' ' || family_name || ' (' || username || ')')"
 	default:
 		return nil, fmt.Errorf("unknown training task filter %q", filter)
 	}
-	db := r.db.Table(table).Select("id, " + label + " AS name").
-		Where("EXISTS (SELECT 1 FROM training_tasks WHERE training_tasks." + taskColumn +
+	db := r.db.Table(table).Select("id, " + label + " AS name")
+	if taskColumn != "" {
+		db = db.Where("EXISTS (SELECT 1 FROM training_tasks WHERE training_tasks." + taskColumn +
 			" = " + table + ".id AND training_tasks.deleted_at IS NULL)")
-	if filter == "owner" {
-		db = db.Where("users.deleted_at IS NULL")
+	}
+	if filter != "dataset" {
+		db = db.Where(table + ".deleted_at IS NULL")
 	}
 
 	choices := make([]TrainingTaskFilterChoice, 0)

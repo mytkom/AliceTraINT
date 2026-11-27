@@ -5,6 +5,7 @@ document.querySelectorAll('[data-searchable-select]').forEach(picker => {
     const search = picker.querySelector('input[type="search"]');
     const options = picker.querySelector('[data-select-options]');
     const status = picker.querySelector('[role="status"]');
+    const requiredError = document.getElementById(value.id + '-required');
     const initialValue = value.value;
     const initialLabel = label.textContent;
     const initialOptions = Array.from(options.children, option => option.cloneNode(true));
@@ -17,6 +18,17 @@ document.querySelectorAll('[data-searchable-select]').forEach(picker => {
         });
     }
 
+    if (picker.hasAttribute('data-required')) {
+        value.form.addEventListener('submit', event => {
+            if (value.value) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            requiredError.hidden = false;
+            summary.setAttribute('aria-describedby', requiredError.id);
+            summary.focus();
+        }, true);
+    }
+
     picker.addEventListener('toggle', () => {
         if (picker.open) search.focus();
     });
@@ -25,6 +37,10 @@ document.querySelectorAll('[data-searchable-select]').forEach(picker => {
         if (!button) return;
         value.value = button.value;
         label.textContent = button.textContent;
+        if (requiredError && value.value) {
+            requiredError.hidden = true;
+            summary.removeAttribute('aria-describedby');
+        }
         markSelection();
         picker.open = false;
         summary.focus();
@@ -82,6 +98,10 @@ document.querySelectorAll('[data-searchable-select]').forEach(picker => {
         label.textContent = initialLabel;
         search.value = '';
         status.textContent = '';
+        if (requiredError) {
+            requiredError.hidden = true;
+            summary.removeAttribute('aria-describedby');
+        }
         options.replaceChildren(...initialOptions.map(option => option.cloneNode(true)));
         markSelection();
     });

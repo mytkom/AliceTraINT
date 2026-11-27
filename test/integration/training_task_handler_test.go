@@ -148,6 +148,15 @@ func TestTrainingTaskListQuery(t *testing.T) {
 		{ID: dataset.ID, Name: dataset.Name}, {ID: otherDataset.ID, Name: otherDataset.Name},
 	}, choices)
 
+	unusedDataset := models.TrainingDataset{Name: "Unused dataset", UserId: other.ID}
+	require.NoError(t, ut.TrainingDataset.Create(&unusedDataset))
+	available, err := ut.TrainingTask.FilterChoices("new-task-dataset", "dataset", dataset.ID)
+	require.NoError(t, err)
+	assert.Equal(t, []repository.TrainingTaskFilterChoice{
+		{ID: otherDataset.ID, Name: otherDataset.Name},
+		{ID: unusedDataset.ID, Name: unusedDataset.Name},
+	}, available)
+
 	owners, err := ut.TrainingTask.FilterChoices("owner", "EINSTEIN", 0)
 	require.NoError(t, err)
 	assert.Equal(t, []repository.TrainingTaskFilterChoice{
