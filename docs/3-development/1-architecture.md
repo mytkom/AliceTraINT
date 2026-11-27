@@ -92,7 +92,6 @@ flowchart TD
   auth -->|not logged in| redirect[Redirect to /]
   auth -->|full page| block[BlockHTMXMw]
   auth -->|partial| validate[ValidateHTMXMw]
-  block & validate -->|wrong kind of request| reject[422]
   validate -->|explore-directory, find-aods| cachemw[CacheMw]
   block & validate & cachemw --> handler[Handler]
   public --> handler
