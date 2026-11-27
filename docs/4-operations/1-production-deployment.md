@@ -2,7 +2,7 @@
 
 AliceTraINT is deployed on **CERN PaaS** (Red Hat OpenShift–based) with a **PostgreSQL** database provided by **CERN DB-on-Demand (DBoD)**.
 
-All administrators (members of the `wut-alice-pidml` e-group) can access:
+Operators with access to the AliceTraINT project use:
 
 - [PaaS web console](https://paas.cern.ch/)
 - [DB-on-Demand](https://dbod.web.cern.ch/) (after subscribing in the [CERN Resource portal](https://auth-resources.web.cern.ch/))
@@ -24,34 +24,27 @@ The deployment follows the official [PaaS documentation](https://paas.docs.cern.
   - Application connects using credentials stored in OpenShift secrets and injected as environment variables.
 
 - **Persistent storage (EOS)**
-  - Primary persistent volume backed by EOS storage of the `altraint` service account (~20 GB) for training artifacts and application data.
-  - Additional EOS directory (`AliceTraINT-data`) in a team member’s EOS space (up to ~1 TB) for dataset caching, accessed by the `altraint` service account.
+  - A persistent volume backed by EOS storage of a service account, for training results and application data.
+  - An additional EOS directory for larger data, accessed by the same service account.
 
 - **Authentication / GRID certificates**
-  - A `.p12` GRID certificate is stored as an OpenShift secret (`grid-certificate`).
-  - The certificate is mounted into the build pod and used to generate `usercert.pem` and `userkey.pem` inside the image.
-  - EOS access uses an `eos-credentials` secret for the `altraint` service account.
+  - The GRID certificate is stored as an OpenShift secret and used by the image build.
+  - EOS access uses a secret with the service account's credentials.
 
 ---
 
 ## Prerequisites
 
 - **Access / roles**
-  - CERN account with membership in `wut-alice-pidml`.
-  - Access to:
+  - Access granted by the current operators to:
     - PaaS project where AliceTraINT is deployed.
     - DB-on-Demand instance used by AliceTraINT.
-    - EOS locations used for persistent volumes (service account `altraint` + shared EOS directory).
+    - EOS locations used for persistent volumes.
 
 - **Required secrets in the PaaS project**
-  - `grid-certificate`
-    - Type: binary secret containing the `.p12` GRID certificate file.
-    - Mounted in the **BuildConfig** so the Docker build can read it via `CERT_PATH`.
-  - `eos-credentials`
-    - Credentials (e.g. keytab / token / password) for EOS access as the `altraint` service account.
-    - Mounted in the **Deployment** pods and used by the EOS mount logic, following [PaaS EOS guidelines](https://paas.docs.cern.ch/3._Storage/eos/).
-  - Database credentials secret
-    - Contains DB host, port, database name, user and password (exact keys are project-specific; see questions at the end of this document).
+  - A binary secret with the `.p12` GRID certificate, mounted in the **BuildConfig** so the Docker build can read it via `CERT_PATH`.
+  - A secret with the EOS credentials of the service account, mounted in the **Deployment** pods following the [PaaS EOS guidelines](https://paas.docs.cern.ch/3._Storage/eos/).
+  - A secret with the database connection settings.
 
 ---
 
@@ -60,7 +53,7 @@ The deployment follows the official [PaaS documentation](https://paas.docs.cern.
 The application image is built from the repository `Dockerfile` using a two-stage Docker build (Go/Tailwind builder and UBI9 runtime). For full details see the `Dockerfile` in the repository; in production the only AliceTraINT-specific requirement is that:
 
 - The BuildConfig uses this `Dockerfile` as-is.
-- The `grid-certificate` secret is mounted into the build pod and its path is passed as the `CERT_PATH` build argument.
+- The GRID certificate secret is mounted into the build pod and its path is passed as the `CERT_PATH` build argument.
 - The resulting image listens on port **8088** and embeds the docs and static assets.
 
 All lower-level steps (exact base images, build tools, Tailwind invocation, certificate conversion) are encoded in the `Dockerfile` itself and normally do not need to be modified for deployment.
@@ -74,9 +67,7 @@ At a minimum, the deployment uses:
 - **BuildConfig**
   - Source: this Git repository (AliceTraINT).
   - Strategy: Docker build using the `Dockerfile` from the repo root.
-  - Injects the `grid-certificate` secret:
-    - Secret is mounted into the build pod (e.g. `/tmp/certs/gridCertificate.p12`).
-    - `CERT_PATH` build argument is set to this mounted path.
+  - Mounts the GRID certificate secret into the build pod and sets the `CERT_PATH` build argument to its path.
 
 - **ImageStream**
   - Stores the built AliceTraINT image versions.
@@ -86,14 +77,13 @@ At a minimum, the deployment uses:
   - References the ImageStream tag produced by the BuildConfig.
   - Mounts:
     - EOS-backed persistent volume(s).
-    - `eos-credentials` secret (for EOS authentication).
+    - EOS credentials secret.
     - Database credentials secret.
   - Sets environment variables:
     - Database connection settings (host, port, DB name, user, password, SSL mode if used).
     - Application URLs such as JAliEn URL and CCDB URL.
     - Any app-specific configuration (e.g. log level, base paths, etc.).
     - Path(s) to user certificates, when needed (even though the Dockerfile already sets `GRID_CERT_PATH` and `GRID_KEY_PATH`).
-  - Currently no HTTP liveness/readiness probes are configured; the Service exposes port 8088 only.
 
 - **Service and Route**
   - **Service**
@@ -106,56 +96,46 @@ At a minimum, the deployment uses:
 
 ## Persistent storage and EOS integration
 
-### Primary EOS volume (service account `altraint`)
+### Primary EOS volume
 
-- A persistent volume is provisioned using EOS storage of the `altraint` service account, following:
-  - [PaaS EOS storage guidelines](https://paas.docs.cern.ch/3._Storage/eos/).
-- This volume provides **~20 GB** of storage, sufficient for:
-  - Application-generated artifacts from training runs.
-  - Logs and small/medium-sized cached data.
+- A persistent volume is provisioned using EOS storage of a service account, following the [PaaS EOS storage guidelines](https://paas.docs.cern.ch/3._Storage/eos/).
+- It holds the results that training modules upload and other application data.
 
-### Additional EOS storage for datasets
+### Additional EOS storage
 
-- To support caching of larger datasets produced by training modules:
-  - An additional EOS directory `AliceTraINT-data` is created in a team member’s EOS space (up to ~1 TB).
-  - The `altraint` service account is granted access to this directory.
-  - EOS authentication and mounting is done using credentials stored in the `eos-credentials` secret.
+- A second EOS directory, which the service account can access, provides more space for larger data.
+- EOS authentication and mounting use the credentials stored in the EOS credentials secret.
 
-Inside the container EOS is mounted under `/eos`, and individual user or service-account areas are reached via the standard CERN layout, for example:
-    - `/eos/user/<first-letter-of-username>/<username>/…`
-Both EOS storages are accessible with such path. The only condition is for service account to have sufficient permissions.
-
+Inside the container, EOS is mounted under `/eos`, and both areas are reached through the standard CERN EOS layout.
 
 ---
 
 ## End-to-end deployment steps (summary)
 
 1. **Prepare access**
-   - Ensure your CERN account is in `wut-alice-pidml`.
    - Ensure you have access to the relevant PaaS project and DB-on-Demand instance.
 
 2. **Create and configure secrets**
-   - Create `grid-certificate` secret with the `.p12` GRID certificate.
-   - Create `eos-credentials` secret with EOS auth data for the `altraint` service account.
-   - Create a database credentials secret for the DBoD PostgreSQL instance.
+   - Create a secret with the `.p12` GRID certificate.
+   - Create a secret with the EOS credentials of the service account.
+   - Create a secret with the database connection settings for the DBoD PostgreSQL instance.
 
 3. **Configure storage**
    - Set up EOS-backed persistent volumes and persistent volume claims as described in the [PaaS EOS docs](https://paas.docs.cern.ch/3._Storage/eos/).
    - Mount:
-     - The `altraint` EOS volume into the pods.
-     - The `AliceTraINT-data` EOS subdirectory into the pods (if separate).
+     - The EOS volume and, if separate, the additional EOS directory into the pods.
 
 4. **Configure BuildConfig and ImageStream**
    - Create a BuildConfig pointing to the AliceTraINT Git repo.
    - Use Docker build strategy with the repo `Dockerfile`.
-   - Mount the `grid-certificate` secret into the build pod and set the `CERT_PATH` build argument to the mounted path.
+   - Mount the GRID certificate secret into the build pod and set the `CERT_PATH` build argument to the mounted path.
    - Configure an ImageStream to hold built images.
 
 5. **Configure Deployment (or DeploymentConfig)**
    - Reference the ImageStream tag built by the BuildConfig.
    - Mount:
      - EOS volume(s) at the paths expected by the application.
-     - `eos-credentials` secret.
+     - EOS credentials secret.
      - Database credentials secret.
    - Set all required environment variables:
      - DB connection.
