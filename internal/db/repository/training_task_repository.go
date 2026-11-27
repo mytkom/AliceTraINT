@@ -1,9 +1,14 @@
 package repository
 
 import (
+	"fmt"
+	"strings"
+	"time"
+
 	"github.com/mytkom/AliceTraINT/internal/db/models"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type TrainingTaskRepository interface {
@@ -11,10 +16,33 @@ type TrainingTaskRepository interface {
 	GetByID(id uint) (*models.TrainingTask, error)
 	GetAll() ([]models.TrainingTask, error)
 	GetAllUser(userId uint) ([]models.TrainingTask, error)
+	List(query TrainingTaskListQuery) (TrainingTaskPage, error)
+	FilterChoices(filter, search string, selected uint) ([]TrainingTaskFilterChoice, error)
 	GetFirstQueued() (*models.TrainingTask, error)
 	Update(trainingTask *models.TrainingTask) error
 	Restart(userId uint, id uint) error
 	Delete(userId uint, id uint) error
+}
+
+const TrainingTaskPageSize = 25
+
+type TrainingTaskListQuery struct {
+	DatasetID, OwnerID         uint
+	Name                       string
+	Status                     *models.TrainingTaskStatus
+	CreatedFrom, CreatedBefore time.Time
+	Sort                       string
+	Page                       int
+}
+
+type TrainingTaskPage struct {
+	Tasks   []models.TrainingTask
+	HasNext bool
+}
+
+type TrainingTaskFilterChoice struct {
+	ID   uint   `json:"id,string"`
+	Name string `json:"name"`
 }
 
 type trainingTaskRepository struct {
@@ -68,6 +96,93 @@ func (r *trainingTaskRepository) GetAllUser(userId uint) ([]models.TrainingTask,
 		return nil, err
 	}
 	return trainingTasks, nil
+}
+
+func (r *trainingTaskRepository) List(query TrainingTaskListQuery) (TrainingTaskPage, error) {
+	db := r.db.Model(&models.TrainingTask{}).
+		Select("training_tasks.id, training_tasks.name, training_tasks.created_at, training_tasks.updated_at, training_tasks.status, training_tasks.training_dataset_id").
+		Joins("User").
+		Preload("TrainingDataset", func(db *gorm.DB) *gorm.DB {
+			return db.Unscoped().Select("id", "name", "deleted_at")
+		})
+
+	if query.DatasetID != 0 {
+		db = db.Where("training_tasks.training_dataset_id = ?", query.DatasetID)
+	}
+	if query.Name != "" {
+		db = db.Where("LOWER(training_tasks.name) LIKE LOWER(?) ESCAPE '!'", taskListPattern(query.Name))
+	}
+	if query.OwnerID != 0 {
+		db = db.Where("training_tasks.user_id = ?", query.OwnerID)
+	}
+	if query.Status != nil {
+		db = db.Where("training_tasks.status = ?", *query.Status)
+	}
+	if !query.CreatedFrom.IsZero() {
+		db = db.Where("training_tasks.created_at >= ?", query.CreatedFrom)
+	}
+	if !query.CreatedBefore.IsZero() {
+		db = db.Where("training_tasks.created_at < ?", query.CreatedBefore)
+	}
+
+	column, desc := "created_at", true
+	switch query.Sort {
+	case "oldest":
+		desc = false
+	case "updated":
+		column = "updated_at"
+	case "name-asc", "name-desc":
+		column, desc = "name", query.Sort == "name-desc"
+	}
+	offset := (max(query.Page, 1) - 1) * TrainingTaskPageSize
+	var page TrainingTaskPage
+	err := db.Order(clause.OrderByColumn{Column: clause.Column{Table: "training_tasks", Name: column}, Desc: desc}).
+		Order(clause.OrderByColumn{Column: clause.Column{Table: "training_tasks", Name: "id"}, Desc: desc}).
+		Offset(offset).Limit(TrainingTaskPageSize + 1).Find(&page.Tasks).Error
+	if len(page.Tasks) > TrainingTaskPageSize {
+		page.Tasks = page.Tasks[:TrainingTaskPageSize]
+		page.HasNext = true
+	}
+	return page, err
+}
+
+func taskListPattern(value string) string {
+	return "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(value) + "%"
+}
+
+func (r *trainingTaskRepository) FilterChoices(filter, search string, selected uint) ([]TrainingTaskFilterChoice, error) {
+	table, taskColumn, label := "training_datasets", "training_dataset_id", "name"
+	switch filter {
+	case "dataset":
+		// Include archived datasets while a visible task still references them.
+	case "new-task-dataset":
+		// The creation form can use any active dataset, including unused ones.
+		taskColumn = ""
+	case "owner":
+		table, taskColumn = "users", "user_id"
+		label = "TRIM(first_name || ' ' || family_name || ' (' || username || ')')"
+	default:
+		return nil, fmt.Errorf("unknown training task filter %q", filter)
+	}
+	db := r.db.Table(table).Select("id, " + label + " AS name")
+	if taskColumn != "" {
+		db = db.Where("EXISTS (SELECT 1 FROM training_tasks WHERE training_tasks." + taskColumn +
+			" = " + table + ".id AND training_tasks.deleted_at IS NULL)")
+	}
+	if filter != "dataset" {
+		db = db.Where(table + ".deleted_at IS NULL")
+	}
+
+	choices := make([]TrainingTaskFilterChoice, 0)
+	if selected != 0 {
+		if err := db.Session(&gorm.Session{}).Where("id = ?", selected).Find(&choices).Error; err != nil {
+			return nil, err
+		}
+	}
+	var matches []TrainingTaskFilterChoice
+	err := db.Where("id <> ? AND LOWER("+label+") LIKE LOWER(?) ESCAPE '!'", selected, taskListPattern(search)).
+		Order("LOWER(" + label + "), id").Limit(TrainingTaskPageSize - len(choices)).Find(&matches).Error
+	return append(choices, matches...), err
 }
 
 func (r *trainingTaskRepository) Update(trainingTask *models.TrainingTask) error {
@@ -126,6 +241,19 @@ func (m *MockTrainingTaskRepository) GetAllUser(userId uint) ([]models.TrainingT
 	}
 
 	return args.Get(0).([]models.TrainingTask), args.Error(1)
+}
+
+func (m *MockTrainingTaskRepository) List(query TrainingTaskListQuery) (TrainingTaskPage, error) {
+	args := m.Called(query)
+	return args.Get(0).(TrainingTaskPage), args.Error(1)
+}
+
+func (m *MockTrainingTaskRepository) FilterChoices(filter, search string, selected uint) ([]TrainingTaskFilterChoice, error) {
+	args := m.Called(filter, search, selected)
+	if args.Error(1) != nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]TrainingTaskFilterChoice), nil
 }
 
 func (m *MockTrainingTaskRepository) GetByID(id uint) (*models.TrainingTask, error) {

@@ -133,6 +133,32 @@ async function whenSettledInBrowser(path, subset) {
   return { rows, selectedRows, documentElements, firstAvailableFrameMs, firstSelectedFrameMs, selectFrameMs, requests };
 }
 
+const taskListObserver = `
+if (location.pathname === '/training-tasks') {
+  new MutationObserver((_, observer) => {
+    if (!document.querySelector('#training-tasks-listing tbody tr')) return;
+    observer.disconnect();
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      window.firstTaskFrameMs = performance.now();
+    }));
+  }).observe(document, {childList: true, subtree: true});
+}`;
+
+function taskListInBrowser() {
+  const list = document.getElementById('training-tasks-listing');
+  const nav = performance.getEntriesByType('navigation')[0];
+  const resources = performance.getEntriesByType('resource');
+  const listRequests = resources.filter(entry => new URL(entry.name).pathname === '/training-tasks/list');
+  return {
+    rows: list.querySelectorAll('tbody tr').length,
+    documentElements: document.querySelectorAll('*').length,
+    listRequests: listRequests.length,
+    listBodyBytes: listRequests.reduce((total, entry) => total + entry.encodedBodySize, 0),
+    pageBodyBytes: nav.encodedBodySize,
+    firstTaskFrameMs: window.firstTaskFrameMs,
+  };
+}
+
 // Each navigation starts counting before the parser requests eager gallery images.
 const galleryObserver = `performance.setResourceTimingBufferSize(2000);
 new MutationObserver((_, observer) => {
@@ -182,6 +208,7 @@ try {
   await call('Network.enable');
   await call('Network.setCacheDisabled', { cacheDisabled: true });
   await call('Page.addScriptToEvaluateOnNewDocument', { source: galleryObserver });
+  await call('Page.addScriptToEvaluateOnNewDocument', { source: taskListObserver });
 
   async function navigate(path) {
     const loaded = Promise.withResolvers();
@@ -214,6 +241,15 @@ try {
   }, 'gallery task links');
   const samples = [];
   for (let rep = 1; rep <= repetitions; rep++) {
+    for (const taskPage of [1, 2]) {
+      await navigate(`/training-tasks?name=Paging+fixture&dataset=1&sort=oldest&page=${taskPage}`);
+      await until(() => evaluate('window.firstTaskFrameMs'), 'first task frame');
+      const metrics = await evaluate(`(${taskListInBrowser})()`);
+      if (metrics.rows !== 25 || metrics.listRequests !== 1 || metrics.listBodyBytes >= 30000) {
+        throw new Error(`Task list exceeded its bounds: ${JSON.stringify(metrics)}`);
+      }
+      samples.push({ rep, taskPage, matchingTasks: 1000, ...metrics });
+    }
     for (const [available, path, subset] of [
       [10581, '/alice/sim/2024/LHC24f3/0', false],
       [13355, '/alice/sim/2025/LHC25h3c/0', false],

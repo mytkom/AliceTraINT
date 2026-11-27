@@ -12,10 +12,12 @@ import (
 
 	"github.com/mytkom/AliceTraINT/internal/ccdb"
 	"github.com/mytkom/AliceTraINT/internal/db/models"
+	"github.com/mytkom/AliceTraINT/internal/db/repository"
 	"github.com/mytkom/AliceTraINT/internal/jalien"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 func TestTrainingTaskHandler_Index(t *testing.T) {
@@ -96,6 +98,114 @@ func TestTrainingTaskHandler_List(t *testing.T) {
 	responseBody := rr.Body.String()
 	assert.Contains(t, responseBody, trainingTask.Name)
 	assert.Contains(t, responseBody, trainingTask2.Name)
+}
+
+func TestTrainingTaskListQuery(t *testing.T) {
+	ut, cleanup := setupIntegrationTest(t)
+	defer cleanup()
+
+	owner := models.User{CernPersonId: "owner", Username: "aeinstein", FirstName: "Albert", FamilyName: "Einstein", Email: "owner@example.test"}
+	other := models.User{CernPersonId: "other", Username: "other", Email: "other@example.test"}
+	require.NoError(t, ut.User.Create(&owner))
+	require.NoError(t, ut.User.Create(&other))
+	dataset := models.TrainingDataset{Name: "Shared dataset", UserId: other.ID}
+	require.NoError(t, ut.TrainingDataset.Create(&dataset))
+	require.NoError(t, ut.TrainingDataset.Delete(other.ID, dataset.ID))
+	otherDataset := models.TrainingDataset{Name: "Other dataset", UserId: other.ID}
+	require.NoError(t, ut.TrainingDataset.Create(&otherDataset))
+
+	day := time.Date(2024, 11, 20, 0, 0, 0, 0, time.UTC)
+	create := func(name string, userID uint, created time.Time, status models.TrainingTaskStatus) uint {
+		t.Helper()
+		task := models.TrainingTask{
+			Model: gorm.Model{CreatedAt: created}, Name: name, UserId: userID,
+			TrainingDatasetId: dataset.ID, Status: status, Configuration: map[string]int{"unused": 123},
+		}
+		require.NoError(t, ut.TrainingTask.Create(&task))
+		return task.ID
+	}
+
+	const count = repository.TrainingTaskPageSize + 2
+	var ids []uint
+	for i := 0; i < count; i++ {
+		ids = append(ids, create(fmt.Sprintf("Task_%% %02d", i), owner.ID, day, models.Failed))
+	}
+	create("TaskXY 91", owner.ID, day, models.Failed)
+	create("Task_% 92", other.ID, day, models.Failed)
+	create("Task_% 93", owner.ID, day.AddDate(0, 0, 1), models.Failed)
+	create("Task_% 94", owner.ID, day.Add(-time.Second), models.Failed)
+	create("Task_% 95", owner.ID, day, models.Queued)
+	deleted := create("Task_% 96", owner.ID, day, models.Failed)
+	require.NoError(t, ut.TrainingTask.Delete(owner.ID, deleted))
+	require.NoError(t, ut.TrainingTask.Create(&models.TrainingTask{
+		Model: gorm.Model{CreatedAt: day}, Name: "Task_% 97", UserId: owner.ID,
+		TrainingDatasetId: otherDataset.ID, Status: models.Failed,
+	}))
+
+	choices, err := ut.TrainingTask.FilterChoices("dataset", "OTHER", dataset.ID)
+	require.NoError(t, err)
+	assert.Equal(t, []repository.TrainingTaskFilterChoice{
+		{ID: dataset.ID, Name: dataset.Name}, {ID: otherDataset.ID, Name: otherDataset.Name},
+	}, choices)
+
+	unusedDataset := models.TrainingDataset{Name: "Unused dataset", UserId: other.ID}
+	require.NoError(t, ut.TrainingDataset.Create(&unusedDataset))
+	available, err := ut.TrainingTask.FilterChoices("new-task-dataset", "dataset", dataset.ID)
+	require.NoError(t, err)
+	assert.Equal(t, []repository.TrainingTaskFilterChoice{
+		{ID: otherDataset.ID, Name: otherDataset.Name},
+		{ID: unusedDataset.ID, Name: unusedDataset.Name},
+	}, available)
+
+	owners, err := ut.TrainingTask.FilterChoices("owner", "EINSTEIN", 0)
+	require.NoError(t, err)
+	assert.Equal(t, []repository.TrainingTaskFilterChoice{
+		{ID: owner.ID, Name: "Albert Einstein (aeinstein)"},
+	}, owners)
+
+	failed := models.Failed
+	query := repository.TrainingTaskListQuery{
+		DatasetID: dataset.ID, OwnerID: owner.ID, Name: "TASK_%", Status: &failed,
+		CreatedFrom: day, CreatedBefore: day.AddDate(0, 0, 1), Sort: "oldest", Page: 1,
+	}
+	first, err := ut.TrainingTask.List(query)
+	require.NoError(t, err)
+	require.True(t, first.HasNext)
+	require.Len(t, first.Tasks, repository.TrainingTaskPageSize)
+	for index, task := range first.Tasks {
+		assert.Equal(t, ids[index], task.ID)
+		assert.Equal(t, dataset.Name, task.TrainingDataset.Name)
+		assert.True(t, task.TrainingDataset.DeletedAt.Valid)
+		assert.Nil(t, task.Configuration)
+	}
+
+	query.Page = 2
+	last, err := ut.TrainingTask.List(query)
+	require.NoError(t, err)
+	require.Len(t, last.Tasks, 2)
+	assert.False(t, last.HasNext)
+	assert.Equal(t, ids[count-2], last.Tasks[0].ID)
+	assert.Equal(t, ids[count-1], last.Tasks[1].ID)
+
+	query.Page = 3
+	empty, err := ut.TrainingTask.List(query)
+	require.NoError(t, err)
+	assert.Empty(t, empty.Tasks)
+	assert.False(t, empty.HasNext)
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("/training-tasks/list?name=TASK_%%25&owner=%d&status=0&from=20/11/2024&to=2024-11-21&sort=oldest&dataset=%d&page=2", owner.ID, dataset.ID), nil)
+	require.NoError(t, err)
+	HTMXReq(req)
+	rr := addSessionCookie(t, ut.Auth, req, owner.ID)
+	ut.Router.ServeHTTP(rr, req)
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, 2, strings.Count(rr.Body.String(), `class="task-name"`))
+	assert.Contains(t, rr.Body.String(), ">Task_% 25<")
+	assert.Contains(t, rr.Body.String(), ">Task_% 26<")
+	assert.Contains(t, rr.Body.String(), `rel="prev"`)
+	assert.Contains(t, rr.Body.String(), `from=20%2F11%2F2024`)
+	assert.Contains(t, rr.Body.String(), `to=21%2F11%2F2024`)
+	assert.NotContains(t, rr.Body.String(), `rel="next"`)
 }
 
 func TestTrainingTaskHandler_Show(t *testing.T) {

@@ -17,15 +17,12 @@ type TrainingTaskWithResults struct {
 	LogFiles     []models.TrainingTaskResult
 }
 
-type TrainingTaskHelpers struct {
-	TrainingDatasets []models.TrainingDataset
-	FieldGroups      []NNFieldGroup
-}
-
 type ITrainingTaskService interface {
 	Create(tm *models.TrainingTask) error
 	GetAll(loggedUserId uint, userScoped bool) ([]models.TrainingTask, error)
-	GetHelpers() (*TrainingTaskHelpers, error)
+	List(query repository.TrainingTaskListQuery) (repository.TrainingTaskPage, error)
+	FilterChoices(filter, search string, selected uint) ([]repository.TrainingTaskFilterChoice, error)
+	GetFieldGroups() []NNFieldGroup
 	GetByID(id uint) (*TrainingTaskWithResults, error)
 	UploadOnnxResults(id uint) error
 	Restart(userId uint, id uint) error
@@ -89,16 +86,24 @@ func (s *TrainingTaskService) GetAll(loggedUserId uint, userScoped bool) ([]mode
 	return trainingTasks, nil
 }
 
-func (s *TrainingTaskService) GetHelpers() (*TrainingTaskHelpers, error) {
-	trainingDatasets, err := s.TrainingDataset.GetAll()
+func (s *TrainingTaskService) List(query repository.TrainingTaskListQuery) (repository.TrainingTaskPage, error) {
+	page, err := s.TrainingTask.List(query)
 	if err != nil {
-		return nil, InternalError("get training task helpers", err)
+		return page, InternalError("get training tasks", err)
 	}
+	return page, nil
+}
 
-	return &TrainingTaskHelpers{
-		TrainingDatasets: trainingDatasets,
-		FieldGroups:      s.NNArch.GetFieldGroups(),
-	}, nil
+func (s *TrainingTaskService) FilterChoices(filter, search string, selected uint) ([]repository.TrainingTaskFilterChoice, error) {
+	choices, err := s.TrainingTask.FilterChoices(filter, search, selected)
+	if err != nil {
+		return nil, InternalError("get task filter choices", err)
+	}
+	return choices, nil
+}
+
+func (s *TrainingTaskService) GetFieldGroups() []NNFieldGroup {
+	return s.NNArch.GetFieldGroups()
 }
 
 func (s *TrainingTaskService) GetByID(id uint) (*TrainingTaskWithResults, error) {

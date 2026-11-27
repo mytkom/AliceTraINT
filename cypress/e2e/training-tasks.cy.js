@@ -11,6 +11,11 @@ describe('Training Tasks Management', () => {
         return `${prefix}_${uuid}`;
     };
 
+    const chooseTrainingDataset = () => {
+        cy.get('#trainingDatasetId-value').click();
+        cy.contains('#trainingDatasetId-choices button', 'Mixed periods 2023').click();
+    };
+
     it('creates a task', () => {
         cy.get('main a')
             .contains('Create Training Task')
@@ -18,8 +23,21 @@ describe('Training Tasks Management', () => {
 
         const testName = generateUniqueName('tm');
         cy.get('input[name="name"]').type(testName);
-        cy.get('select[name="trainingDatasetId"]').select('1');
+        cy.intercept('POST', '/training-tasks').as('createTask');
         cy.get('button[type="submit"]').click();
+        cy.get('#trainingDatasetId-required').should('be.visible');
+        cy.get('#trainingDatasetId-value').parent().should('be.focused');
+        cy.get('@createTask.all').should('have.length', 0);
+
+        cy.intercept('GET', '/training-tasks/filter-choices/new-task-dataset*').as('findDatasets');
+        cy.get('#trainingDatasetId-value').click();
+        cy.get('#trainingDatasetId-search').type('MIXED periods');
+        cy.wait('@findDatasets');
+        cy.get('#trainingDatasetId-choices [data-select-options] button').should('have.length', 1);
+        cy.contains('#trainingDatasetId-choices button', 'Mixed periods 2023').click();
+        cy.get('#trainingDatasetId-required').should('not.be.visible');
+        cy.get('button[type="submit"]').click();
+        cy.wait('@createTask').its('request.body.trainingDatasetId').should('eq', 1);
 
         let tmObject = cy.contains('tr', testName)
         tmObject.should('exist')
@@ -30,7 +48,7 @@ describe('Training Tasks Management', () => {
 
         const taskName = generateUniqueName('configured');
         cy.get('#name').type(taskName);
-        cy.get('#trainingDatasetId').select('1');
+        chooseTrainingDataset();
         cy.contains('summary', /^Events$/).click();
         cy.get('#enableSubsampleEventCount').check();
         cy.get('#subsampleEventCountInput').clear().type('12345');
@@ -60,6 +78,7 @@ describe('Training Tasks Management', () => {
         cy.contains('a', 'Reuse in new task').click();
         cy.get('#name').should('have.value', taskName + ' (copy)');
         cy.get('#trainingDatasetId').should('have.value', '1');
+        cy.get('#trainingDatasetId-value').should('have.text', 'Mixed periods 2023');
         cy.get('#enableSubsampleEventCount').should('be.checked');
         cy.get('#subsampleEventCountInput').should('have.value', '12345');
         cy.contains('summary', /^Model$/).click();
@@ -71,7 +90,7 @@ describe('Training Tasks Management', () => {
         cy.contains('main a', 'Create Training Task').click();
 
         cy.get('#name').type(generateUniqueName('invalid'));
-        cy.get('#trainingDatasetId').select('1');
+        chooseTrainingDataset();
         cy.contains('summary', /^Model$/).click();
         const dropout = '[name="configuration.model.attention.dropout"]';
         cy.get(dropout).clear().type('2');
@@ -87,12 +106,6 @@ describe('Training Tasks Management', () => {
         cy.intercept('POST', '/training-tasks').as('correctedTask');
         cy.contains('button', 'Submit').click();
         cy.wait('@correctedTask').its('response.statusCode').should('be.within', 200, 299);
-    });
-
-    it('userScoped', () => {
-        cy.contains('td', 'Niels Bohr').should('exist')
-        cy.get('input[name="userScoped"]').click();
-        cy.contains('td', 'Niels Bohr').should('not.exist')
     });
 
     it('disallows submission without a name', () => {
@@ -122,7 +135,7 @@ describe('Training Tasks Management', () => {
         cy.get('@alreadyExisting').then(alreadyExisting => {
             cy.get('input[name="name"]').type(alreadyExisting);
         })
-        cy.get('select[name="trainingDatasetId"]').select('1');
+        chooseTrainingDataset();
         cy.get('button[type="submit"]').click();
 
         cy.get('#errors').should('contain.text', 'Name must be unique')
@@ -153,6 +166,92 @@ describe('Training Tasks Management', () => {
         cy.get('.app-nav a[aria-current="page"]').should('have.text', 'Datasets');
     });
 
+    it('bounds the list and restores filter, sort and page from the URL', () => {
+        cy.intercept('GET', '/training-tasks/list*').as('taskPage');
+        cy.get('.task-list-filters [name="name"]').type('PAGING fixture');
+        cy.get('.task-list-filters [name="status"]').select('Completed');
+        cy.get('.task-list-filters [name="sort"]').select('Oldest first');
+        cy.get('[name="from"]').type('20/11/2024');
+        cy.get('input[aria-label="Start date calendar"]').should('have.value', '2024-11-20');
+        cy.get('input[aria-label="End date calendar"]').then(([calendar]) => {
+            cy.stub(calendar, 'showPicker').callsFake(() => {
+                calendar.value = '2024-11-21';
+                calendar.dispatchEvent(new Event('change', { bubbles: true }));
+            }).as('openEndCalendar');
+        });
+        cy.get('button[aria-label="Open end date calendar"]').click();
+        cy.get('@openEndCalendar').should('have.been.calledOnce');
+        cy.get('[name="to"]').should('have.value', '21/11/2024');
+        cy.get('#task-dataset-value').click();
+        cy.contains('#task-dataset-choices button', 'Mixed periods 2023').click();
+        cy.contains('button', 'Apply').click();
+        cy.wait('@taskPage').its('response.body').should(body => {
+            expect(body.length).to.be.lessThan(30000);
+        });
+        cy.get('.task-list tbody tr').should('have.length', 25);
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0001');
+        cy.get('.task-name').last().should('have.text', 'Paging fixture 0025');
+        cy.contains('a', 'Next').click();
+        cy.location('search').should('include', 'page=2').and('include', 'dataset=1');
+        cy.get('.task-list tbody tr').should('have.length', 25);
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0026');
+
+        cy.reload();
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0026');
+        cy.get('.task-list-filters [name="name"]').should('have.value', 'PAGING fixture');
+        cy.get('.task-list-filters [name="status"]').should('have.value', '4');
+        cy.get('.task-list-filters [name="sort"]').should('have.value', 'oldest');
+        cy.get('[name="from"]').should('have.value', '20/11/2024');
+        cy.get('[name="to"]').should('have.value', '21/11/2024');
+        cy.get('.task-list tbody time').first().should('contain.text', '20/11/2024');
+        cy.go('back');
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0001');
+        cy.go('forward');
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 0026');
+
+        cy.get('.task-list-filters [name="sort"]').select('Name (Z–A)');
+        cy.contains('button', 'Apply').click();
+        cy.location('search').should('not.include', 'page=');
+        cy.get('.task-name').first().should('have.text', 'Paging fixture 1000');
+    });
+
+    it('uses searchable dropdowns for the dataset and creator filters', () => {
+        cy.intercept('GET', '/training-tasks/filter-choices/dataset*').as('datasetChoices');
+        cy.get('#task-dataset-search').should('not.be.visible');
+        cy.get('#task-dataset-value').click();
+        cy.get('#task-dataset-search').should('be.focused').type('LHC23C1');
+        cy.wait('@datasetChoices');
+        cy.get('#task-dataset-choices button').should('have.length', 2);
+        cy.contains('#task-dataset-choices button', 'LHC23c1').click();
+        cy.get('#task-dataset-value').should('have.text', 'LHC23c1');
+        cy.get('#task-dataset-search').should('not.be.visible');
+        cy.get('#task-dataset-value').click();
+        cy.get('#task-dataset-search').clear().type('No matching fixture');
+        cy.contains('[role="status"]', 'No matches.').should('be.visible');
+        cy.get('#task-dataset').should('have.value', '2');
+        cy.get('#task-dataset-search').trigger('keydown', { key: 'Escape' });
+        cy.get('#task-dataset-value').parent().should('be.focused');
+
+        cy.get('#task-owner-value').click();
+        cy.get('#task-owner-search').type('NBOHR');
+        cy.get('#task-owner-choices button').should('have.length', 2);
+        cy.contains('#task-owner-choices button', 'Niels Bohr (nbohr)').click();
+        cy.get('#task-owner-search').should('not.be.visible');
+        cy.contains('button', 'Apply').click();
+        cy.location('search').should('include', 'dataset=2').and('include', 'owner=2').and('not.include', 'page=');
+        cy.get('.task-list tbody tr').should('have.length', 1).and('contain.text', 'LHC24b1b Other Task');
+        cy.reload();
+        cy.get('#task-dataset-value').should('have.text', 'LHC23c1');
+        cy.get('#task-owner-value').should('have.text', 'Niels Bohr (nbohr)');
+        cy.go('back');
+        cy.get('#task-dataset-value').should('have.text', 'All datasets');
+        cy.get('#task-owner-value').should('have.text', 'Anyone');
+        cy.go('forward');
+        cy.get('#task-dataset-value').should('have.text', 'LHC23c1');
+        cy.get('#task-owner-value').should('have.text', 'Niels Bohr (nbohr)');
+        cy.get('.task-list tbody tr').should('have.length', 1);
+    });
+
     it('shows loading and failure feedback and recovers on the next request', () => {
         cy.intercept({ pathname: '/training-tasks/list', times: 1 }, {
             statusCode: 500,
@@ -162,7 +261,7 @@ describe('Training Tasks Management', () => {
         cy.contains('[role="status"]', 'Loading training tasks').should('be.visible');
         cy.wait('@failedList');
         cy.contains('[role="alert"]', 'Training tasks could not be loaded.').should('be.visible');
-        cy.contains('label', 'Show only mine').click();
+        cy.contains('button', 'Apply').click();
         cy.contains('a', 'LHC24b1b Task 2').should('be.visible');
         cy.get('#task-list-error').should('not.be.visible');
     });

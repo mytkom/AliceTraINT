@@ -38,8 +38,10 @@ BASELINE_REPETITIONS=1 CHROME_BIN=chromium npm run test:baseline
 ```
 
 The JSON report is saved to `artifacts/browser/baseline/results.json`. It
-covers two AOD directories, a 6,000-file subset that refreshes the larger
-directory, and two tasks with 180 and 738 plot URLs. The AOD metadata is
+covers the first two pages of a 1,000-task filtered list, two AOD directories, a 6,000-file subset that refreshes the larger
+directory, and two tasks with 180 and 738 plot URLs. The task-list check requires 25 rows and one list request under 30 KB per page.
+The first-task-frame proxy is two animation frames after task rows appear.
+The AOD metadata is
 generated in Go. Each plot URL serves a 640×480 synthetic PNG through the
 real authenticated file route. The payload is the same for all plots.
 

@@ -147,26 +147,9 @@ func TestTrainingTaskService_Create(t *testing.T) {
 	assert.Equal(t, (*uint)(nil), tt.TrainingMachineId)
 }
 
-func TestTrainingTaskService_GetHelpers(t *testing.T) {
-	// Arrange
+func TestTrainingTaskService_GetFieldGroups(t *testing.T) {
 	ttService, ut := newTrainingTaskService()
-	userId := uint(1)
-	otherUserId := uint(2)
-	tds := []models.TrainingDataset{
-		{Name: "LHC24b1b", UserId: otherUserId, AODFiles: []jalien.AODFile{}},
-		{Name: "LHC24b1b2", UserId: userId, AODFiles: []jalien.AODFile{}},
-	}
-	ut.TDRepo.On("GetAll").Return(tds, nil)
-
-	// Act
-	helpers, err := ttService.GetHelpers()
-
-	// Assert
-	assert.NoError(t, err)
-	ut.TDRepo.AssertCalled(t, "GetAll")
-	assert.Equal(t, tds[0].Name, helpers.TrainingDatasets[0].Name)
-	assert.Equal(t, tds[1].Name, helpers.TrainingDatasets[1].Name)
-	assert.True(t, reflect.DeepEqual(helpers.FieldGroups, ut.NNArch.FieldGroups))
+	assert.Equal(t, ut.NNArch.FieldGroups, ttService.GetFieldGroups())
 }
 
 func TestTrainingTaskService_GetByID_Queued(t *testing.T) {

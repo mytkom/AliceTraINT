@@ -8,16 +8,29 @@ Open **Tasks** in the navigation. On narrow screens, open the menu first.
 Select a task name to view its details. The **Status** column shows the current
 state. On narrow screens, scroll the table horizontally to see all columns.
 
+Tasks are shown 25 at a time, newest first. Use **Previous** and **Next** below
+the table to move between pages. You can filter by task name, creator, training
+dataset, status, and creation dates in UTC. **Created from** includes the chosen
+day. **Created before** excludes the chosen day and everything after it. Type
+dates as DD/MM/YYYY or use the calendar.
+Open **Created by** or **Training dataset** to search and select an option. Creator search matches
+names and usernames. Task name searches match part of the name. Choose a sort
+order and click **Apply** to start at the first page. **Clear** restores the
+default list.
+
+The address records your filters, sort order and page. You can reload the view,
+bookmark it, or return to it with the browser’s Back and Forward buttons.
+
 The theme follows your device until you use the **Dark mode** button. The app
 remembers your choice in the current browser.
 
 ## Creating a task
 
-Open **Tasks** and click **Create Training Task**. Enter a **Task name**, choose a **Training dataset** and adjust the configuration below, then click **Submit**. The new task is Queued.
+Open **Tasks** and click **Create Training Task**. Enter a **Task name**, search for and select a **Training dataset** and adjust the configuration below, then click **Submit**. The new task is Queued.
 
 ![Task form with the name, the dataset, the Events group with Use subsample ticked, and the Data group](/docs/static/1-user-guide/3-training-tasks/task-form.png)
 
-Task names are unique within a dataset, so the same name can be used again on another dataset. You can choose only your own datasets.
+Task names are unique within a dataset, so the same name can be used again on another dataset. You can choose from active datasets.
 
 ## Configuration
 

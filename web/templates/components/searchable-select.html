@@ -1,0 +1,25 @@
+{{ define "searchable_select" }}
+<div class="searchable-select">
+    <span class="searchable-select-label" id="{{ .ID }}-label">{{ .Label }}</span>
+    <details data-searchable-select="{{ .SearchURL }}"{{ if .Required }} data-required{{ end }}>
+        <summary aria-labelledby="{{ .ID }}-label {{ .ID }}-value">
+            <span id="{{ .ID }}-value">{{ .SelectedLabel }}</span>
+        </summary>
+        <div class="searchable-select-menu">
+            <input type="search" id="{{ .ID }}-search" autocomplete="off"
+                   placeholder="{{ .SearchLabel }}…" aria-label="{{ .SearchLabel }}" aria-controls="{{ .ID }}-choices">
+            <div class="searchable-select-options" id="{{ .ID }}-choices">
+                <button type="button" value="" aria-pressed="{{ not .Selected }}">{{ .EmptyLabel }}</button>
+                <div data-select-options>
+                    {{ range .Choices }}
+                    <button type="button" value="{{ .ID }}" aria-pressed="{{ eq .ID $.Selected }}">{{ .Name }}</button>
+                    {{ end }}
+                </div>
+            </div>
+            <small role="status"></small>
+        </div>
+        <input type="hidden" id="{{ .ID }}" name="{{ .Name }}" data-json-type="uint" value="{{ if .Selected }}{{ .Selected }}{{ end }}">
+    </details>
+    {{ if .Required }}<small id="{{ .ID }}-required" class="searchable-select-error" role="alert" hidden>{{ .EmptyLabel }}.</small>{{ end }}
+</div>
+{{ end }}
