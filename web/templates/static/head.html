@@ -1,11 +1,36 @@
 {{ define "head" }}
+{{ template "head-start" . }}
+{{ template "head-end" . }}
+{{ end }}
+
+{{ define "head-start" }}
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        (() => {
+            let theme;
+            try {
+                theme = localStorage.getItem('alicetraint-theme');
+            } catch {
+                // Use the system theme when storage is unavailable.
+            }
+            if (theme === 'dark' || theme === 'light') {
+                document.documentElement.dataset.themePreference = 'manual';
+            } else {
+                theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            document.documentElement.dataset.theme = theme;
+        })();
+    </script>
+{{ end }}
+
+{{ define "head-end" }}
     <link href="/static/css/output.css" rel="stylesheet" />
+    <link href="/static/css/app.css" rel="stylesheet" />
     <link href="/static/img/favicon/favicon.ico" rel="icon" type="image/x-icon">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon/favicon-32x32.png">

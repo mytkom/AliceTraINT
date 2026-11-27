@@ -26,13 +26,40 @@
         if (!window.mermaid) {
             return;
         }
-        mermaid.initialize({
-            startOnLoad: false,
-            theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'redux-dark-color' : 'redux-color',
-            layout: 'elk',
-            fontFamily: getComputedStyle(document.querySelector('article')).fontFamily,
-        });
-        mermaid.run();
+        const root = document.documentElement;
+        const nodes = Array.from(document.querySelectorAll('article pre.mermaid'));
+        const sources = nodes.map(node => node.textContent);
+        const fontFamily = getComputedStyle(document.querySelector('article')).fontFamily;
+        let renderedTheme;
+        let renderID = 0;
+        let pending = Promise.resolve();
+
+        function syncTheme() {
+            pending = pending.then(async () => {
+                const theme = root.dataset.theme === 'dark' ? 'redux-dark-color' : 'redux-color';
+                if (theme === renderedTheme) {
+                    return;
+                }
+
+                mermaid.initialize({ startOnLoad: false, theme, layout: 'elk', fontFamily });
+                const diagrams = [];
+                for (const source of sources) {
+                    diagrams.push(await mermaid.render(`docs-mermaid-${++renderID}`, source));
+                }
+                if ((root.dataset.theme === 'dark') !== (theme === 'redux-dark-color')) {
+                    return;
+                }
+                nodes.forEach((node, index) => {
+                    const { svg, bindFunctions } = diagrams[index];
+                    node.innerHTML = svg;
+                    bindFunctions?.(node);
+                });
+                renderedTheme = theme;
+            }).catch(error => console.error('Could not render Mermaid diagrams', error));
+        }
+
+        new MutationObserver(syncTheme).observe(root, { attributeFilter: ['data-theme'] });
+        syncTheme();
     }
 
     addCopyButtons();
