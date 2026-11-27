@@ -58,14 +58,11 @@ On an uploaded task the button reads **Reupload to CCDB** and uploads the six mo
 
 ## Validity period
 
-Each model is valid in CCDB from the start of the first run to the end of the last run of the dataset's productions. AliceTraINT takes the list of runs from MonALISA and their start and end times from CCDB when the dataset is created, and stores the range with the dataset.
-
-For a dataset created before AliceTraINT stored this range, the range is looked up when you upload. If MonALISA has no runs for the dataset's productions, AliceTraINT uses the lowest and highest run number of the dataset's own files instead.
+Each model is valid in CCDB from the start of the first run to the end of the last run of the dataset's productions. AliceTraINT works out this range when the dataset is created.
 
 ## Troubleshooting
 
 | Message | Solution |
 |---|---|
-| `TrainingTask's result file: kaon.onnx not found` (or another model) | The training module did not upload all six models, so nothing was uploaded. Check `pdi_train_err.log`, then run the task again |
-| `"CCDB" external service is unreachable` | CCDB did not respond; try again later. Models uploaded before the error stay in CCDB, and the status does not change |
-| `"Monalisa" external service is unreachable` | Only for datasets without a stored range: MonALISA did not respond; try again later |
+| `TrainingTask's result file: … not found` | The task does not have all six models, so nothing was uploaded. Check the training logs and run the task again |
+| `… external service is unreachable` | CCDB or MonALISA did not respond; try again later |
