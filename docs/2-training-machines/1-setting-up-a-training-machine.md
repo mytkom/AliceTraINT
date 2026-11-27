@@ -2,6 +2,8 @@
 
 A training machine is a computer that runs the training module: it takes training tasks from AliceTraINT, prepares their datasets, trains the models and uploads the results. Anyone in the AliceTraINT group can register a machine and becomes its machine owner.
 
+This page runs the module in Docker. To run it as a Slurm job on the ALICE EPN farm instead, see [Running on the EPN farm](/docs/running-on-epn).
+
 ## Requirements
 
 - A Linux machine with Docker.
