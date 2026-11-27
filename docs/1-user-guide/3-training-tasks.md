@@ -81,6 +81,4 @@ stateDiagram-v2
 | Problem | Solution |
 |---|---|
 | The task is Failed | Open the task and read its logs, starting with the error log of the last step ([Logs](/docs/results-and-ccdb-upload#sec-logs)) |
-| The task failed and has no logs | **Use subsample** was probably not ticked; create the task again with it ticked |
-| The task stays Queued | No training machine is asking for work. On **Machines**, check **Last activity at**, and ask a machine owner to start their training module |
-| The task stays in Training for much longer than usual | AliceTraINT does not yet notice when a training module stops. Ask the owner of the machine that took the task to check its container |
+| The task stays Queued or Training for a long time | Check on **Machines** that a training machine is active, and ask its owner |

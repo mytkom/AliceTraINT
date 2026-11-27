@@ -57,22 +57,14 @@ To train on a GPU, add `--gpus all` before the image name.
 
 ## Settings
 
-The image copies `.env` when it is built, so rebuild the image after changing it. Every variable must be set; the module stops at startup when one is missing.
+The settings are in `.env`, which the image copies when it is built, so rebuild the image after changing it. Besides the ID, the key and the address of AliceTraINT, you may want to change these:
 
 | Variable | Value in `.env.example` | Meaning |
 |---|---|---|
-| `ALICETRAINT_BASE_URL` | `http://localhost:8088` | Address of AliceTraINT; `https://alicetraint.app.cern.ch` for production |
-| `MACHINE_ID` | `2` | ID shown at registration |
-| `MACHINE_SECRET_KEY` | placeholder | Secret key shown at registration |
 | `ALICETRAINT_POOLING_WAIT_SECONDS` | `20` | Seconds between two requests for work while the machine is idle |
 | `ALICETRAINT_DATASET_CACHE_DIR_PATH` | `./dataset_cache` | Directory of the dataset cache; mount it as a volume |
-| `ALICETRAINT_DATA_DIR_PATH` | `./data` | Working directory for downloaded AOD files and the training configuration; emptied before every task |
-| `ALICETRAINT_RESULTS_DIR_PATH` | `./results` | Working directory for logs, models and plots; emptied before every task |
-| `ALICETRAINT_SCRIPTS_DIR_PATH` | `./scripts` | Scripts that download, produce and subsample the data |
-| `ALICETRAINT_VENV_DIR_PATH` | `./.venv` | Python environment of the training code |
-| `ALICETRAINT_PDI_SRC_DIR_PATH` | `./pdi/src` | Source of the training code |
 
-Relative paths are inside `/wd/alice/AliceTraINT_pidml_training_module` in the container. Only the first four variables normally need changing.
+The other variables in `.env.example` are paths inside the container and keep their defaults.
 
 ## Checking that it works
 
@@ -80,9 +72,7 @@ On **Machines**, **Last activity at** of your machine changes every time the mod
 
 ## Dataset cache
 
-The module keeps every dataset it prepares as one ROOT file in the cache, with a small JSON file next to it. A later task with the same files and the same event count skips preparation. Its size grows with every new dataset, and the module never deletes anything from it.
-
-You can delete files from the cache while the module is not running a task. A task that needs a deleted dataset prepares it again.
+The module keeps every dataset it prepares in the cache, so a later task on the same files skips the preparation. The cache only grows; you can delete its files while the module is idle, and a task that needs a deleted dataset prepares it again.
 
 ## Updating
 
@@ -103,9 +93,4 @@ Stop and remove the container with `docker rm -f alicetraint-module`, and delete
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---|---|
-| Cloning stops at the `pdi` submodule with `Permission denied (publickey)` | Add an SSH key to your GitHub account and clone again |
-| The container stops at once and its log shows `ENV: … not present` | Set the named variable in `.env` and rebuild the image |
-| The container stops and its log shows `401 Unauthorized` | `MACHINE_ID` or `MACHINE_SECRET_KEY` is wrong, or the machine was removed. Register again if the key is lost, update `.env` and rebuild |
-| Tasks fail and `dataset_err.log` shows download errors | The GRID certificate may have expired. Export a new one as `gridCertificate.p12` and rebuild the image |
+If the container stops or tasks fail, read the container's log with `docker logs alicetraint-module` and the logs of the failed task. The usual causes are a wrong machine ID or secret key, a missing value in `.env` and an expired GRID certificate; fix `.env` or export a new `gridCertificate.p12`, then rebuild the image.
