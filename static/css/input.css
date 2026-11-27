@@ -39,6 +39,11 @@
     text-align: center;
 }
 
+.prose pre.mermaid svg {
+    margin-left: auto;
+    margin-right: auto;
+}
+
 /* Docs: copy button added to code blocks by static/js/docs.js. */
 .prose pre {
     position: relative;
