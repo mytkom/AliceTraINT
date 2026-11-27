@@ -1,25 +1,28 @@
 {{ define "training-tasks_index" }}
 {{ template "header" . }}
-<div class="max-h-screen flex flex-col gap-4 my-4">
-    <div class="flex flex-col-reverse justify-start gap-4 md:flex-row md:justify-between justify-self-stretch items-center">
-        <h1 class="text-xl">{{ .Title }}</h1>
-        <a class="bg-sky-900 hover:bg-sky-800 text-gray-50 rounded-lg text-lg font-bold py-2 px-4 self-end md:self-auto"
-            href="/training-tasks/new">Create Training Task</a>
-    </div>
-    <form method="get" class="flex items-center gap-2">
-        <label for="userScoped" class="text-md">Show only mine</label>
-        <input class="w-5 h-5 rounded-full" type="checkbox" name="userScoped" hx-get="/training-tasks/list" hx-trigger="click"
+<section class="task-list">
+    <header class="task-list-heading">
+        <h1>Training tasks</h1>
+        <a class="task-list-create" href="/training-tasks/new">Create Training Task</a>
+    </header>
+    <form method="get" class="task-list-scope">
+        <label for="userScoped">Show only mine</label>
+        <input id="userScoped" type="checkbox" name="userScoped" hx-get="/training-tasks/list" hx-trigger="click"
             hx-target="#training-tasks-listing" hx-indicator="#spinner">
     </form>
-    <div
-        class="relative max-h-full min-h-48 w-full overflow-x-auto bg-sky-50 dark:bg-sky-800 shadow-lg rounded-lg text-sm md:text-md xl:text-lg">
+    <div class="task-list-panel">
+        <div id="spinner" class="display-htmx-indicator task-list-notice" role="status">Loading training tasks…</div>
         <div id="training-tasks-listing" hx-get="/training-tasks/list" hx-trigger="load" hx-indicator="#spinner"></div>
-        <div id="spinner" class="display-htmx-indicator absolute inset-0 bg-sky-200 opacity-50 z-10">
-            <div class="h-full flex justify-center items-center">
-                <img class="size-14 lg:size-20" src="/static/img/spinner.svg" />
-            </div>
-        </div>
+        <p id="task-list-error" class="task-list-notice" role="alert" hidden>Training tasks could not be loaded.</p>
     </div>
-</div>
+    <script>
+        (() => {
+            const list = document.querySelector('.task-list');
+            const error = document.getElementById('task-list-error');
+            list.addEventListener('htmx:beforeRequest', () => { error.hidden = true; });
+            list.addEventListener('htmx:afterRequest', (event) => { error.hidden = event.detail.successful; });
+        })();
+    </script>
+</section>
 {{ template "footer" . }}
 {{ end }}

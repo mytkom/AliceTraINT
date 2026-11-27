@@ -1,0 +1,389 @@
+@font-face {
+    font-family: "Instrument Sans";
+    src: url("/static/fonts/instrument-sans-latin.woff2") format("woff2");
+    font-weight: 400 700;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "IBM Plex Sans";
+    src: url("/static/fonts/ibm-plex-sans-latin.woff2") format("woff2");
+    font-weight: 600 700;
+    font-display: swap;
+}
+
+.app-shell {
+    --surface: #e5edf8;
+    --panel: #f8fbff;
+    --ink: #142a46;
+    --muted: #415a77;
+    --rule: #b6c8dd;
+    --accent: #1755a3;
+    --on-accent: #fff;
+    --header: #1b3558;
+    --nav-selected: #2f5077;
+    --brand-accent: #a8d6ff;
+    --completed: #dfefe5;
+    --completed-ink: #215138;
+    --training: #fff0cb;
+    --training-ink: #614607;
+    --benchmarking: #fcebd8;
+    --benchmarking-ink: #693b18;
+    --uploaded: #dceefb;
+    --uploaded-ink: #164b75;
+    --failed: #ffe5e5;
+    --failed-ink: #752828;
+    --radius: 10px;
+    background: var(--surface);
+    color: var(--ink);
+    font-family: "Instrument Sans", system-ui, sans-serif;
+}
+
+[data-theme="dark"] .app-shell {
+    color-scheme: dark;
+    --surface: #101c2b;
+    --panel: #172638;
+    --ink: #ebf3ff;
+    --muted: #b5c8e1;
+    --rule: #40536c;
+    --accent: #8fc5ff;
+    --on-accent: #12243a;
+    --header: #101927;
+    --nav-selected: #263c55;
+    --completed: #203d39;
+    --completed-ink: #b6ebce;
+    --training: #4a361e;
+    --training-ink: #ffe1a4;
+    --benchmarking: #4a3020;
+    --benchmarking-ink: #ffdbc1;
+    --uploaded: #223d5d;
+    --uploaded-ink: #bbddff;
+    --failed: #482735;
+    --failed-ink: #ffc2ce;
+}
+
+.app-header,
+.app-footer {
+    background: var(--header, #0c4a6e);
+    color: #fff;
+}
+
+.app-shell .app-footer {
+    padding: 12px;
+    font-size: .875rem;
+    font-weight: 400;
+}
+
+.app-bar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px 20px;
+    max-width: 96rem;
+    margin-inline: auto;
+    padding: 12px 20px;
+}
+
+.app-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: .33em;
+    justify-self: start;
+    white-space: nowrap;
+    font: 600 1.35rem/1 "IBM Plex Sans", system-ui, sans-serif;
+    letter-spacing: -.055em;
+}
+
+.app-brand svg {
+    width: 1.45rem;
+    height: 1.45rem;
+}
+
+.app-brand circle {
+    fill: var(--brand-accent);
+}
+
+.app-brand b {
+    margin-left: .13em;
+    border-left: .045em solid;
+    padding-left: .15em;
+    color: var(--brand-accent);
+    font-weight: 700;
+}
+
+.app-nav,
+.app-tools {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.app-nav {
+    flex-wrap: wrap;
+}
+
+.app-nav a {
+    padding: 8px 10px;
+    border-radius: 7px;
+    color: #dceafb;
+    font-size: .9375rem;
+    font-weight: 600;
+}
+
+.app-nav a:hover,
+.app-nav a[aria-current],
+.app-tools button:hover {
+    background: var(--nav-selected);
+    color: #fff;
+}
+
+.app-tools {
+    gap: 6px;
+}
+
+.app-tools button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 6px 9px;
+    border: 1px solid #6683a8;
+    border-radius: 8px;
+    color: #edf5ff;
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+.app-theme-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.app-header :focus-visible,
+.task-list :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.app-header :focus-visible {
+    outline-color: #b7deff;
+}
+
+#menu-button {
+    display: none;
+}
+
+.task-list {
+    display: grid;
+    gap: 15px;
+    margin: 14px 12px 24px;
+    font-size: 1rem;
+    font-weight: 400;
+}
+
+.task-list-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.task-list-heading h1 {
+    font-size: clamp(1.65rem, 3.6vw, 2.15rem);
+    font-weight: 650;
+    line-height: 1.13;
+    letter-spacing: -.025em;
+}
+
+.task-list-create {
+    padding: 8px 11px;
+    border-radius: var(--radius);
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: .875rem;
+    font-weight: 650;
+}
+
+.task-list-create:hover {
+    text-decoration: underline;
+}
+
+.task-list-scope {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+.task-list-scope input {
+    border-radius: 4px;
+    background-color: var(--panel);
+    color: var(--accent);
+}
+
+.task-list-scope input:checked {
+    background-color: var(--accent);
+}
+
+[data-theme="dark"] .task-list-scope input:checked {
+    background-color: #1755a3;
+}
+
+.task-list-panel {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--panel);
+}
+
+.task-list-table {
+    overflow-x: auto;
+}
+
+.task-list table {
+    width: 100%;
+    text-align: left;
+    font-size: .875rem;
+}
+
+.task-list th,
+.task-list td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--rule);
+}
+
+.task-list th {
+    color: var(--muted);
+    font-weight: 650;
+}
+
+.task-list td:nth-child(-n+2) {
+    min-width: 9rem;
+    overflow-wrap: anywhere;
+}
+
+.task-list time {
+    white-space: nowrap;
+}
+
+.task-list td a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: .18em;
+}
+
+.task-name {
+    font-weight: 650;
+}
+
+.task-dataset-deleted {
+    color: var(--failed-ink);
+}
+
+.task-status {
+    display: inline-block;
+    padding: 4px 8px;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 700;
+}
+
+.task-status[data-status="Queued"] {
+    border-color: var(--rule);
+}
+
+.task-status[data-status="Training"] {
+    background: var(--training);
+    color: var(--training-ink);
+}
+
+.task-status[data-status="Benchmarking"] {
+    background: var(--benchmarking);
+    color: var(--benchmarking-ink);
+}
+
+.task-status[data-status="Completed"] {
+    background: var(--completed);
+    color: var(--completed-ink);
+}
+
+.task-status[data-status="Uploaded"] {
+    background: var(--uploaded);
+    color: var(--uploaded-ink);
+}
+
+.task-status[data-status="Failed"] {
+    background: var(--failed);
+    color: var(--failed-ink);
+}
+
+.task-list-notice {
+    padding: 8px 12px;
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+#spinner.htmx-request {
+    display: block;
+}
+
+#task-list-error {
+    border-color: var(--failed-ink);
+    background: var(--failed);
+    color: var(--failed-ink);
+}
+
+@media (max-width: 680px) {
+    .app-bar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0 8px;
+        padding-inline: 12px;
+    }
+
+    .app-tools {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .app-tools button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .app-theme-label {
+        display: none;
+    }
+
+    .app-nav {
+        display: none;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px solid #6683a8;
+    }
+
+    .app-bar:has(#menu-button[aria-expanded="true"]) .app-nav {
+        display: grid;
+    }
+
+    #menu-button {
+        display: inline-flex;
+    }
+
+    .task-list {
+        margin-inline: 4px;
+    }
+
+    .task-list-panel {
+        padding: 10px;
+    }
+}
