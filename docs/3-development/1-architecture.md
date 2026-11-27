@@ -14,30 +14,32 @@ flowchart TB
   accDescr: The browser and the training modules call the web app, and the browser logs in at CERN SSO. The web app stores data in PostgreSQL and result files on EOS, and calls CERN SSO, the GRID through JAliEn, MonALISA and CCDB. Training modules download AOD files from the GRID, read calibration from CCDB and keep prepared datasets as files in a dataset cache directory on the training machine.
 
   browser([Browser])
-  web["Web app<br>(container on CERN PaaS)"]
-  db[(PostgreSQL on DBoD)]
-  eos[(Results storage on EOS)]
   subgraph machine[Training machine]
-    module[Training module]
-    cache@{ shape: docs, label: "Dataset cache directory" }
+    module[Training module] -->|prepared datasets| cache@{ shape: docs, label: "Dataset cache directory" }
   end
-  sso[CERN SSO]
-  grid[(GRID)]
-  monalisa[MonALISA]
-  ccdb[CCDB]
+  web["Web app<br>(container on CERN PaaS)"]
+  subgraph services[CERN services]
+    sso[CERN SSO]
+    monalisa[MonALISA]
+    ccdb[CCDB]
+    grid[(GRID)]
+  end
+  subgraph storage[Storage]
+    db[(PostgreSQL on DBoD)]
+    eos[(Results storage on EOS)]
+  end
 
   browser -->|pages| web
   browser -.->|login| sso
+  module -->|poll, status, results| web
+  module -->|calibration| ccdb
+  module -->|download AODs| grid
   web -->|token check| sso
-  web -->|data| db
-  web -->|result files| eos
-  web -->|browse, find AODs| grid
   web -->|run lists| monalisa
   web -->|run times, ONNX upload| ccdb
-  module -->|poll, status, results| web
-  module -->|download AODs| grid
-  module -->|calibration| ccdb
-  module -->|prepared datasets| cache
+  web -->|browse, find AODs| grid
+  web -->|data| db
+  web -->|result files| eos
 ```
 
 The web app runs as one container on CERN PaaS (OpenShift). It keeps its data in a PostgreSQL database on CERN DB-on-Demand and stores the files that training tasks upload (logs, plots, ONNX models) in a directory on EOS.
@@ -87,9 +89,9 @@ flowchart TD
   accTitle: Request middleware
   accDescr: A request passes LogMw and RecoverMw, then the router. Routes for training datasets, tasks and machines pass AuthMw, then BlockHTMXMw for full pages or ValidateHTMXMw for partials, and CacheMw on two JAliEn routes, before the handler. The landing page and the docs pass only BlockHTMXMw. Queue routes go straight to the handler. The handler calls a service, which uses a repository to reach the database.
 
-  request([Request]) --> log[LogMw] --> recover[RecoverMw] --> router{Router}
-  router -->|training datasets, tasks, machines| auth[AuthMw]
+  request([Request]) --> log[LogMw] --> recover[RecoverMw] --> router[Router]
   router -->|"/ and /docs"| block[BlockHTMXMw]
+  router -->|datasets, tasks, machines| auth[AuthMw]
   router -->|queue routes| handler
   auth -->|full-page routes| block
   auth -->|partial routes| validate[ValidateHTMXMw]
