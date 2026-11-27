@@ -70,6 +70,6 @@ The next step of a real run is uploading the models to CCDB, which this example 
 
 - Machine owners: [Setting up a training machine](/docs/setting-up-a-training-machine).
 - Developers: [Architecture](/docs/architecture) and [Local development](/docs/local-development).
-- Operators: [Configuration](/docs/configuration).
+- Operators: [Production overview](/docs/production-overview) and [Deploying](/docs/deploying).
 
 The code is open source: the [web app](https://github.com/mytkom/AliceTraINT) and the [training module](https://github.com/mytkom/AliceTraINT_pidml_training_module).
