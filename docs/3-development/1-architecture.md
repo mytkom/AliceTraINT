@@ -83,19 +83,18 @@ Every request passes through `LogMw` and `RecoverMw`, which log the request and 
 ```mermaid
 flowchart TD
   accTitle: Request middleware
-  accDescr: A request passes LogMw and RecoverMw, then the router. Pages for training datasets, tasks and machines pass AuthMw, then BlockHTMXMw for full pages or ValidateHTMXMw for partials, then CacheMw on two JAliEn routes, then the handler. Public pages only block HTMX. Queue routes check the Secret-Id header in the handler.
+  accDescr: A request passes LogMw and RecoverMw, then the router. Pages for training datasets, tasks and machines pass AuthMw, then BlockHTMXMw for full pages or ValidateHTMXMw for partials, then CacheMw on two JAliEn routes, then the handler. Public pages only block HTMX. Queue routes have no middleware of their own and go straight to the handler.
 
   request([Request]) --> log[LogMw] --> recover[RecoverMw] --> router{Router}
   router -->|"/ and /docs"| public[BlockHTMXMw]
   router -->|training datasets, tasks, machines| auth[AuthMw]
-  router -->|queue routes| queue[Handler checks Secret-Id]
+  router -->|queue routes| handler
   auth -->|not logged in| redirect[Redirect to /]
   auth -->|full page| block[BlockHTMXMw]
   auth -->|partial| validate[ValidateHTMXMw]
   validate -->|explore-directory, find-aods| cachemw[CacheMw]
   block & validate & cachemw --> handler[Handler]
   public --> handler
-  queue --> handler
   handler --> service[Service] --> repository[Repository] --> db[(Database)]
 ```
 
