@@ -97,7 +97,7 @@ flowchart TD
   block & validate & cachemw --> handler[Handler]
   public --> handler
   queue --> handler
-  handler --> service[Service and repository] --> db[(Database)]
+  handler --> service[Service] --> repository[Repository] --> db[(Database)]
 ```
 
 `AuthMw` checks the session and puts the logged-in user into the request context.
